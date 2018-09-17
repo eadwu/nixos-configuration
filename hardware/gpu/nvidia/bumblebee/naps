@@ -1,0 +1,12 @@
+## NAPS (Not A Prime Select)
+
+case "$1" in
+  "init")
+    echo "auto" > /sys/bus/pci/devices/0000:01:00.0/power/control
+    ;;
+  "status")
+    cat "/sys/bus/pci/devices/0000:"$(lspci -vnn | grep 3D | awk '{print $1}')"/power/runtime_status"
+    ;;
+  *)
+    $0 status
+esac

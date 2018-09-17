@@ -1,0 +1,17 @@
+diff --git a/conf/bumblebee.conf.in b/conf/bumblebee.conf.in
+index a4d0717..f939907 100644
+--- a/conf/bumblebee.conf.in
++++ b/conf/bumblebee.conf.in
+@@ -51,6 +51,7 @@ AllowFallbackToIGC=@CONF_FALLBACKSTART@
+ 
+ ## Section with nvidia driver specific options, only parsed if Driver=nvidia
+ [driver-nvidia]
++AlwaysUnloadKernelDriver=true
+ # Module name to load, defaults to Driver if empty or unset
+ KernelDriver=@CONF_DRIVER_MODULE_NVIDIA@
+ PMMethod=@CONF_PM_METHOD@
+@@ -66,4 +67,3 @@ XorgConfFile=@BBCONFDIR@/xorg.conf.nvidia
+ KernelDriver=nouveau
+ PMMethod=@CONF_PM_METHOD@
+ XorgConfFile=@BBCONFDIR@/xorg.conf.nouveau
+-
