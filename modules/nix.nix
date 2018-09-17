@@ -33,14 +33,12 @@ in with settings; {
     nixPath = [
       "/etc/nixos"
       "nixos-config=/etc/nixos/configuration.nix"
-    ]
-      ++ (if builtins.pathExists (/. + "${HOME}/Downloads/nixpkgs")
+    ] ++ (if builtins.pathExists (/. + "${HOME}/Downloads/nixpkgs")
       then [ "nixpkgs=${HOME}/Downloads/nixpkgs" ]
       else [
         "nixpkgs=https://gitlab.com/eadwu/nixpkgs/-/archive/develop/nixpkgs-develop.tar.gz"
         "nixpkgs=https://api.github.com/repos/eadwu/nixpkgs/tarball/develop"
-      ])
-      ++ lib.optional (builtins.pathExists ../overlays) "nixpkgs-overlays=${../overlays}";
+      ]);
   };
 
   nixpkgs = {
