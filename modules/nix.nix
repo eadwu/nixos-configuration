@@ -38,7 +38,9 @@ in with settings; {
       else [
         "nixpkgs=https://gitlab.com/eadwu/nixpkgs/-/archive/develop/nixpkgs-develop.tar.gz"
         "nixpkgs=https://api.github.com/repos/eadwu/nixpkgs/tarball/develop"
-      ]);
+      ]) ++ [
+        "overlays=${../overlays}"
+      ];
   };
 
   nixpkgs = {
@@ -46,7 +48,9 @@ in with settings; {
       allowUnfree = true;
     };
 
-    overlays = import ../overlays;
+    overlays = if builtins.pathExists <overlays>
+      then import <overlays>
+      else import ../overlays;
   };
 
   system = {
