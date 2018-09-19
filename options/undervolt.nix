@@ -90,7 +90,6 @@ in {
       serviceConfig = {
         ExecStart = ''
           ${pkgs.undervolt}/bin/undervolt \
-            ${optionalString cfg.verbose "--verbose"} \
             ${optionalString (cfg.coreOffset != null) "--core ${cfg.coreOffset}"} \
             ${optionalString (cfg.coreOffset != null) "--cache ${cfg.coreOffset}"} \
             ${optionalString (cfg.gpuOffset != null) "--gpu ${cfg.gpuOffset}"} \
