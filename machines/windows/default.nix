@@ -1,7 +1,6 @@
 { config, pkgs, ... }:
 
 let
-  ucfg = config.services.undervolt;
   settings = import ../../settings.nix;
 in with settings; {
   imports =
@@ -14,7 +13,13 @@ in with settings; {
       # ../../hardware/gpu/nvidia/prime
       # ../../modules/xserver/window-manager/bspwm
       ../../modules/xserver/window-manager/dwm
+      ../../options/undervolt.nix
       ../../profiles/desktop.nix
+    ];
+
+  disabledModules =
+    [
+      <nixpkgs/nixos/modules/services/hardware/undervolt.nix>
     ];
 
   environment = {
@@ -43,12 +48,13 @@ in with settings; {
       '';
     };
 
-    undervolt = {
+    undervolt = rec {
       enable = true;
-      coreOffset = "-100";
+      temp = "95";
+      coreOffset = "-50";
       gpuOffset = "-75";
-      uncoreOffset = ucfg.coreOffset;
-      analogioOffset = ucfg.coreOffset;
+      uncoreOffset = coreOffset;
+      analogioOffset = coreOffset;
     };
 
     xserver = {
@@ -78,45 +84,6 @@ in with settings; {
           Option "PalmDetection" "on"
           Option "TappingButtonMap" "lmr"
         '';
-      };
-    };
-  };
-
-  systemd = {
-    services = {
-      undervolt = {
-        enable = false;
-      };
-
-      undervolts = {
-        after = [
-          "suspend.target"
-          "hibernate.target"
-          "hybrid-sleep.target"
-        ];
-        description = "Intel undervolting";
-        serviceConfig = {
-          ExecStart = ''
-            ${pkgs.undervolt}/bin/undervolt \
-              --core ${ucfg.coreOffset} \
-              --cache ${ucfg.coreOffset} \
-              --gpu ${ucfg.gpuOffset} \
-              --uncore ${ucfg.uncoreOffset} \
-              --analogio ${ucfg.analogioOffset}
-          '';
-        };
-        wantedBy = [
-          "suspend.target"
-          "hibernate.target"
-          "hybrid-sleep.target"
-          "multi-user.target"
-        ];
-      };
-    };
-
-    timers = {
-      undervolt = {
-        enable = false;
       };
     };
   };
