@@ -11,8 +11,8 @@ let
   }).overrideAttrs (oldAttrs: {
     src = fetchgit {
       url = "https://git.savannah.gnu.org/git/emacs.git";
-      rev = "0407733ef3d4e8e133e91917097dbc9bcc688b47";
-      sha256 = "0pjj92n3bdyjbhfcgrfrdxp0f0mdiivj9ap48kh2sna6yjrwy9dp";
+      rev = "75d9a55fae1c484aa6d213064931bfe3b65cf5dd";
+      sha256 = "0m2gadf0j2hcmkfpfbj2887xyhvbs4n61g3dnxf16ria5f4z2q56";
     };
 
     buildInputs = oldAttrs.buildInputs ++ (with pkgs; [
@@ -49,7 +49,6 @@ in {
     magit
     nix-buffer
     nix-mode
-    nix-update
     pandoc-mode
     projectile
     spaceline
