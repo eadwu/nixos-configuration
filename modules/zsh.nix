@@ -56,7 +56,7 @@ in with settings; {
       shellAliases = {
         "download-audio" = "${pkgs.youtube-dl}/bin/youtube-dl --extract-audio --audio-format mp3";
         "emacs-nox" = "${pkgs.emacs}/bin/emacs --no-window-system";
-        "nixos-generate-iso" = ''nix-build "<nixpkgs/nixos>" -A config.system.build.isoImage -I nixos-config=${HOME}/Downloads/dotfiles/snowroot/etc/iso.nix'';
+        "nixos-generate-iso" = ''nix-build "<nixpkgs/nixos>" -A config.system.build.isoImage -I nixos-config=${HOME}/Downloads/nixos-configuration/profiles/iso.nix'';
       };
     };
   };
