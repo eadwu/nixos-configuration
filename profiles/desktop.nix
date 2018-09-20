@@ -51,4 +51,10 @@
       unifont
     ];
   };
+
+  virtualisation = {
+    docker = {
+      enable = true;
+    };
+  };
 }

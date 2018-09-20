@@ -54,7 +54,6 @@ in with pkgs; with settings; {
       # Build Tools
       cmake
       # Misc
-      docker
       ffmpeg
       gnupg
       imagemagick7
