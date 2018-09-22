@@ -12,8 +12,8 @@
     capitaine-cursors = super.capitaine-cursors.overrideAttrs (oldAttrs: {
       src = fetchgit {
         url = "https://github.com/keeferrourke/capitaine-cursors";
-        rev = "3ae9acee30f482677caa345ec702141a1db696c2";
-        sha256 = "1kck0lpzwvcb8bbsvzsvvfyaa7cs1h0p5xfbn798lx0c281lis5q";
+        rev = "960f9e9011bab281bbcb1355fc45d43295282034";
+        sha256 = "1szxwwj1x87wlvj18jdjxh4dl88hkkq9fp3sl58wcp9jw6iaixrv";
       };
     });
 
