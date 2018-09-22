@@ -32,12 +32,13 @@ in with pkgs; with settings; {
       xclip
       zip
       # Version Control
+      git
       gitlab
       gitAndTools.hub
+      git-lfs
       # Languages / SDKs
       fsharp
       gcc
-      git
       llvmPackages.clang-unwrapped
       mongodb
       mysql57
