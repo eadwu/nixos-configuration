@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
 let
   settings = import ../../settings.nix;
@@ -61,7 +61,7 @@ in with settings; {
             reneg-sec 0
 
             remote-cert-tls server
-            auth-user-pass ${protonFile}
+            auth-user-pass ${lib.optionalString (builtins.pathExists protonFile) protonFile}
             pull
             fast-io
 

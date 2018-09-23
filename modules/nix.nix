@@ -36,9 +36,7 @@ in with settings; {
       else [
         "nixpkgs=https://gitlab.com/eadwu/nixpkgs/-/archive/develop/nixpkgs-develop.tar.gz"
         "nixpkgs=https://api.github.com/repos/eadwu/nixpkgs/tarball/develop"
-      ]) ++ [
-        "overlays=${../overlays}"
-      ];
+      ]) ++ lib.optional (builtins.pathExists ../overlays) "overlays=${../overlays}";
   };
 
   nixpkgs = {
