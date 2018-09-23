@@ -19,6 +19,7 @@
       ../modules/redshift.nix
       ../modules/tlp.nix
       ../modules/users.nix
+      ../modules/virtualisation.nix
       ../modules/watchman.nix
       ../modules/xserver
       ../modules/zsh.nix
@@ -50,17 +51,5 @@
       ubuntu_font_family
       unifont
     ];
-  };
-
-  virtualisation = {
-    docker = {
-      enable = true;
-    };
-
-    virtualbox = {
-      host = {
-        enable = true;
-      };
-    };
   };
 }
