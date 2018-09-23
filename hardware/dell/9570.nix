@@ -5,6 +5,7 @@
   [
     ../webcam
 
+    ../profiles/uefi.nix
     ../profiles/intel.nix
     ../profiles/nvidia.nix
     ../profiles/laptop.nix

@@ -18,15 +18,5 @@
       "snd_hda_intel.power_save=1"
       "vm.dirty_writeback_centisecs=6000"
     ];
-
-    loader = {
-      efi = {
-        # canTouchEfiVariables = true;
-      };
-
-      systemd-boot = {
-        enable = true;
-      };
-    };
   };
 }
