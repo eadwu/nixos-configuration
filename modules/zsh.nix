@@ -12,7 +12,7 @@ let
     src = pkgs.fetchgit {
       url = "https://github.com/denysdovhan/spaceship-prompt";
       rev = "35ac6cd1e07b1d3fb44d605d628f6e6c4073b7ea";
-      sha256 = "10hqp52c8agxyszwqmrjp6m0v29b0ykqys9ixwl6iawqcwwcwd2c";
+      sha256 = "0hwl44qqa97172rndiv5fg59v1rzyr5msx5l17zgqrfhad4jwpwg";
     };
 
     dontBuild = true;
