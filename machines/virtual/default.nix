@@ -17,8 +17,12 @@
   boot = {
     kernelPackages = lib.mkForce pkgs.linuxPackages_latest;
 
-    kernelModules = [
-      "uas"
-    ];
+    loader = {
+      grub = {
+        enable = true;
+        device = "/dev/sda";
+        version = 2;
+      };
+    };
   };
 }
