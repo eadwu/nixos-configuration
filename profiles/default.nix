@@ -42,6 +42,7 @@ in with pkgs; with settings; {
       llvmPackages.clang-unwrapped
       mongodb
       mysql57
+      nasm
       nodejs
       openjdk10
       python
