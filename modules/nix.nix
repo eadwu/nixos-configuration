@@ -4,6 +4,7 @@ let
   settings = import ../settings.nix;
 in with settings; {
   nix = {
+    autoOptimiseStore = true;
     buildCores = 0;
     package = pkgs.nixUnstable;
     requireSignedBinaryCaches = true;
@@ -27,6 +28,10 @@ in with settings; {
       "qt5.cachix.org-1:Ka/DtafK6EmdVWthzRpYo+N0j0X6j7gUOIfenczmV7s="
       "texlive.cachix.org-1:OWd0kb4Wkw8F7T0+sSAPzyOo/pH+NEqIhAWty25oCLk="
     ];
+
+    extraOptions = ''
+      show-trace = true
+    '';
 
     nixPath = [
       "/etc/nixos"
