@@ -1,10 +1,9 @@
 { config, pkgs, ... }:
 
 let
-  backgrounds = pkgs.fetchgit {
-    url = "https://gitlab.com/eadwu/backgrounds";
-    rev = "c6ba272d72b161b2f7fca1a85398de724b7725b2";
-    sha256 = "1s8j7fpyxps5gprqxk6zf7cjhv2gkaxpndgdbkcxp8r7i908y362";
+  background = pkgs.fetchurl {
+    url = "https://gitlab.com/eadwu/backgrounds/raw/master/70791127_p0.jpg";
+    sha256 = "1zs0kcd88wssybl2w9ba671vrm9w1b5j0lyf5pwxw0wy0qri1iqx";
   };
 in {
   imports =
@@ -18,7 +17,7 @@ in {
       displayManager = {
         lightdm = {
           enable = true;
-          background = "${backgrounds}/963246ae-c25d-4a69-bfa8-29b51f08eebb.png";
+          background = "${background}";
 
           greeters = {
             enso = {
