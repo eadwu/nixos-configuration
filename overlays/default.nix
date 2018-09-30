@@ -1,4 +1,10 @@
-self: super: with self.pkgs; {
+self: super: let
+  rPackages = with super.rPackages; [
+    ggplot2
+    rmarkdown
+    RDocumentation
+  ];
+in with self.pkgs; {
   inherit (import ./pkgs/emacs.nix self super) emacs;
   inherit (import ./pkgs/polybar.nix self super) polybar;
   inherit (import ./pkgs/suckless.nix self super) dmenu dwm st;
@@ -32,5 +38,13 @@ self: super: with self.pkgs; {
     clockSupport = true;
     outputsSupport = true;
     visualizerSupport = true;
+  };
+
+  rWrapper = super.rWrapper.override {
+    packages = rPackages;
+  };
+
+  rstudioWrapper = super.rstudioWrapper.override {
+    packages = rPackages;
   };
 }
