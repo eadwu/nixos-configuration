@@ -12,6 +12,7 @@
       ../modules/i3color.nix
       ../modules/logind
       ../modules/mpd
+      ../modules/netdata.nix
       ../modules/network
       ../modules/nix.nix
       ../modules/oblogout.nix
