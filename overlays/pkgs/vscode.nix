@@ -89,6 +89,13 @@ self: super:
       }
 
       {
+        name = "vscode-pull-request-github";
+        publisher = "GitHub";
+        version = "0.1.6";
+        sha256 = "08r0i265q4gk6kmz3ynxglhssdk5020bifagl9jr8spfs5sacnsx";
+      }
+
+      {
         name = "Ionide-FAKE";
         publisher = "Ionide";
         version = "1.2.3";
@@ -114,6 +121,13 @@ self: super:
         publisher = "James-Yu";
         version = "5.10.2";
         sha256 = "0bda0s5gf0cwwml7rwpgdsz7xgnxkl0v5r89qshb3kln3iii1z2b";
+      }
+
+      {
+        name = "horizon-theme-vscode";
+        publisher = "jolaleye";
+        version = "1.4.0";
+        sha256 = "1q3zg5228w3zfqapdajjcjda7axsvpsp0s5g7d5nipb1fasr46nk";
       }
 
       {
@@ -149,6 +163,13 @@ self: super:
         publisher = "ms-vscode";
         version = "1.16.1";
         sha256 = "1pjhdz8i434qz05aj55qrflfvd14n2ig9dk242jcf8is5gqv405d";
+      }
+
+      {
+        name = "vs-keybindings";
+        publisher = "ms-vscode";
+        version = "0.2.0";
+        sha256 = "176xvqcaf3ls5sa1ldb0iyv6hi5d6fmcam1a3gkdk6m5na6vfca8";
       }
 
       {
@@ -254,27 +275,6 @@ self: super:
         publisher = "vscjava";
         version = "0.11.0";
         sha256 = "031ys6ka7wii36s3r0mlrfl1n01kv8s871gb4g7phq7z90xlp697";
-      }
-
-      {
-        name = "horizon-theme-vscode";
-        publisher = "jolaleye";
-        version = "1.4.0";
-        sha256 = "1q3zg5228w3zfqapdajjcjda7axsvpsp0s5g7d5nipb1fasr46nk";
-      }
-
-      {
-        name = "vscode-pull-request-github";
-        publisher = "Github";
-        version = "0.1.6";
-        sha256 = "08r0i265q4gk6kmz3ynxglhssdk5020bifagl9jr8spfs5sacnsx";
-      }
-
-      {
-        name = "vs-keybindings";
-        publisher = "ms-vscode";
-        version = "0.2.0";
-        sha256 = "176xvqcaf3ls5sa1ldb0iyv6hi5d6fmcam1a3gkdk6m5na6vfca8";
       }
     ];
   };
