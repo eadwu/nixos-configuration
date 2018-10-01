@@ -2,8 +2,8 @@
 
 let
   background = pkgs.fetchurl {
-    url = "https://gitlab.com/eadwu/backgrounds/raw/master/70791127_p0.jpg";
-    sha256 = "1zs0kcd88wssybl2w9ba671vrm9w1b5j0lyf5pwxw0wy0qri1iqx";
+    url = "https://gitlab.com/eadwu/backgrounds/raw/master/sen-no-kiseki-iv.jpg";
+    sha256 = "1yfnj185xcs4xfilqsx38qjs6w6m5jl20m2p3jj1nfilqff4mgd4";
   };
 in {
   imports =
