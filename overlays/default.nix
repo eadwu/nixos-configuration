@@ -26,7 +26,7 @@ in with self.pkgs; {
     enableGlfw = true;
   };
 
-  lightdm-enso-os-greeter = (super.lightdm-enso-os-greeter or {}).overrideAttrs (oldAttrs: {
+  lightdm-enso-os-greeter = super.lightdm-enso-os-greeter.overrideAttrs (oldAttrs: {
     src = fetchgit {
       url = "https://github.com/nick92/Enso-OS";
       rev = "2d4184080c644b92b23f7a98e87b81b70b862bca";
