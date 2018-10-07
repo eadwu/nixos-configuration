@@ -42,8 +42,8 @@ self: super:
       {
         name = "githistory";
         publisher = "donjayamanne";
-        version = "0.4.2";
-        sha256 = "14r9rrqh0dzzi94rwhnj0431v11i5v9dycyynmpxnrm8bfkg97sq";
+        version = "0.4.3";
+        sha256 = "12vhs0jrzqh1gq38qfq0h3pfpnan01sx4a4ik14hdby0558han9j";
       }
 
       {
@@ -119,8 +119,8 @@ self: super:
       {
         name = "latex-workshop";
         publisher = "James-Yu";
-        version = "5.10.2";
-        sha256 = "0bda0s5gf0cwwml7rwpgdsz7xgnxkl0v5r89qshb3kln3iii1z2b";
+        version = "5.11.1";
+        sha256 = "0hjjd36aikk98pczsyra1nylhpyj7b2z5jfja01sws0cqlqsqz9q";
       }
 
       {
@@ -210,8 +210,8 @@ self: super:
       {
         name = "java";
         publisher = "redhat";
-        version = "0.31.0";
-        sha256 = "1hzqiqkja4931k7rb4pmva6k80ss53nvyksiqvq6kxj25rg3kd1b";
+        version = "0.32.0";
+        sha256 = "0agwvwrjzfv2fnkfpgybzgalq5skbj8smxpbjh44ys8187p0j2wq";
       }
 
       {
