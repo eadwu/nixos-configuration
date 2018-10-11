@@ -50,7 +50,7 @@ in with settings; {
 
     undervolt = rec {
       enable = true;
-      temp = "95";
+      temp = "90";
       coreOffset = "-100";
       gpuOffset = "-75";
       uncoreOffset = coreOffset;
