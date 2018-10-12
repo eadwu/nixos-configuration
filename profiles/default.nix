@@ -44,7 +44,7 @@ in with pkgs; with settings; {
       mysql57
       nasm
       nodejs
-      openjdk10
+      openjdk
       python
       python3
       rustup
