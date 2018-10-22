@@ -35,8 +35,8 @@ self: super:
       {
         name = "vscode-eslint";
         publisher = "dbaeumer";
-        version = "1.6.0";
-        sha256 = "0hm32c5ah95c9nmgibp5zl80f5jbx112b6m755z67qyvlhvincq9";
+        version = "1.6.1";
+        sha256 = "10zhrp73rhmv226x2zfah0wzy70k180y24smkijd3cjjg1yhfh7k";
       }
 
       {
@@ -88,12 +88,12 @@ self: super:
         sha256 = "1hgd7y8fyzrphn166vmmsm9kqcl7n8gw4xi8rd24imwbswvh0mgi";
       }
 
-      {
-        name = "vscode-pull-request-github";
-        publisher = "GitHub";
-        version = "0.2.1";
-        sha256 = "02f1fxnz2qa5vqvdr7cq0ggfqsfnindhgi8j9031nf94csvjlx8g";
-      }
+      # {
+      #   name = "vscode-pull-request-github";
+      #   publisher = "GitHub";
+      #   version = "0.2.1";
+      #   sha256 = "02f1fxnz2qa5vqvdr7cq0ggfqsfnindhgi8j9031nf94csvjlx8g";
+      # }
 
       {
         name = "Ionide-FAKE";
@@ -105,8 +105,8 @@ self: super:
       {
         name = "Ionide-fsharp";
         publisher = "Ionide";
-        version = "3.28.0";
-        sha256 = "1bwr7q9qwqlfx1wxr3h1iyddcpvknb9n7g8xl9k3in17f1ck3ih9";
+        version = "3.29.0";
+        sha256 = "1nk85iwfdxxf28d2jlw2ddwviyj5yl69q7msym96zgs7qqwlxq4i";
       }
 
       {
@@ -119,15 +119,15 @@ self: super:
       {
         name = "latex-workshop";
         publisher = "James-Yu";
-        version = "5.12.2";
-        sha256 = "0dvdkvk3l069nl193h1i8qfaf0ynx1njkz16r14cwmjir89jf6wq";
+        version = "5.13.0";
+        sha256 = "1wykiwv2k3adpjq4d4fnpilw5g3q2h2f9f8g5dqchdm1iw8r0gwx";
       }
 
       {
         name = "horizon-theme-vscode";
         publisher = "jolaleye";
-        version = "1.4.1";
-        sha256 = "000c92a4g4qzbwqybaanxmlhyl8pmi4m1ncfa6cjh352n8317gcs";
+        version = "1.5.0";
+        sha256 = "17lr1vm889jm9jjsbbryqd1p60gvys96rz486i492ipmzijcf6zq";
       }
 
       {
@@ -140,8 +140,8 @@ self: super:
       {
         name = "vscode-language-babel";
         publisher = "mgmcdermott";
-        version = "0.0.20";
-        sha256 = "0zvhq0ripvz2x68pfzmqgvp5rz5ydr6rvzxgda849rg9jhkk34ri";
+        version = "0.0.21";
+        sha256 = "183wiz1sa2656zjq2vwlrpz59zi6q2cij2w35mh7q2hh0wpjpcpl";
       }
 
       {
@@ -158,12 +158,12 @@ self: super:
         sha256 = "149cc99a2502svi55zpfmngl3dsw7kji45vsgpzwh6559szzd2fq";
       }
 
-      {
-        name = "csharp";
-        publisher = "ms-vscode";
-        version = "1.16.2";
-        sha256 = "0w036y86l8i9bbl8q35cxbm2n5a378fpvq4piibd214fg534ljgv";
-      }
+      # {
+      #   name = "csharp";
+      #   publisher = "ms-vscode";
+      #   version = "1.16.2";
+      #   sha256 = "0w036y86l8i9bbl8q35cxbm2n5a378fpvq4piibd214fg534ljgv";
+      # }
 
       {
         name = "vs-keybindings";
@@ -175,8 +175,8 @@ self: super:
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "0.3.790";
-        sha256 = "15c4b23j3zsccyhgg2ywwb3lpyi3p0d8j3w6blcya45jgkppi6va";
+        version = "0.3.834";
+        sha256 = "0b1yfgmkqqv2cqpz7ppb5c0y8fdv2xmcd50cjrmcfdmcj8yp91pn";
       }
 
       {
@@ -224,8 +224,8 @@ self: super:
       {
         name = "code-settings-sync";
         publisher = "Shan";
-        version = "3.1.2";
-        sha256 = "1rf35fbh4j5z6bwkln3cxfi21yqqmv79vnq7a51mk1r4p1c8rhai";
+        version = "3.2.0";
+        sha256 = "1m5x0h06wggp8150gjhpsn8hrqwfrnzqqqkjbd5bakbdvi5njwlc";
       }
 
       {
