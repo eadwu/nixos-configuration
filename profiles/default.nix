@@ -55,6 +55,7 @@ in with pkgs; with settings; {
       stack
       # Build Tools
       cmake
+      gnumake
       # Misc
       ffmpeg
       gnupg
