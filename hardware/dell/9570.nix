@@ -15,6 +15,7 @@
   boot = {
     kernelParams = [
       "acpi_rev_override=5"
+      "mem_sleep_default=deep"
       "psmouse.synaptics_intertouch=0"
     ];
   };
