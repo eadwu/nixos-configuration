@@ -19,6 +19,13 @@ self: super:
       }
 
       {
+        name = "vscode-sqlite";
+        publisher = "alexcvzz";
+        version = "0.3.1";
+        sha256 = "0r7icvrmb4k1yjbk2c94k6hhssdw61vbmmbddz5gvdq1vwrsfr06";
+      }
+
+      {
         name = "solargraph";
         publisher = "castwide";
         version = "0.17.6";
@@ -70,8 +77,8 @@ self: super:
       {
         name = "vsc-material-theme";
         publisher = "Equinusocio";
-        version = "2.4.2";
-        sha256 = "1cl9xy9pg0jvgpz4ifvb9n6lv1xcsnrsh56xmz2hr6901n4gk70p";
+        version = "2.5.1";
+        sha256 = "1qr7zk3qjsp98346r642k54s6jny8fkanac99v3aa7i2k6idpm6g";
       }
 
       {
@@ -87,13 +94,6 @@ self: super:
         version = "0.0.15";
         sha256 = "1hgd7y8fyzrphn166vmmsm9kqcl7n8gw4xi8rd24imwbswvh0mgi";
       }
-
-      # {
-      #   name = "vscode-pull-request-github";
-      #   publisher = "GitHub";
-      #   version = "0.2.1";
-      #   sha256 = "02f1fxnz2qa5vqvdr7cq0ggfqsfnindhgi8j9031nf94csvjlx8g";
-      # }
 
       {
         name = "Ionide-FAKE";
@@ -126,8 +126,8 @@ self: super:
       {
         name = "horizon-theme-vscode";
         publisher = "jolaleye";
-        version = "1.5.0";
-        sha256 = "17lr1vm889jm9jjsbbryqd1p60gvys96rz486i492ipmzijcf6zq";
+        version = "1.5.1";
+        sha256 = "1cvwsvcs0fjv09plpg6x6nj7z28v6a7m2h2vjlxn82hmaw7hl951";
       }
 
       {
@@ -158,13 +158,6 @@ self: super:
         sha256 = "149cc99a2502svi55zpfmngl3dsw7kji45vsgpzwh6559szzd2fq";
       }
 
-      # {
-      #   name = "csharp";
-      #   publisher = "ms-vscode";
-      #   version = "1.16.2";
-      #   sha256 = "0w036y86l8i9bbl8q35cxbm2n5a378fpvq4piibd214fg534ljgv";
-      # }
-
       {
         name = "vs-keybindings";
         publisher = "ms-vscode";
@@ -175,8 +168,8 @@ self: super:
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "0.3.834";
-        sha256 = "0b1yfgmkqqv2cqpz7ppb5c0y8fdv2xmcd50cjrmcfdmcj8yp91pn";
+        version = "0.3.869";
+        sha256 = "033dqqds7yhqq9qviaznbzcakf3byz56np0fzpdpfpg818gizal4";
       }
 
       {
@@ -210,8 +203,8 @@ self: super:
       {
         name = "java";
         publisher = "redhat";
-        version = "0.32.0";
-        sha256 = "0agwvwrjzfv2fnkfpgybzgalq5skbj8smxpbjh44ys8187p0j2wq";
+        version = "0.33.0";
+        sha256 = "0fgy34iwdckdkhvhxx19v07cy7501950i69dkgb432dr361cyg99";
       }
 
       {
