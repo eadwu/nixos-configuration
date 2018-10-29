@@ -50,6 +50,7 @@ in with pkgs; with settings; {
       rustup
       rWrapper
       sass
+      sqlite
       texlive.combined.scheme-full
       ## Haskell
       stack
