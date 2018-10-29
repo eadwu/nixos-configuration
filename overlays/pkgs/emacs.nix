@@ -11,8 +11,8 @@ let
   }).overrideAttrs (oldAttrs: {
     src = fetchgit {
       url = "https://git.savannah.gnu.org/git/emacs.git";
-      rev = "8602bd855904acc1966f1a94a008f91bb3f88c18";
-      sha256 = "0a0ipkb7r1npiiialvv6gmzx0xmi7wy4yy3m5z86rywqy20r6rn0";
+      rev = "f3050fc14e05a6eb18a70e0e7ce5d5302d5203e6";
+      sha256 = "16wci4dr0mf9y9rx6biv60m76pvqw08wkk8z2rgn7lhyr359n92y";
     };
 
     buildInputs = oldAttrs.buildInputs ++ (with pkgs; [
