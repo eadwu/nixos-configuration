@@ -18,6 +18,7 @@ in with settings; {
 
     networkmanager = {
       enable = true;
+      backend = "iwd";
     };
   };
 }
