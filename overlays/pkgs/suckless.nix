@@ -1,7 +1,7 @@
 self: super:
 
 let
-  inherit (super) fetchgit;
+  inherit (self.pkgs) fetchgit;
 in {
   dmenu = super.dmenu.overrideAttrs (oldAttrs: {
     src = fetchgit {
