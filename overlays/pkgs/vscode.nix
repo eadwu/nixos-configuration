@@ -1,10 +1,23 @@
 self: super:
 
-{
+let
+  vscodeInsiders = (super.vscode.override {
+    isInsiders = true;
+  }).overrideAttrs(oldAttrs: rec {
+    name = "vscode-insiders-${version}";
+    version = "1541174446";
+
+    src = self.pkgs.fetchurl {
+      name = "VSCode_latest_linux-x64.tar.gz";
+      url = "https://vscode-update.azurewebsites.net/latest/linux-x64/insider";
+      sha256 = "08qs4aaz5rqa2ibh2dx9mdh7lgzf0mlnxwvralsi3rh7fs8h5a7h";
+    };
+  });
+in {
   vscode = (super.vscode-with-extensions.overrideAttrs (oldAttrs: {
-    name = super.vscode.name;
+    name = vscodeInsiders.name;
   })).override {
-    vscode = super.vscode;
+    vscode = vscodeInsiders;
     vscodeExtensions = with super.vscode-extensions; [
       bbenoist.Nix
       ms-vscode.cpptools
