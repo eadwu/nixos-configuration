@@ -5,12 +5,12 @@ let
     isInsiders = true;
   }).overrideAttrs(oldAttrs: rec {
     name = "vscode-insiders-${version}";
-    version = "1541174446";
+    version = "1541336565";
 
     src = self.pkgs.fetchurl {
       name = "VSCode_latest_linux-x64.tar.gz";
       url = "https://vscode-update.azurewebsites.net/latest/linux-x64/insider";
-      sha256 = "08qs4aaz5rqa2ibh2dx9mdh7lgzf0mlnxwvralsi3rh7fs8h5a7h";
+      sha256 = "0angszy5rp397w3nxa3bqlpylyi9aqdlixzchlg6wlpq9rrzqspy";
     };
   });
 in {
@@ -20,15 +20,14 @@ in {
     vscode = vscodeInsiders;
     vscodeExtensions = with super.vscode-extensions; [
       bbenoist.Nix
-      ms-vscode.cpptools
       ms-python.python
       WakaTime.vscode-wakatime
     ] ++ super.vscode-utils.extensionsFromVscodeMarketplace [
       {
         name = "better-comments";
         publisher = "aaron-bond";
-        version = "2.0.2";
-        sha256 = "0c36wpk4skk0ncbscq86qrizddjgmv9v0xs2jbmb1hdp6fw9p19d";
+        version = "2.0.3";
+        sha256 = "1v6j1blh00y3wr1lawqacvclh4r99vf8h8vjqw4p2y1mv5kh0xk5";
       }
 
       {
@@ -55,8 +54,8 @@ in {
       {
         name = "vscode-eslint";
         publisher = "dbaeumer";
-        version = "1.6.1";
-        sha256 = "10zhrp73rhmv226x2zfah0wzy70k180y24smkijd3cjjg1yhfh7k";
+        version = "1.7.0";
+        sha256 = "1jim6kn09wacrv163fwkxlzrf8k1r51mmryzrnm0gx5iz1iv1pha";
       }
 
       {
@@ -95,13 +94,6 @@ in {
       }
 
       {
-        name = "prettier-vscode";
-        publisher = "esbenp";
-        version = "1.6.1";
-        sha256 = "04nq5r1s5kacqfn7vrsdwps4jr58nnvm9hrircnp2mp94wal9wsj";
-      }
-
-      {
         name = "auto-rename-tag";
         publisher = "formulahendry";
         version = "0.0.15";
@@ -132,15 +124,15 @@ in {
       {
         name = "latex-workshop";
         publisher = "James-Yu";
-        version = "5.13.0";
-        sha256 = "1wykiwv2k3adpjq4d4fnpilw5g3q2h2f9f8g5dqchdm1iw8r0gwx";
+        version = "5.14.2";
+        sha256 = "0d1r3p46xlflk877h3da4shz7fkvax5y0ddq5354cm3slp8wfcbd";
       }
 
       {
         name = "horizon-theme-vscode";
         publisher = "jolaleye";
-        version = "1.5.1";
-        sha256 = "1cvwsvcs0fjv09plpg6x6nj7z28v6a7m2h2vjlxn82hmaw7hl951";
+        version = "1.5.2";
+        sha256 = "1mwfpc2nbx76h4a4ck58i37f1nr2aih3h7xazm5iqhaz89zf3slj";
       }
 
       {
@@ -155,6 +147,13 @@ in {
         publisher = "mgmcdermott";
         version = "0.0.21";
         sha256 = "183wiz1sa2656zjq2vwlrpz59zi6q2cij2w35mh7q2hh0wpjpcpl";
+      }
+
+      {
+        name = "vscode-clang";
+        publisher = "mitaki28";
+        version = "0.2.3";
+        sha256 = "0xbg2frb4dxv7zl43gi25w2mkkh4xq2aidcf5i8b4imys9h720yr";
       }
 
       {
@@ -181,8 +180,8 @@ in {
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "0.3.869";
-        sha256 = "033dqqds7yhqq9qviaznbzcakf3byz56np0fzpdpfpg818gizal4";
+        version = "0.3.897";
+        sha256 = "1yy716xz7qnn89zdsv1qwnd8r8pca0p2mjkdgwfij0psxkxzg6cz";
       }
 
       {
@@ -237,8 +236,8 @@ in {
       {
         name = "stylelint";
         publisher = "shinnn";
-        version = "0.44.0";
-        sha256 = "1m2vi7a1ign162a7z2miga749pbqrx5c66bzm3v5xbihq23kwfsw";
+        version = "0.45.0";
+        sha256 = "138zwr61djp6awfqrircpwl21pm8wsb5aj2nya8vb4kq0k9x07yy";
       }
 
       {
@@ -258,8 +257,8 @@ in {
       {
         name = "vscode-java-debug";
         publisher = "vscjava";
-        version = "0.14.0";
-        sha256 = "1p0nlb3sd0npiw9095i9kwlf01jjfidy0ka4midnihcnl5cirn2f";
+        version = "0.15.0";
+        sha256 = "1p0jf3jf7smf0xxbbzjfj4kg3dq6wxdwilk5b5c7kjd24il210b4";
       }
 
       {
