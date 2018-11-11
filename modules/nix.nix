@@ -59,7 +59,7 @@ in with settings; {
 
     autoUpgrade = {
       enable = false;
-      channel = https://nixos.org/channels/nixpkgs-unstable;
+      channel = "https://nixos.org/channels/nixpkgs-unstable";
     };
   };
 }
