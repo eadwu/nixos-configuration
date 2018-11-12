@@ -5,12 +5,13 @@ let
     isInsiders = true;
   }).overrideAttrs(oldAttrs: rec {
     name = "vscode-insiders-${version}";
-    version = "1541336565";
+    version = "1541809983";
 
+    # wget --spider "https://vscode-update.azurewebsites.net/latest/linux-x64/insider"
     src = self.pkgs.fetchurl {
       name = "VSCode_latest_linux-x64.tar.gz";
-      url = "https://vscode-update.azurewebsites.net/latest/linux-x64/insider";
-      sha256 = "0angszy5rp397w3nxa3bqlpylyi9aqdlixzchlg6wlpq9rrzqspy";
+      url = "https://az764295.vo.msecnd.net/insider/5f24c93878bd4bc645a4a17c620e2487b11005f9/code-insider-${version}.tar.gz";
+      sha256 = "0dvibkfs2skx90af1z4zhv7q5c11hav74hfvka2sf2n2417hid8i";
     };
   });
 in {
@@ -21,6 +22,7 @@ in {
     vscodeExtensions = with super.vscode-extensions; [
       bbenoist.Nix
       ms-python.python
+      ms-vscode.cpptools
       WakaTime.vscode-wakatime
     ] ++ super.vscode-utils.extensionsFromVscodeMarketplace [
       {
@@ -124,15 +126,15 @@ in {
       {
         name = "latex-workshop";
         publisher = "James-Yu";
-        version = "5.14.2";
-        sha256 = "0d1r3p46xlflk877h3da4shz7fkvax5y0ddq5354cm3slp8wfcbd";
+        version = "5.15.1";
+        sha256 = "1crbqlmwykpvc65c6skhmm4zicpqfv1nc6g685yvb08d3y7asw78";
       }
 
       {
         name = "horizon-theme-vscode";
         publisher = "jolaleye";
-        version = "1.5.2";
-        sha256 = "1mwfpc2nbx76h4a4ck58i37f1nr2aih3h7xazm5iqhaz89zf3slj";
+        version = "1.6.0";
+        sha256 = "04px1x1hr8w4197048p5l7inbrmkfl5d6rkgr14zifaqbjzkd7br";
       }
 
       {
@@ -150,13 +152,6 @@ in {
       }
 
       {
-        name = "vscode-clang";
-        publisher = "mitaki28";
-        version = "0.2.3";
-        sha256 = "0xbg2frb4dxv7zl43gi25w2mkkh4xq2aidcf5i8b4imys9h720yr";
-      }
-
-      {
         name = "vscode-filesize";
         publisher = "mkxml";
         version = "2.1.1";
@@ -166,8 +161,8 @@ in {
       {
         name = "azure-account";
         publisher = "ms-vscode";
-        version = "0.4.3";
-        sha256 = "149cc99a2502svi55zpfmngl3dsw7kji45vsgpzwh6559szzd2fq";
+        version = "0.6.0";
+        sha256 = "1zk102pxar2l6dk579h7k5xxpq9kwaycib3syqdd69p4m0fmbi8h";
       }
 
       {
@@ -180,15 +175,15 @@ in {
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "0.3.897";
-        sha256 = "1yy716xz7qnn89zdsv1qwnd8r8pca0p2mjkdgwfij0psxkxzg6cz";
+        version = "0.3.925";
+        sha256 = "1crxgvg6mcaaldgs3ckisfpdnx1acrd762ib80mikvri8pjy1ac3";
       }
 
       {
         name = "debugger-for-chrome";
         publisher = "msjsdiag";
-        version = "4.10.2";
-        sha256 = "00lnxbdsb24jl4dblwavshwkpn72n95fgh2x58fnmf5hfr7h6jx8";
+        version = "4.11.0";
+        sha256 = "0ic6zvikqazqc3cw5ahkjxcx9nwc8yp8q90a8hdff1pbgxbyy4ci";
       }
 
       {
@@ -227,17 +222,10 @@ in {
       }
 
       {
-        name = "code-settings-sync";
-        publisher = "Shan";
-        version = "3.2.0";
-        sha256 = "1m5x0h06wggp8150gjhpsn8hrqwfrnzqqqkjbd5bakbdvi5njwlc";
-      }
-
-      {
         name = "stylelint";
         publisher = "shinnn";
-        version = "0.45.0";
-        sha256 = "138zwr61djp6awfqrircpwl21pm8wsb5aj2nya8vb4kq0k9x07yy";
+        version = "0.46.0";
+        sha256 = "10vkyjp70xfczknb3ny0mglw2hac7q7fs4bsjrj1rrk434mvml21";
       }
 
       {
