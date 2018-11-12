@@ -1,17 +1,19 @@
 self: super:
 
 let
-  inherit (self.pkgs) fetchgit fetchpatch;
+  inherit (self.pkgs) fetchFromGitHub;
 in {
   polybar = (super.polybar.override {
     githubSupport = true;
     mpdSupport = true;
     pulseSupport = true;
   }).overrideAttrs (oldAttrs: {
-    src = fetchgit {
-      url = "https://github.com/jaagr/polybar";
-      rev = "07d35df538b7b016997d1c7fe9995bf038901dbd";
-      sha256 = "0c6w51lk62bd3n37m02vb8hkmvqrwbi2yg01p1f9mnjgwda24j8j";
+    src = fetchFromGitHub {
+      owner = "jaagr";
+      repo = "polybar";
+      rev = "bf0b6635498c3a315c6c72057c7f331828657ae2";
+      sha256 = "1c4pwjd318l611s0l0f0gfdjppfk0c08nyrl9yk79bs7792bdp9s";
+      fetchSubmodules = true;
     };
   });
 }
