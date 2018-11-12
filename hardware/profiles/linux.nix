@@ -18,5 +18,9 @@
       "snd_hda_intel.power_save=1"
       "vm.dirty_writeback_centisecs=6000"
     ];
+
+    kernelPatches = [
+      (import ../../patches/kernel/disable-amateur-radio-support.nix)
+    ];
   };
 }
