@@ -1,11 +1,6 @@
 { config, pkgs, ... }:
 
-let
-  background = pkgs.fetchurl {
-    url = "https://gitlab.com/eadwu/backgrounds/raw/master/sen-no-kiseki-iv.jpg";
-    sha256 = "1yfnj185xcs4xfilqsx38qjs6w6m5jl20m2p3jj1nfilqff4mgd4";
-  };
-in {
+{
   imports =
     [
       ./enso-greeter.nix
@@ -17,7 +12,10 @@ in {
       displayManager = {
         lightdm = {
           enable = true;
-          background = "${background}";
+          background = "${pkgs.fetchurl {
+            url = "https://gitlab.com/eadwu/backgrounds/raw/master/issiki-iroha-oregairu.png";
+            sha256 = "19hdsxa2373hcs09ikv0zj3w8zw2f8qsj9irpxkc4bkqd2qsqc7x";
+          }}";
 
           greeters = {
             enso = {
