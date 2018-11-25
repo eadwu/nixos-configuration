@@ -9,7 +9,7 @@ let
     inherit fetchNodeModules;
   };
 
-  targetElectronVersion = "2.0.13";
+  targetElectronVersion = "3.0.10";
   edex-ui-bare = callPackage <nixpkgs/pkgs/applications/misc/edex-ui/bare.nix> {
     inherit fetchNodeModules buildNativeModule;
   };
@@ -35,25 +35,28 @@ in rec {
         sha256 = "07m4ykb4bpkx4z4fgrhpqh0gva6xlix0gbhdcrnvdk0lr023sqdj";
       };
 
+      # "https://atom.io/download/electron/v${version}/iojs-v${version}.tar.gz"
       node_pty = buildNativeModule {
         name = "node-pty";
         nodejs = pkgs.nodejs-8_x;
         headerVersion = targetElectronVersion;
         src = "${node_modules_src}/node-pty";
-        sha256 = "100hpblcqgrk7hgvdlfg10rly9d357yfld1abizix0qi3db7zqw7";
+        sha256 = "06rbvyyviy25hbma0xby48b496izj31k90cpbsn6x5yq8yc9dch2";
         nodeSHA256 = "02wja8cd17ac2rcm9fbvim9v1xbz987j7kjfsh1dm47djjsv8j9z";
-        headerSHA256 = "0qmqi9sq0zpqdqz63vjc3aw190fih4dhq7qsfkd3f8f9jww450yz";
+        headerSHA256 = "17jrsn5y8qzh5bc6bjlkppm4lhh885c6p73nidsizhhq9x2n4ahq";
       };
     });
 
-    electron = super.electron.overrideAttrs (oldAttrs: rec {
-      name = "electron-${version}";
-      version = targetElectronVersion;
+    electron = if (super.electron.version == targetElectronVersion)
+      then super.electron
+      else super.electron.overrideAttrs (oldAttrs: rec {
+        name = "electron-${version}";
+        version = targetElectronVersion;
 
-      src = fetchurl {
-        url = "https://github.com/electron/electron/releases/download/v${version}/electron-v${version}-linux-x64.zip";
-        sha256 = "09s7gyfdnw17yzykqinhz6p2x92pqqbr9ls20rqq8axns9g12pmi";
-      };
-    });
+        src = fetchurl {
+          url = "https://github.com/electron/electron/releases/download/v${version}/electron-v${version}-linux-x64.zip";
+          sha256 = "01nk5q79k31lllsd678ff4d2pnm5s5fzf43d3q1syc6swd4dvsm6";
+        };
+      });
   };
 }
