@@ -4,18 +4,15 @@ let
   inherit (self) pkgs;
   inherit (pkgs) fetchurl callPackage fetchFromGitHub;
 
-  targetElectronVersion = "3.0.10";
-  electron = if (super.electron.version == targetElectronVersion)
-    then super.electron
-    else super.electron.overrideAttrs (oldAttrs: rec {
-      name = "electron-${version}";
-      version = targetElectronVersion;
+  electron = super.electron.overrideAttrs (oldAttrs: rec {
+    name = "electron-${version}";
+    version = "3.0.10";
 
-      src = fetchurl {
-        url = "https://github.com/electron/electron/releases/download/v${version}/electron-v${version}-linux-x64.zip";
-        sha256 = "01nk5q79k31lllsd678ff4d2pnm5s5fzf43d3q1syc6swd4dvsm6";
-      };
-    });
+    src = fetchurl {
+      url = "https://github.com/electron/electron/releases/download/v${version}/electron-v${version}-linux-x64.zip";
+      sha256 = "01nk5q79k31lllsd678ff4d2pnm5s5fzf43d3q1syc6swd4dvsm6";
+    };
+  });
 
   fetchNodeModules = callPackage <nixpkgs/pkgs/applications/networking/instant-messengers/rambox/fetchNodeModules.nix> { };
   buildNativeModule = callPackage <nixpkgs/pkgs/applications/misc/edex-ui/buildNativeModule.nix> {
@@ -28,28 +25,28 @@ in {
     src = fetchFromGitHub {
       owner = "GitSquared";
       repo = "edex-ui";
-      rev = "f7d6970bfef47123b31851ed9aad1f980eec99e6";
-      sha256 = "031dhb0xpnw023dj082h873hk5ca26gliff6vfaqp9ihz72gp767";
+      rev = "e0500213c30c1e05aee856787d1fce1982bd2169";
+      sha256 = "1891dy0w5i7br8vjws9xwab3wmd1s3nbg85ch2qkpdcvrf8lsywr";
     };
 
     node_modules_root = fetchNodeModules {
       inherit src;
-      nodejs = pkgs.nodejs-8_x;
-      sha256 = "1fbj0zl6jml1pwp2cyr23p8yhfwfxm74xlx4xg1748j530md0p6w";
+      nodejs = pkgs.nodejs-10_x;
+      sha256 = "19m7147rbdncn5gq8p52rwiq5gjmlgdh0nlvzpzblllpk9bdasxf";
     };
 
     node_modules_src = fetchNodeModules {
       src = "${src}/src";
-      nodejs = pkgs.nodejs-8_x;
-      sha256 = "07m4ykb4bpkx4z4fgrhpqh0gva6xlix0gbhdcrnvdk0lr023sqdj";
+      nodejs = pkgs.nodejs-10_x;
+      sha256 = "0ik648i06zz9sr00a6mmrrqxjs7yzjvbv9s3sfn7wqcbm2c22xp1";
     };
 
     # "https://atom.io/download/electron/v${version}/iojs-v${version}.tar.gz"
     node_pty = buildNativeModule {
       name = "node-pty";
-      nodejs = pkgs.nodejs-8_x;
+      nodejs = pkgs.nodejs-10_x;
       src = "${node_modules_src}/node-pty";
-      sha256 = "06rbvyyviy25hbma0xby48b496izj31k90cpbsn6x5yq8yc9dch2";
+      sha256 = "0q7cvcz41nqxya5iirrsq9vsk2knjhh3j40a5qgvx8mgxsqr2aq9";
       nodeSHA256 = "02wja8cd17ac2rcm9fbvim9v1xbz987j7kjfsh1dm47djjsv8j9z";
       headerSHA256 = "17jrsn5y8qzh5bc6bjlkppm4lhh885c6p73nidsizhhq9x2n4ahq";
     };
