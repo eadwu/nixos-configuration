@@ -5,13 +5,13 @@ let
     isInsiders = true;
   }).overrideAttrs(oldAttrs: rec {
     name = "vscode-insiders-${version}";
-    version = "1543307127";
+    version = "1543558730";
 
     # wget --spider "https://vscode-update.azurewebsites.net/latest/linux-x64/insider"
     src = self.pkgs.fetchurl {
       name = "VSCode_latest_linux-x64.tar.gz";
-      url = "https://az764295.vo.msecnd.net/insider/d3bb20c3fd1f23c369b80dca2ed25d54efd664e2/code-insider-${version}.tar.gz";
-      sha256 = "0h3bfgsgpdgddjg8pj38wgzqkv9wmimp95kl7ffrnk568pjzmpy2";
+      url = "https://az764295.vo.msecnd.net/insider/9878edb2a72ed4c4fd64811f9a58f06151810acf/code-insider-${version}.tar.gz";
+      sha256 = "0bbng97bqnj3cllbfpzj67av88xslmzsaw8h90ahapv4jsg9dmmk";
     };
   });
 in {
@@ -77,8 +77,8 @@ in {
       {
         name = "gitlens";
         publisher = "eamodio";
-        version = "8.5.6";
-        sha256 = "1vn6fvxn4g3759pg9rp8hqdc58pgyvcdma1ylfwmdnipga37xfd3";
+        version = "9.0.1";
+        sha256 = "1x9nsmhybp012v39qrpm0r9fcriikjgwkav9wjmxh6q4qbhw7p3r";
       }
 
       {
@@ -91,8 +91,8 @@ in {
       {
         name = "vsc-material-theme";
         publisher = "Equinusocio";
-        version = "2.6.1";
-        sha256 = "0985ybx1ad5qn4m2fykxfj5br409w5mjc4i3ai8z3i3nkchkny28";
+        version = "2.6.2";
+        sha256 = "115xj5r3ms28jxq3s7qb0zxrvkdsbgyvrkrkf7cc1jljcybvsimc";
       }
 
       {
@@ -182,8 +182,8 @@ in {
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "0.3.954";
-        sha256 = "0rs8cnk50xkgg6jj2krfzwpwwfada83y56sf7q9vs7iaapa8w1vy";
+        version = "0.3.1005";
+        sha256 = "1cl4lqrm2vkyzg2y07j98aps3dyinjgsq8sqjgrk15y3skwnr44m";
       }
 
       {
@@ -217,8 +217,8 @@ in {
       {
         name = "java";
         publisher = "redhat";
-        version = "0.34.0";
-        sha256 = "163m03kimb5hs4lv3ljlyd8dhp1hqcy2b4bh8dl0h4h2ssqw8z5i";
+        version = "0.35.0";
+        sha256 = "1dszdzs52x8ihf7x64nv6xb74q6gq6pc10mxhrzdh4vhdrb1rspw";
       }
 
       {
@@ -231,8 +231,8 @@ in {
       {
         name = "stylelint";
         publisher = "shinnn";
-        version = "0.46.2";
-        sha256 = "1slmf6dyk8w2ncnsfb85jxj6azl1w659id1k25zng1pp3skqshyc";
+        version = "0.47.0";
+        sha256 = "0z3p6cz7lxvdd013s4dydhixsvb4d1wzmhsrv1g1w02jd4kmxd87";
       }
 
       {
@@ -273,8 +273,8 @@ in {
       {
         name = "vscode-maven";
         publisher = "vscjava";
-        version = "0.11.2";
-        sha256 = "1ln9ajbya5rsj22p9yz9j3h3nk5ziivgg3a949ifg16yd26cp9sc";
+        version = "0.11.3";
+        sha256 = "139hbrcx6j27m5ssvm1h8nmri4kyxy39dhn3yla27ix97vpd0ph0";
       }
     ];
   };
