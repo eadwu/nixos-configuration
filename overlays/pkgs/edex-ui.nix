@@ -25,20 +25,20 @@ in {
     src = fetchFromGitHub {
       owner = "GitSquared";
       repo = "edex-ui";
-      rev = "e0500213c30c1e05aee856787d1fce1982bd2169";
-      sha256 = "1891dy0w5i7br8vjws9xwab3wmd1s3nbg85ch2qkpdcvrf8lsywr";
+      rev = "48ab160b89e0e0cdc1f85e0ab024aa5ed7809dd5";
+      sha256 = "0xkpyghlp0fpyfw3c49y1y4ggkkazrigb6rfgns89naa0c13ssdr";
     };
 
     node_modules_root = fetchNodeModules {
       inherit src;
       nodejs = pkgs.nodejs-10_x;
-      sha256 = "19m7147rbdncn5gq8p52rwiq5gjmlgdh0nlvzpzblllpk9bdasxf";
+      sha256 = "1wpfkl58plklnm055pm4pr705mhm02y1xycf6v861ysv9q7w3xfs";
     };
 
     node_modules_src = fetchNodeModules {
       src = "${src}/src";
       nodejs = pkgs.nodejs-10_x;
-      sha256 = "0ik648i06zz9sr00a6mmrrqxjs7yzjvbv9s3sfn7wqcbm2c22xp1";
+      sha256 = "16xlgxkf1xghqns79fnagzqcbvsx6brpscv0hlv4l8d8pqk54d9d";
     };
 
     # "https://atom.io/download/electron/v${version}/iojs-v${version}.tar.gz"
@@ -46,7 +46,6 @@ in {
       name = "node-pty";
       nodejs = pkgs.nodejs-10_x;
       src = "${node_modules_src}/node-pty";
-      sha256 = "0q7cvcz41nqxya5iirrsq9vsk2knjhh3j40a5qgvx8mgxsqr2aq9";
       nodeSHA256 = "02wja8cd17ac2rcm9fbvim9v1xbz987j7kjfsh1dm47djjsv8j9z";
       headerSHA256 = "17jrsn5y8qzh5bc6bjlkppm4lhh885c6p73nidsizhhq9x2n4ahq";
     };
