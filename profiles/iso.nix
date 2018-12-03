@@ -7,6 +7,12 @@
       <nixpkgs/nixos/modules/installer/cd-dvd/installation-cd-minimal.nix>
     ];
 
+  boot = {
+    supportedFilesystems = [
+      "bcachefs"
+    ];
+  };
+
   environment = {
     interactiveShellInit = ''
       alias emacs="${pkgs.emacs}/bin/emacs --no-window-system"
