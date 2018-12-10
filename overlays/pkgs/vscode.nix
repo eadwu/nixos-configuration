@@ -5,13 +5,13 @@ let
     isInsiders = true;
   }).overrideAttrs(oldAttrs: rec {
     name = "vscode-insiders-${version}";
-    version = "1543558730";
+    version = "1544221729";
 
     # wget --spider "https://vscode-update.azurewebsites.net/latest/linux-x64/insider"
     src = self.pkgs.fetchurl {
       name = "VSCode_latest_linux-x64.tar.gz";
-      url = "https://az764295.vo.msecnd.net/insider/9878edb2a72ed4c4fd64811f9a58f06151810acf/code-insider-${version}.tar.gz";
-      sha256 = "0bbng97bqnj3cllbfpzj67av88xslmzsaw8h90ahapv4jsg9dmmk";
+      url = "https://az764295.vo.msecnd.net/insider/241923763dbeaf3b64443187e935d55b29f6125d/code-insider-${version}.tar.gz";
+      sha256 = "0nvn5a1cr9bbvpx0sflki7m8rrgmklssr808r6pymx1g75ancn57";
     };
   });
 in {
@@ -42,8 +42,8 @@ in {
       {
         name = "solargraph";
         publisher = "castwide";
-        version = "0.17.6";
-        sha256 = "1n1z9kgygd12120didqnmbsclq4lj041r8amjksfnyi8mg8ysl4r";
+        version = "0.18.0";
+        sha256 = "1p61fklqpzq97k4imcnbcbz6kfg80wjnb7fhdcqh2lnxw3cm4zv3";
       }
 
       {
@@ -77,8 +77,8 @@ in {
       {
         name = "gitlens";
         publisher = "eamodio";
-        version = "9.0.1";
-        sha256 = "1x9nsmhybp012v39qrpm0r9fcriikjgwkav9wjmxh6q4qbhw7p3r";
+        version = "9.0.3";
+        sha256 = "0f64h0s6xpajmqwdfjh9nh9jzhh1xryai7bzll9s97vi7gvjrylp";
       }
 
       {
@@ -182,8 +182,8 @@ in {
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "0.3.1005";
-        sha256 = "1cl4lqrm2vkyzg2y07j98aps3dyinjgsq8sqjgrk15y3skwnr44m";
+        version = "0.3.1013";
+        sha256 = "1a730mpv2jz6ksqrbx13ph33109plx234jrdf5qy2dm2w5cbhvm5";
       }
 
       {
@@ -210,8 +210,8 @@ in {
       {
         name = "ruby";
         publisher = "rebornix";
-        version = "0.20.0";
-        sha256 = "09p9vc45nq542vlrb6wn5958gmv7dy600i5nxgam78m08k5il2dd";
+        version = "0.21.0";
+        sha256 = "06ww2drq1z5ff3d07d7c5cvc0lhxh7y5958cljvw7y1a5nl9f8ba";
       }
 
       {
@@ -224,8 +224,8 @@ in {
       {
         name = "rust";
         publisher = "rust-lang";
-        version = "0.4.10";
-        sha256 = "1y7sb3585knv2pbq7vf2cjf3xy1fgzrqzn2h3fx2d2bj6ns6vpy3";
+        version = "0.5.3";
+        sha256 = "0nkf6cg1hmmsrvryjs5r0pdwsilfmrmy44wz47jjygyy62ixcad9";
       }
 
       {
@@ -259,8 +259,8 @@ in {
       {
         name = "vscode-java-pack";
         publisher = "vscjava";
-        version = "0.4.0";
-        sha256 = "1fsayy5yyarasg0w0sgd9ak6vb25m38mr09cj1vjzmmpdac0mg2q";
+        version = "0.5.0";
+        sha256 = "0nfjj3zm0xbsz6v0qcy8kc47arg12svn4bw6p6lz5dd2hq9wmg90";
       }
 
       {
