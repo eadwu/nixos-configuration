@@ -25,8 +25,8 @@ in {
     src = fetchFromGitHub {
       owner = "GitSquared";
       repo = "edex-ui";
-      rev = "48ab160b89e0e0cdc1f85e0ab024aa5ed7809dd5";
-      sha256 = "0xkpyghlp0fpyfw3c49y1y4ggkkazrigb6rfgns89naa0c13ssdr";
+      rev = "dd521f820d418216fdf43e023e85a1f14d4f060a";
+      sha256 = "03qn71w1fixz5vxv2byhimb44qa2pq2p2slrlwyzd679nn004r44";
     };
 
     node_modules_root = fetchNodeModules {
