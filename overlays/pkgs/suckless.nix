@@ -25,8 +25,8 @@ in {
     src = fetchFromGitLab {
       owner = "eadwu";
       repo = "st";
-      rev = "f43aa9382c0cc7a46a6a8d6e4b0c030ad8dce8e1";
-      sha256 = "1bmsvqb4l4ayzandgb9awfr9d9minrgy0wvy6w7jkp7izij0q9jp";
+      rev = "d73f211031726a5063ac53b9457f12b2473cc07b";
+      sha256 = "1ajv0gdva9ipga4zhpw92pwcw3hvn7iz3lhc57na0zihai3xdbm1";
     };
   });
 }
