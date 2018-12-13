@@ -16,8 +16,8 @@ in {
     src = fetchFromGitLab {
       owner = "eadwu";
       repo = "dwm";
-      rev = "72e31b1b1bbb97e1bda2e8a46cd53d70f1950ee5";
-      sha256 = "003qra39n6i861kpbrjl1z8j56b1p7pp5y3incp4856jfp0w51cq";
+      rev = "53490bfaa4eccfab1d7101c86f334e4bd1845a5b";
+      sha256 = "10zc98qp38j708ldjd5j2m13gph4aj5q33apcnc5rx2kdc2qpaq9";
     };
   });
 
