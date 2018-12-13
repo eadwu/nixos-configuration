@@ -9,8 +9,8 @@ in with settings; {
 
       ../../hardware/dell/9570.nix
       # ../../hardware/gpu/nvidia/bumblebee
-      ../../hardware/gpu/nvidia/disable
-      # ../../hardware/gpu/nvidia/prime
+      # ../../hardware/gpu/nvidia/disable
+      ../../hardware/gpu/nvidia/prime
       # ../../modules/xserver/window-manager/bspwm
       ../../modules/xserver/window-manager/dwm
       ../../options/undervolt.nix
