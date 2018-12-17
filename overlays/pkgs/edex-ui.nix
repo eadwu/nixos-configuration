@@ -6,11 +6,11 @@ let
 
   electron = super.electron.overrideAttrs (oldAttrs: rec {
     name = "electron-${version}";
-    version = "3.0.10";
+    version = "3.0.12";
 
     src = fetchurl {
       url = "https://github.com/electron/electron/releases/download/v${version}/electron-v${version}-linux-x64.zip";
-      sha256 = "01nk5q79k31lllsd678ff4d2pnm5s5fzf43d3q1syc6swd4dvsm6";
+      sha256 = "19bwbpky0fjlgkgfpyi0rg7m6jhd3f1j6wqbfbb9l3r6gadnhhhx";
     };
   });
 
@@ -25,20 +25,20 @@ in {
     src = fetchFromGitHub {
       owner = "GitSquared";
       repo = "edex-ui";
-      rev = "dd521f820d418216fdf43e023e85a1f14d4f060a";
-      sha256 = "03qn71w1fixz5vxv2byhimb44qa2pq2p2slrlwyzd679nn004r44";
+      rev = "dad81facb12666dcf4e92021f5372cc923aafbb6";
+      sha256 = "1q3phzrj2g2m43ny5nxyyjcfadiyp763xfa04ym139qilrzfnjzj";
     };
 
     node_modules_root = fetchNodeModules {
       inherit src;
       nodejs = pkgs.nodejs-10_x;
-      sha256 = "1wpfkl58plklnm055pm4pr705mhm02y1xycf6v861ysv9q7w3xfs";
+      sha256 = "1l0pwb2l1vd6h1bwp9434rswbmgkr6x17hxs24xww96bmd294mng";
     };
 
     node_modules_src = fetchNodeModules {
       src = "${src}/src";
       nodejs = pkgs.nodejs-10_x;
-      sha256 = "16xlgxkf1xghqns79fnagzqcbvsx6brpscv0hlv4l8d8pqk54d9d";
+      sha256 = "1n819i5gs27h6lfdsiby8rmvjws1hfsfakah3rcplsji4yl4ihda";
     };
 
     # "https://atom.io/download/electron/v${version}/iojs-v${version}.tar.gz"
@@ -47,7 +47,7 @@ in {
       nodejs = pkgs.nodejs-10_x;
       src = "${node_modules_src}/node-pty";
       nodeSHA256 = "02wja8cd17ac2rcm9fbvim9v1xbz987j7kjfsh1dm47djjsv8j9z";
-      headerSHA256 = "17jrsn5y8qzh5bc6bjlkppm4lhh885c6p73nidsizhhq9x2n4ahq";
+      headerSHA256 = "1p75dal9kyi3x2xiw0dbphlzk0fagdjn2s41lqcshb4ds7bbgs7s";
     };
   });
 }
