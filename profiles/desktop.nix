@@ -5,11 +5,11 @@ with import <nixpkgs> { };
 let
   optician-sans = stdenv.mkDerivation rec {
     name = "optician-sans-${version}";
-    version = "20181212";
+    version = "20181220";
 
     src = pkgs.fetchurl {
       url = "https://optician-sans.com/font-files/v2/OpticianSans.zip";
-      sha256 = "0j9spjwgbc2h0pr6vh4hq9ixdxlfszawfcwnsba6y8m3r5r6hycj";
+      sha256 = "1iadljjyz4pzxqs2khpcnqblmcgsmzw418fwzakcmq57kzw5jv8x";
     };
 
     unpackPhase = ''
