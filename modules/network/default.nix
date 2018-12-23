@@ -17,8 +17,16 @@ in with settings; {
     ];
 
     networkmanager = {
-      enable = true;
-      backend = "iwd";
+      enable = false;
+      wifi = {
+        backend = "iwd";
+      };
+    };
+
+    wireless = {
+      iwd = {
+        enable = true;
+      };
     };
   };
 }
