@@ -5,13 +5,13 @@ let
     isInsiders = true;
   }).overrideAttrs(oldAttrs: rec {
     name = "vscode-insiders-${version}";
-    version = "1544768411";
+    version = "1545373195";
 
     # wget --spider "https://vscode-update.azurewebsites.net/latest/linux-x64/insider"
     src = self.pkgs.fetchurl {
       name = "VSCode_latest_linux-x64.tar.gz";
-      url = "https://az764295.vo.msecnd.net/insider/ece3a90fb58986570d8afdfb16530c4dd8c743af/code-insider-${version}.tar.gz";
-      sha256 = "14jq57g4ryjjvm06lm9858qm9mizg95hxx8h1f1nn9777pcdrqyw";
+      url = "https://az764295.vo.msecnd.net/insider/e02e44464c02d617b98d0a3265bf5efef7794436/code-insider-${version}.tar.gz";
+      sha256 = "1zyfbj3bh8k2bzpl4ynk0kwg20wg7g6v5i3hh0605ma42y6323rp";
     };
   });
 in {
@@ -83,15 +83,15 @@ in {
       {
         name = "gitlens";
         publisher = "eamodio";
-        version = "9.2.1";
-        sha256 = "02i5hpwpz4k6pkcyd9wxg2y5yslhp7jvpg4z86dy575s9ifz65pz";
+        version = "9.2.3";
+        sha256 = "0iyxbny0hnwphp8gh8xjl10mjdypvjdlb530wvwx8n0g10g62ci7";
       }
 
       {
         name = "tslint";
         publisher = "eg2";
-        version = "1.0.41";
-        sha256 = "07jw33ngc2r226ww5cb4pjdmwsycv3ppsc768wzg8c5xic5hjqvj";
+        version = "1.0.42";
+        sha256 = "1ia4l9d5sfr0mhjh5pn2g9bh2bs2ygcdwjbl8874g5a7z1v10rn1";
       }
 
       {
@@ -132,8 +132,8 @@ in {
       {
         name = "latex-workshop";
         publisher = "James-Yu";
-        version = "5.18.0";
-        sha256 = "13vg5a5740gd99f83vv82rn0rrzp9089v5qd3a8fsq4zjlcl29k4";
+        version = "5.19.0";
+        sha256 = "0gk791h4g3ymdfn1ylpkaxxp5ln93a1kc940s1msl619cclk7fpi";
       }
 
       {
@@ -174,8 +174,8 @@ in {
       {
         name = "azure-account";
         publisher = "ms-vscode";
-        version = "0.7.0";
-        sha256 = "1g8dla4w7jdzb0nbqsq75x3dqc6w3vr4cl6z95ccisayq25b36ic";
+        version = "0.7.1";
+        sha256 = "0914206x8d8fabsxknb5nk1zv1p7va8ff8l9awpf8xqj4zx2cjp7";
       }
 
       {
@@ -223,8 +223,8 @@ in {
       {
         name = "java";
         publisher = "redhat";
-        version = "0.35.0";
-        sha256 = "1dszdzs52x8ihf7x64nv6xb74q6gq6pc10mxhrzdh4vhdrb1rspw";
+        version = "0.36.0";
+        sha256 = "1clxw9xbbbdxivysddcfz2xijlhxancpyw19dcxcjb0nx3n64lis";
       }
 
       {
@@ -279,8 +279,8 @@ in {
       {
         name = "vscode-maven";
         publisher = "vscjava";
-        version = "0.11.3";
-        sha256 = "139hbrcx6j27m5ssvm1h8nmri4kyxy39dhn3yla27ix97vpd0ph0";
+        version = "0.12.1";
+        sha256 = "0lvc6ylq697waklbyhsyf3fgrgaxqv6k5f5hbvzwd4ydq4zazsfg";
       }
     ];
   };
