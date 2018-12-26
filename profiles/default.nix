@@ -16,14 +16,15 @@ in with pkgs; with settings; {
     ];
 
     systemPackages = with pkgs; [
+      buku
       feh
       gptfdisk
       htop
       libarchive
+      nnn
       openssl
       pass
       pywal
-      ranger
       tree
       unrar
       unzip
