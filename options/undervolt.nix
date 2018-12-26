@@ -10,7 +10,7 @@ in {
       type = types.bool;
       default = false;
       description = ''
-        Whether to enable undervolt for Intel CPUs.
+        Whether to enable undervolt for Intel CPUs
       '';
     };
 
@@ -18,7 +18,7 @@ in {
       type = types.nullOr types.str;
       default = null;
       description = ''
-        The amount of mV to offset the CPU cores by.
+        The amount of mV to offset the CPU cores by
       '';
     };
 
@@ -26,7 +26,7 @@ in {
       type = types.nullOr types.str;
       default = null;
       description = ''
-        The amount of mV to offset the GPU by.
+        The amount of mV to offset the GPU by
       '';
     };
 
@@ -34,7 +34,7 @@ in {
       type = types.nullOr types.str;
       default = null;
       description = ''
-        The amount of mV to offset uncore (system-agent) by.
+        The amount of mV to offset uncore (system-agent) by
       '';
     };
 
@@ -42,7 +42,7 @@ in {
       type = types.nullOr types.str;
       default = null;
       description = ''
-        The amount of mV to offset analogio by.
+        The amount of mV to offset analogio by
       '';
     };
 
@@ -50,7 +50,7 @@ in {
       type = types.nullOr types.str;
       default = null;
       description = ''
-        The temperature target.
+        The temperature target
       '';
     };
 
@@ -58,7 +58,7 @@ in {
       type = types.nullOr types.str;
       default = null;
       description = ''
-        The temperature target on AC power.
+        The temperature target on AC power
       '';
     };
 
@@ -66,7 +66,7 @@ in {
       type = types.nullOr types.str;
       default = null;
       description = ''
-        The temperature target on battery power.
+        The temperature target on battery power
       '';
     };
   };
