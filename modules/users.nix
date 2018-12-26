@@ -1,12 +1,10 @@
 { config, pkgs, ... }:
 
-let
-  settings = import ../settings.nix;
-in with settings; {
+with config.nixos.custom; {
   users = {
     defaultUserShell = "${pkgs.zsh}/bin/zsh";
     extraUsers = {
-      "${user}" = {
+      "${settings.system.user}" = {
         createHome = true;
         extraGroups = [
           "docker"
@@ -14,8 +12,8 @@ in with settings; {
           "wheel"
         ];
         group = "users";
-        home = HOME;
-        passwordFile = passwordFile;
+        home = settings.system.home;
+        passwordFile = settings.system.credentials;
         uid = 1000;
         useDefaultShell = true;
       };

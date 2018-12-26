@@ -1,8 +1,6 @@
 { config, pkgs, lib, ... }:
 
-let
-  settings = import ../settings.nix;
-in with settings; {
+with config.nixos.custom; {
   imports =
     [
       <nixpkgs/nixos/modules/virtualisation/virtualbox-image.nix>
@@ -47,7 +45,7 @@ in with settings; {
 
   users = {
     extraUsers = {
-      "${user}" = {
+      "${settings.system.user}" = {
         hashedPassword = "$6$eZVmFXSPY.7$RkJCABsQErbv/9I2Ovr1ZMw6u.DX/JpGiTXtnXU1mCkQF3fFarKKXPQ2A/Pmy.5/Y7kNIPJndpV5gqSGxmsu51";
       };
     };

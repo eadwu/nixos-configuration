@@ -1,8 +1,6 @@
 { config, pkgs, ... }:
 
-let
-  settings = import ../../settings.nix;
-in with settings; {
+with config.nixos.custom; {
   imports =
     [
       ./hardware-configuration.nix
@@ -11,9 +9,13 @@ in with settings; {
       # ../../hardware/gpu/nvidia/bumblebee
       ../../hardware/gpu/nvidia/disable
       # ../../hardware/gpu/nvidia/prime
+
       # ../../modules/xserver/window-manager/bspwm
       ../../modules/xserver/window-manager/dwm
+
+      ../../options/settings.nix
       ../../options/undervolt.nix
+
       ../../profiles/desktop.nix
     ];
 
@@ -24,7 +26,7 @@ in with settings; {
 
   environment = {
     variables = {
-      QT_AUTO_SCREEN_SCALE_FACTOR = dpiScale;
+      QT_AUTO_SCREEN_SCALE_FACTOR = toString settings.xserver.dpiScale;
     };
   };
 
@@ -38,6 +40,20 @@ in with settings; {
 
   i18n = {
     consoleFont = "latarcyrheb-sun32";
+  };
+
+  nixos = {
+    custom = {
+      settings = {
+        xserver = {
+          dpiScale = 2;
+        };
+
+        system = {
+          user = "xps";
+        };
+      };
+    };
   };
 
   services = {

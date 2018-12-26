@@ -1,8 +1,6 @@
 { config, pkgs, ... }:
 
-let
-  settings = import ../settings.nix;
-in with pkgs; with settings; {
+with pkgs; with config.nixos.custom; {
   boot = {
     cleanTmpDir = true;
     kernelPackages = if linux_latest.meta.branch == linux_testing.meta.branch
@@ -77,7 +75,7 @@ in with pkgs; with settings; {
     variables = {
       EDITOR = "vim";
       VISUAL = "vim";
-      DOCKER_ID_USER = DOCKER_ID_USER;
+      DOCKER_ID_USER = settings.docker.user;
     };
   };
 

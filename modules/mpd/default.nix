@@ -1,8 +1,6 @@
 { config, pkgs, ... }:
 
-let
-  settings = import ../../settings.nix;
-in with settings; {
+with config.nixos.custom; {
   environment = {
     systemPackages = with pkgs; [
       mpd
@@ -14,10 +12,10 @@ in with settings; {
     mpd = {
       enable = true;
       extraConfig = builtins.readFile ./mpd.conf;
-      user = user;
+      user = settings.system.user;
       group = "users";
-      musicDirectory = "${HOME}/Music";
-      dataDir = "${HOME}/.config/mpd";
+      musicDirectory = "${settings.system.home}/Music";
+      dataDir = "${settings.system.home}/.config/mpd";
 
       network = {
         listenAddress = "127.0.0.1";

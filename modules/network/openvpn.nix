@@ -1,8 +1,6 @@
 { config, pkgs, lib, ... }:
 
-let
-  settings = import ../../settings.nix;
-in with settings; {
+with config.nixos.custom; {
   services = {
     openvpn = {
       servers = {
@@ -39,7 +37,7 @@ in with settings; {
             dev tun
             proto udp
 
-            remote ${protonRegion}-free-01.protonvpn.com 1194
+            remote ${settings.protonvpn.region}-free-01.protonvpn.com 1194
 
             remote-random
             resolv-retry infinite
@@ -61,7 +59,8 @@ in with settings; {
             reneg-sec 0
 
             remote-cert-tls server
-            auth-user-pass ${lib.optionalString (builtins.pathExists protonFile) protonFile}
+            auth-user-pass ${lib.optionalString (builtins.pathExists settings.protonvpn.credentials)
+              settings.protonvpn.credentials}
             pull
             fast-io
 

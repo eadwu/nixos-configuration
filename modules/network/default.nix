@@ -1,8 +1,6 @@
 { config, pkgs, ... }:
 
-let
-  settings = import ../../settings.nix;
-in with settings; {
+with config.nixos.custom; {
   imports =
     [
       ./kresd.nix
@@ -10,7 +8,7 @@ in with settings; {
     ];
 
   networking = {
-    hostName = hostname;
+    hostName = settings.nixos.hostname;
 
     nameservers = [
       "127.0.0.1"

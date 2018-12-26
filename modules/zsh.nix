@@ -1,8 +1,6 @@
 { config, pkgs, ... }:
 
-let
-  settings = import ../settings.nix;
-in with settings; {
+with config.nixos.custom; {
   programs = {
     zsh = {
       enable = true;
@@ -37,12 +35,12 @@ in with settings; {
         "nixos-generate-iso" = ''
           nix-build "<nixpkgs/nixos>" \
             -A config.system.build.isoImage \
-            -I nixos-config=${HOME}/Downloads/nixos-configuration/profiles/iso.nix
+            -I nixos-config=${settings.system.home}/Downloads/nixos-configuration/profiles/iso.nix
         '';
         "nixos-generate-vm" = ''
           nix-build "<nixpkgs/nixos>" \
             -A config.system.build.virtualBoxOVA \
-            -I nixos-config=${HOME}/Downloads/nixos-configuration/profiles/vm.nix
+            -I nixos-config=${settings.system.home}/Downloads/nixos-configuration/profiles/vm.nix
         '';
       };
     };

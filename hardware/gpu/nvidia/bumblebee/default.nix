@@ -2,10 +2,8 @@
 
 let
   inherit (config.boot.kernelPackages) nvidia_x11_beta;
-  settings = import ../../../../settings.nix;
-
   naps = pkgs.writeShellScriptBin "naps" (builtins.readFile ./naps);
-in with settings; {
+in with config.nixos.custom; {
   imports =
     [
       ../polyfill.nix
@@ -65,7 +63,7 @@ in with settings; {
   security = {
     sudo = {
       extraConfig = ''
-        ${user} ALL=(ALL:ALL) NOPASSWD: ${naps}/bin/naps
+        ${settings.system.user} ALL=(ALL:ALL) NOPASSWD: ${naps}/bin/naps
       '';
     };
   };

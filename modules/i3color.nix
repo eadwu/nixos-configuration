@@ -1,8 +1,6 @@
 { config, pkgs, ... }:
 
-let
-  settings = import ../settings.nix;
-in with settings; {
+with config.nixos.custom; {
   systemd = {
     services = {
       i3color = {
@@ -18,7 +16,7 @@ in with settings; {
         };
         serviceConfig = {
           Type = "forking";
-          User = user;
+          User = settings.system.user;
         };
         script = ''
           image=$(mktemp --suffix=.png)

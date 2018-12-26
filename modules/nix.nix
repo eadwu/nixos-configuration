@@ -1,8 +1,6 @@
 { config, pkgs, lib, ... }:
 
-let
-  settings = import ../settings.nix;
-in with settings; {
+with config.nixos.custom; {
   nix = {
     autoOptimiseStore = true;
     buildCores = 0;
@@ -36,8 +34,8 @@ in with settings; {
     nixPath = [
       "/etc/nixos"
       "nixos-config=/etc/nixos/configuration.nix"
-    ] ++ (if builtins.pathExists (/. + "${HOME}/Downloads/nixpkgs")
-      then [ "nixpkgs=${HOME}/Downloads/nixpkgs" ]
+    ] ++ (if builtins.pathExists (/. + "${settings.system.home}/Downloads/nixpkgs")
+      then [ "nixpkgs=${settings.system.home}/Downloads/nixpkgs" ]
       else [
         "nixpkgs=https://gitlab.com/eadwu/nixpkgs/-/archive/develop/nixpkgs-develop.tar.gz"
         "nixpkgs=https://api.github.com/repos/eadwu/nixpkgs/tarball/develop"
