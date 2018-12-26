@@ -80,6 +80,14 @@ in with pkgs; with settings; {
     };
   };
 
+  services = {
+    dbus = {
+      packages = with pkgs; [
+        gnome3.dconf
+      ];
+    };
+  };
+
   time = {
     timeZone = "America/New_York";
   };
