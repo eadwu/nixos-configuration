@@ -14,13 +14,6 @@ with config.nixos.custom; {
       "127.0.0.1"
     ];
 
-    networkmanager = {
-      enable = false;
-      wifi = {
-        backend = "iwd";
-      };
-    };
-
     wireless = {
       iwd = {
         enable = true;

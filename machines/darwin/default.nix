@@ -1,4 +1,4 @@
-{ ... }:
+{ lib, ... }:
 
 {
   imports =
@@ -18,6 +18,18 @@
 
       ../../profiles/desktop.nix
     ];
+
+  networking = {
+    networkmanager = {
+      enable = true;
+    };
+
+    wireless = {
+      iwd = {
+        enable = lib.mkForce false;
+      };
+    };
+  };
 
   nixos = {
     custom = {
