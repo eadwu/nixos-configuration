@@ -31,15 +31,18 @@ with config.nixos.custom; {
       show-trace = true
     '';
 
-    nixPath = [
+    nixPath = let basePath = builtins.toPath "${settings.system.home}/Downloads"; in [
       "/etc/nixos"
       "nixos-config=/etc/nixos/configuration.nix"
-    ] ++ (if builtins.pathExists (/. + "${settings.system.home}/Downloads/nixpkgs")
-      then [ "nixpkgs=${settings.system.home}/Downloads/nixpkgs" ]
-      else [
-        "nixpkgs=https://gitlab.com/eadwu/nixpkgs/-/archive/develop/nixpkgs-develop.tar.gz"
-        "nixpkgs=https://api.github.com/repos/eadwu/nixpkgs/tarball/develop"
-      ]) ++ lib.optional (builtins.pathExists ../overlays) "nixpkgs-overlays=${../overlays}";
+    ]
+      ++ (if builtins.pathExists (builtins.toPath "${basePath}/nixpkgs")
+        then [ "nixpkgs=${basePath}/nixpkgs" ]
+        else [
+          "nixpkgs=https://gitlab.com/eadwu/nixpkgs/-/archive/develop/nixpkgs-develop.tar.gz"
+          "nixpkgs=https://api.github.com/repos/eadwu/nixpkgs/tarball/develop"
+        ])
+      ++ lib.optional (builtins.pathExists (builtins.toPath "${basePath}/nixos-configuration/overlays"))
+        "nixpkgs-overlays=${basePath}/nixos-configuration/overlays";
   };
 
   nixpkgs = {
