@@ -3,7 +3,7 @@
 with config.nixos.custom; {
   imports =
     [
-      ./hardware-configuration.nix
+      /etc/nixos/hardware-configuration.nix
 
       ../../hardware/dell/9570.nix
       # ../../hardware/gpu/nvidia/bumblebee
