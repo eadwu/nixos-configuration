@@ -25,8 +25,8 @@ in {
     src = fetchFromGitHub {
       owner = "GitSquared";
       repo = "edex-ui";
-      rev = "f1eaca47424e5e88e7bc288c8557d55b6367601c";
-      sha256 = "1c3va2v892aajs16sgs69mq29pqhhsy484xgc16ms0hvry9wji7w";
+      rev = "4e36978d98f767deefb90087b0494058e2d5f9c6";
+      sha256 = "07gkfaf815jnpdmslh5lf36mnk0jkdwm8ymxzdpvg0b8az95q3qb";
     };
 
     node_modules_root = fetchNodeModules {
@@ -38,7 +38,7 @@ in {
     node_modules_src = fetchNodeModules {
       src = "${src}/src";
       nodejs = pkgs.nodejs-10_x;
-      sha256 = "1ijbsllwffsz3xymn1lh5p6pxzv1sqmiz5mdyvkl92k2pcz16dph";
+      sha256 = "1d0f5in2hinn35j9a9kd64zd31zf4qqbplrzag28zg4s346xqa9s";
     };
 
     # "https://atom.io/download/electron/v${version}/iojs-v${version}.tar.gz"
