@@ -1,6 +1,6 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 
-{
+with config.nixos.custom; {
   imports =
     [
       ./default.nix
@@ -14,7 +14,7 @@
       ../modules/mpd
       ../modules/netdata.nix
       ../modules/network
-      ../modules/nix.nix
+      ../modules/network/openvpn.nix
       ../modules/oblogout.nix
       ../modules/pulseaudio
       ../modules/redshift.nix
@@ -26,17 +26,62 @@
       ../modules/zsh.nix
     ];
 
+  boot = {
+    cleanTmpDir = true;
+    kernelPackages = if pkgs.linux_latest.meta.branch == pkgs.linux_testing.meta.branch
+      then pkgs.linuxPackages_latest
+      else pkgs.linuxPackages_testing;
+  };
+
   environment = {
     systemPackages = with pkgs; [
-      # Applications
+      buku
+      feh
+      nnn
+      pywal
+      xclip
+      # Version Control
+      gitlab
+      gitAndTools.hub
+      git-lfs
+      # Languages / SDKs
+      fsharp
+      gcc
+      llvmPackages.clang-unwrapped
+      mongodb
+      mysql57
+      nasm
+      nodejs
+      openjdk
+      python
+      python3
+      rustup
+      rWrapper
+      sass
+      sqlite
+      texlive.combined.scheme-full
+      ## Haskell
+      stack
+      # Build Tools
+      cmake
+      gnumake
+      # Misc
+      # cachix
+      ffmpeg
+      gnupg
+      imagemagick7
+      mono
+      oblogout
       rofi
+      scrot
       st
-      ### Emacs
       wakatime
-      # Console
-      cachix
-      home-manager
+      xorg.xsetroot
     ];
+
+    variables = {
+      DOCKER_ID_USER = settings.docker.user;
+    };
   };
 
   fonts = {
@@ -52,5 +97,13 @@
       noto-fonts-cjk
       unifont
     ];
+  };
+
+  services = {
+    dbus = {
+      packages = with pkgs; [
+        gnome3.dconf
+      ];
+    };
   };
 }

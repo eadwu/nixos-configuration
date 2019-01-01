@@ -4,7 +4,6 @@ with config.nixos.custom; {
   imports =
     [
       ./kresd.nix
-      ./openvpn.nix
     ];
 
   networking = {

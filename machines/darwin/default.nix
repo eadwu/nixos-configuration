@@ -14,8 +14,6 @@
       # ../../modules/xserver/window-manager/bspwm
       ../../modules/xserver/window-manager/dwm
 
-      ../../options/settings.nix
-
       ../../profiles/desktop.nix
     ];
 

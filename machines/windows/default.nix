@@ -13,7 +13,6 @@ with config.nixos.custom; {
       # ../../modules/xserver/window-manager/bspwm
       ../../modules/xserver/window-manager/dwm
 
-      ../../options/settings.nix
       ../../options/undervolt.nix
 
       ../../profiles/desktop.nix
