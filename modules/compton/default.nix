@@ -1,4 +1,4 @@
-{ ... }:
+{ lib, ... }:
 
 {
   services = {
@@ -40,7 +40,7 @@
       backend = "glx";
       vSync = "none";
       refreshRate = 0;
-      extraOptions = builtins.readFile ./compton.conf;
+      extraOptions = lib.optionalString (builtins.pathExists ./compton.conf) builtins.readFile ./compton.conf;
     };
   };
 }

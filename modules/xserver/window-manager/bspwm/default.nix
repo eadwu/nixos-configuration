@@ -1,5 +1,8 @@
 { pkgs, ... }:
 
+assert builtins.pathExists ./bspwmrc;
+assert builtins.pathExists ./sxhkdrc;
+
 {
   environment = {
     systemPackages = with pkgs; [

@@ -1,5 +1,7 @@
 { ... }:
 
+assert builtins.pathExists ./logind.conf;
+
 {
   services = {
     logind = {

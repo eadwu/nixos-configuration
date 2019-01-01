@@ -1,5 +1,8 @@
 { config, pkgs, ... }:
 
+assert builtins.pathExists ./kbd_backlight;
+assert builtins.pathExists ./mon_backlight;
+
 let
   kbd_backlight = pkgs.writeShellScriptBin "kbd_backlight" (builtins.readFile ./kbd_backlight);
   mon_backlight = pkgs.writeShellScriptBin "mon_backlight" (builtins.readFile ./mon_backlight);

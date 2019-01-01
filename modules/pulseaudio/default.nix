@@ -1,5 +1,7 @@
 { pkgs, ... }:
 
+assert builtins.pathExists ./default.pa;
+
 {
   hardware = {
     pulseaudio = {
