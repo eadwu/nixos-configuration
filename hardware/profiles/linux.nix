@@ -1,4 +1,4 @@
-{ ... }:
+{ config, pkgs, lib, ... }:
 
 {
   boot = {
@@ -19,7 +19,7 @@
       "vm.dirty_writeback_centisecs=6000"
     ];
 
-    kernelPatches = [
+    kernelPatches = lib.optional (config.boot.kernelPackages == pkgs.linuxPackages_testing) [
       (import ../../patches/kernel/disable-amateur-radio-support.nix)
     ];
   };
