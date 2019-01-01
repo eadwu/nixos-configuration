@@ -10,10 +10,6 @@ with config.nixos.custom; {
   networking = {
     hostName = settings.nixos.hostname;
 
-    nameservers = [
-      "127.0.0.1"
-    ];
-
     wireless = {
       iwd = {
         enable = true;
