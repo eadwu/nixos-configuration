@@ -1,6 +1,6 @@
 { config, pkgs, ... }:
 
-with config.nixos.custom; {
+with config.nixos; {
   users = {
     defaultUserShell = "${pkgs.zsh}/bin/zsh";
     extraUsers = {

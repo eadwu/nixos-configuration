@@ -1,6 +1,6 @@
 { config, lib, ... }:
 
-with config.nixos.custom; {
+with config.nixos; {
   imports =
     [
       <nixpkgs/nixos/modules/virtualisation/virtualbox-image.nix>

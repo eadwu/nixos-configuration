@@ -3,7 +3,7 @@
 let
   inherit (config.boot.kernelPackages) nvidia_x11_beta;
   naps = pkgs.writeShellScriptBin "naps" (builtins.readFile ./naps);
-in with config.nixos.custom; {
+in with config.nixos; {
   imports =
     [
       ../polyfill.nix

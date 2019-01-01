@@ -1,13 +1,13 @@
 { config, ... }:
 
-with config.nixos.custom; {
+with config.nixos; {
   imports =
     [
       ./kresd.nix
     ];
 
   networking = {
-    hostName = settings.nixos.hostname;
+    hostName = settings.machine.hostname;
 
     wireless = {
       iwd = {

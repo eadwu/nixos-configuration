@@ -2,7 +2,7 @@
 
 assert builtins.pathExists ./mpd.conf;
 
-with config.nixos.custom; {
+with config.nixos; {
   environment = {
     systemPackages = with pkgs; [
       mpd

@@ -1,6 +1,6 @@
 { config, ... }:
 
-with config.nixos.custom; {
+with config.nixos; {
   imports =
     [
       /etc/nixos/hardware-configuration.nix
@@ -41,18 +41,9 @@ with config.nixos.custom; {
     consoleFont = "latarcyrheb-sun32";
   };
 
-  nixos = {
-    custom = {
-      settings = {
-        xserver = {
-          dpiScale = 2;
-        };
-
-        system = {
-          user = "xps";
-        };
-      };
-    };
+  nixos.settings = {
+    xserver.dpiScale = 2;
+    system.user = "xps";
   };
 
   services = {

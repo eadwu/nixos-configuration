@@ -3,9 +3,9 @@
 with lib;
 
 let
-  cfg = config.nixos.custom.settings;
+  cfg = config.nixos.settings;
 in {
-  options.nixos.custom.settings = {
+  options.nixos.settings = {
     docker = {
       user = mkOption {
         type = types.str;
@@ -16,7 +16,7 @@ in {
       };
     };
 
-    nixos = {
+    machine = {
       hostname = mkOption {
         type = types.str;
         default = "nixos";
@@ -84,7 +84,7 @@ in {
   };
 
   config = mkIf (cfg.system.user != null) {
-    nixos.custom.settings.system = with cfg.system; {
+    nixos.settings.system = with cfg.system; {
       home = "/home/${user}";
       credentials = "/etc/nixos/credentials/${user}";
     };

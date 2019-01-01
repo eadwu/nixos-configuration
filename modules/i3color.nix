@@ -1,6 +1,6 @@
 { config, pkgs, ... }:
 
-with config.nixos.custom; {
+with config.nixos; {
   systemd = {
     services = {
       i3color = {

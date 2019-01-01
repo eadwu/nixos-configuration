@@ -1,6 +1,6 @@
 { config, pkgs, lib, ... }:
 
-with config.nixos.custom; {
+with config.nixos; {
   services = {
     openvpn = {
       servers = {

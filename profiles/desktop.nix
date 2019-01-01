@@ -1,6 +1,6 @@
 { config, pkgs, ... }:
 
-with config.nixos.custom; {
+with config.nixos; {
   imports =
     [
       ./default.nix

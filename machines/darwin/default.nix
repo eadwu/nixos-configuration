@@ -29,15 +29,9 @@
     };
   };
 
-  nixos = {
-    custom = {
-      settings = {
-        system = {
+  nixos.settings.system = {
           user = "yin";
         };
-      };
-    };
-  };
 
   services = {
     xserver = {
