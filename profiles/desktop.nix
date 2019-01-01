@@ -1,29 +1,6 @@
 { pkgs, ... }:
 
-with import <nixpkgs> { };
-
-let
-  optician-sans = stdenv.mkDerivation rec {
-    name = "optician-sans-${version}";
-    version = "20181220";
-
-    src = pkgs.fetchurl {
-      url = "https://optician-sans.com/font-files/v2/OpticianSans.zip";
-      sha256 = "1iadljjyz4pzxqs2khpcnqblmcgsmzw418fwzakcmq57kzw5jv8x";
-    };
-
-    unpackPhase = ''
-      ${pkgs.unzip}/bin/unzip $src -d optician-sans
-    '';
-
-    dontBuild = true;
-
-    installPhase = ''
-      mkdir -p $out/share/fonts/opentype
-      mv optician-sans/*.otf $out/share/fonts/opentype
-    '';
-  };
-in {
+{
   imports =
     [
       ./default.nix

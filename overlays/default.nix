@@ -43,6 +43,8 @@ in with self.pkgs; {
     visualizerSupport = true;
   };
 
+  optician-sans = callPackage ./pkgs/optician-sans.nix { };
+
   rWrapper = super.rWrapper.override {
     packages = rPackages;
   };
