@@ -5,13 +5,13 @@ let
     isInsiders = true;
   }).overrideAttrs(oldAttrs: rec {
     name = "vscode-insiders-${version}";
-    version = "1545373195";
+    version = "1546582667";
 
     # wget --spider "https://vscode-update.azurewebsites.net/latest/linux-x64/insider"
     src = self.pkgs.fetchurl {
       name = "VSCode_latest_linux-x64.tar.gz";
-      url = "https://az764295.vo.msecnd.net/insider/e02e44464c02d617b98d0a3265bf5efef7794436/code-insider-${version}.tar.gz";
-      sha256 = "1zyfbj3bh8k2bzpl4ynk0kwg20wg7g6v5i3hh0605ma42y6323rp";
+      url = "https://az764295.vo.msecnd.net/insider/bae6c84d46cd85c911db7e166a74e698a54c8644/code-insider-${version}.tar.gz";
+      sha256 = "1fphhgyc3c9vny27bkbz533sjpp1z8hiqxfgq9j191j27dbj1awp";
     };
   });
 in {
@@ -24,6 +24,48 @@ in {
       ms-vscode.cpptools
       WakaTime.vscode-wakatime
     ] ++ super.vscode-utils.extensionsFromVscodeMarketplace [
+      {
+        name = "vsc-material-theme";
+        publisher = "Equinusocio";
+        version = "2.6.3";
+        sha256 = "1ghqp0yfcpcnjcwgvxw7aix9fj5q8kr0i97lmzlw2jqslmyvxg5x";
+      }
+
+      {
+        name = "Ionide-FAKE";
+        publisher = "Ionide";
+        version = "1.2.3";
+        sha256 = "0ijgnxcdmb1ij3szcjlyxs2lb1kly5l26lg9z2fa7hfn67rrds29";
+      }
+
+      {
+        name = "Ionide-Paket";
+        publisher = "Ionide";
+        version = "1.12.0";
+        sha256 = "10ik4jhvh05363swdfnr7phlnsndypaq3bkrl612z2kvv38q5kl7";
+      }
+
+      {
+        name = "Ionide-fsharp";
+        publisher = "Ionide";
+        version = "3.30.0";
+        sha256 = "0ig9zmbyfmxvjfjnn1f108vpij9q3qzh74b3gwr12kziiy3qmiyi";
+      }
+
+      {
+        name = "latex-workshop";
+        publisher = "James-Yu";
+        version = "5.19.0";
+        sha256 = "0gk791h4g3ymdfn1ylpkaxxp5ln93a1kc940s1msl619cclk7fpi";
+      }
+
+      {
+        name = "vscode-docker";
+        publisher = "PeterJausovec";
+        version = "0.4.0";
+        sha256 = "1inlks69hbln221d1g06bxl1r9f13pknw9394wyg6ffhl6fs86ri";
+      }
+
       {
         name = "better-comments";
         publisher = "aaron-bond";
@@ -83,8 +125,8 @@ in {
       {
         name = "gitlens";
         publisher = "eamodio";
-        version = "9.2.4";
-        sha256 = "1ihc5jb3ha8blp686j5flk560h3nn457sznyr33g3hipgbrwv0r1";
+        version = "9.3.0";
+        sha256 = "05zwviyr1ja525ifn2a704ykl4pvqjvpppmalwy4z77bn21j2ag7";
       }
 
       {
@@ -95,45 +137,10 @@ in {
       }
 
       {
-        name = "vsc-material-theme";
-        publisher = "Equinusocio";
-        version = "2.6.3";
-        sha256 = "1ghqp0yfcpcnjcwgvxw7aix9fj5q8kr0i97lmzlw2jqslmyvxg5x";
-      }
-
-      {
         name = "auto-rename-tag";
         publisher = "formulahendry";
         version = "0.0.15";
         sha256 = "1hgd7y8fyzrphn166vmmsm9kqcl7n8gw4xi8rd24imwbswvh0mgi";
-      }
-
-      {
-        name = "Ionide-FAKE";
-        publisher = "Ionide";
-        version = "1.2.3";
-        sha256 = "0ijgnxcdmb1ij3szcjlyxs2lb1kly5l26lg9z2fa7hfn67rrds29";
-      }
-
-      {
-        name = "Ionide-fsharp";
-        publisher = "Ionide";
-        version = "3.30.0";
-        sha256 = "0ig9zmbyfmxvjfjnn1f108vpij9q3qzh74b3gwr12kziiy3qmiyi";
-      }
-
-      {
-        name = "Ionide-Paket";
-        publisher = "Ionide";
-        version = "1.12.0";
-        sha256 = "10ik4jhvh05363swdfnr7phlnsndypaq3bkrl612z2kvv38q5kl7";
-      }
-
-      {
-        name = "latex-workshop";
-        publisher = "James-Yu";
-        version = "5.19.0";
-        sha256 = "0gk791h4g3ymdfn1ylpkaxxp5ln93a1kc940s1msl619cclk7fpi";
       }
 
       {
@@ -174,8 +181,8 @@ in {
       {
         name = "azure-account";
         publisher = "ms-vscode";
-        version = "0.7.1";
-        sha256 = "0914206x8d8fabsxknb5nk1zv1p7va8ff8l9awpf8xqj4zx2cjp7";
+        version = "0.8.0";
+        sha256 = "11z4f9vdj8vq0pz4j2zpc0mlhb1kgvn89c25is50kh44qwds13h7";
       }
 
       {
@@ -197,13 +204,6 @@ in {
         publisher = "msjsdiag";
         version = "4.11.1";
         sha256 = "17axv1fasmxxka8g4x207gs83vsyqx4xh51d2iy331v6yhlxkbl3";
-      }
-
-      {
-        name = "vscode-docker";
-        publisher = "PeterJausovec";
-        version = "0.4.0";
-        sha256 = "1inlks69hbln221d1g06bxl1r9f13pknw9394wyg6ffhl6fs86ri";
       }
 
       {
@@ -279,8 +279,8 @@ in {
       {
         name = "vscode-maven";
         publisher = "vscjava";
-        version = "0.12.1";
-        sha256 = "0lvc6ylq697waklbyhsyf3fgrgaxqv6k5f5hbvzwd4ydq4zazsfg";
+        version = "0.13.0";
+        sha256 = "0vg96nw9cxlcgwa56mfiml377452zd10w6gd6gd0md2fib92ck6k";
       }
     ];
   };
