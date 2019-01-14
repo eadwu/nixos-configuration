@@ -44,7 +44,7 @@ with config.nixos; {
   };
 
   users = {
-    extraUsers = {
+    users = {
       "${settings.system.user}" = {
         hashedPassword = "$6$eZVmFXSPY.7$RkJCABsQErbv/9I2Ovr1ZMw6u.DX/JpGiTXtnXU1mCkQF3fFarKKXPQ2A/Pmy.5/Y7kNIPJndpV5gqSGxmsu51";
       };

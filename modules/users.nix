@@ -3,7 +3,8 @@
 with config.nixos; {
   users = {
     defaultUserShell = "${pkgs.zsh}/bin/zsh";
-    extraUsers = {
+
+    users = {
       "${settings.system.user}" = {
         createHome = true;
         extraGroups = [
