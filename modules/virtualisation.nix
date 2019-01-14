@@ -1,4 +1,4 @@
-{ ... }:
+{ config, pkgs, ... }:
 
 {
   virtualisation = {
@@ -8,7 +8,7 @@
 
     virtualbox = {
       host = {
-        enable = true;
+        enable = config.boot.kernelPackages.kernel.version != pkgs.linux_testing.version;
       };
     };
   };
