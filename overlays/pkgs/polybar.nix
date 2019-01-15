@@ -11,8 +11,8 @@ in {
     src = fetchFromGitHub {
       owner = "jaagr";
       repo = "polybar";
-      rev = "7256366112d3ec2163195131569b6e1b2a6c1418";
-      sha256 = "1lnw4bbrfzcwv1gwy0qdy4lh55fcr32731m56j4mga33acvbrg8l";
+      rev = "46b8bb84edce683e75672b2c0c9ff58cfb3f9f68";
+      sha256 = "1p0i93hgq7gc7bx593hv9c0njpww1m2paphyqgh84lnmkzwmjfbx";
       fetchSubmodules = true;
     };
   });
