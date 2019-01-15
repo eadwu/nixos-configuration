@@ -1,6 +1,7 @@
 self: super: let
   rPackages = with super.rPackages; [
     ggplot2
+    showtext
     rmarkdown
     RDocumentation
   ];
