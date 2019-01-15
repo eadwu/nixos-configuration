@@ -6,6 +6,7 @@ self: super: let
     RDocumentation
   ];
 in with self.pkgs; {
+  inherit (import ./pkgs/blender.nix self super) blender;
   inherit (import ./pkgs/emacs.nix self super) emacs;
   inherit (import ./pkgs/polybar.nix self super) polybar;
   inherit (import ./pkgs/suckless.nix self super) dmenu dwm st;
