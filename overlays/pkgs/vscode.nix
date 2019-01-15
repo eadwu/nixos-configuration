@@ -5,13 +5,13 @@ let
     isInsiders = true;
   }).overrideAttrs(oldAttrs: rec {
     name = "vscode-insiders-${version}";
-    version = "1546582667";
+    version = "1547446885";
 
     # wget --spider "https://vscode-update.azurewebsites.net/latest/linux-x64/insider"
     src = self.pkgs.fetchurl {
       name = "VSCode_latest_linux-x64.tar.gz";
-      url = "https://az764295.vo.msecnd.net/insider/bae6c84d46cd85c911db7e166a74e698a54c8644/code-insider-${version}.tar.gz";
-      sha256 = "1fphhgyc3c9vny27bkbz533sjpp1z8hiqxfgq9j191j27dbj1awp";
+      url = "https://az764295.vo.msecnd.net/insider/2ab82c12ed809fd1df921d016eed344a18a9ee8f/code-insider-${version}.tar.gz";
+      sha256 = "0h5bp1zzzy9qpsp8i92lf53i5455hc938nxqn8anl2j0sa8w9nf5";
     };
   });
 in {
@@ -62,8 +62,8 @@ in {
       {
         name = "vscode-docker";
         publisher = "PeterJausovec";
-        version = "0.4.0";
-        sha256 = "1inlks69hbln221d1g06bxl1r9f13pknw9394wyg6ffhl6fs86ri";
+        version = "0.5.1";
+        sha256 = "10ja2addwp7rhf6cbz8s24pdap6hm8p43rdl2fnvwn56lln90fwj";
       }
 
       {
@@ -104,8 +104,8 @@ in {
       {
         name = "vscode-eslint";
         publisher = "dbaeumer";
-        version = "1.7.2";
-        sha256 = "1czq88rb7db8j7xzv1dsx8cp42cbsg7xwbwc68waq5md14wx0ggr";
+        version = "1.8.0";
+        sha256 = "0mk1ijbrkj0h3g5pm95arh3aka4jz47zzr8m81055h8q6xsj0rzm";
       }
 
       {
@@ -125,8 +125,8 @@ in {
       {
         name = "gitlens";
         publisher = "eamodio";
-        version = "9.3.0";
-        sha256 = "05zwviyr1ja525ifn2a704ykl4pvqjvpppmalwy4z77bn21j2ag7";
+        version = "9.4.1";
+        sha256 = "15a39p8wj84hypz0m25chrnqz3zyg4wjnx9z1vv3qqpppybqy2w8";
       }
 
       {
@@ -195,8 +195,8 @@ in {
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "0.3.1071";
-        sha256 = "0j6nny54isff1xl8z0zhhj7gvp2s353kfv6bf40c1c8n469mf0ca";
+        version = "0.3.1100";
+        sha256 = "0rlihfx08hlwfbd7j6k2sri2wwzr9yap8c6yg1ijl1mlkmjc7rr6";
       }
 
       {
