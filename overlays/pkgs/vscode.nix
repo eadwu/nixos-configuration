@@ -5,13 +5,13 @@ let
     isInsiders = true;
   }).overrideAttrs(oldAttrs: rec {
     name = "vscode-insiders-${version}";
-    version = "1547446885";
+    version = "1547806941";
 
     # wget --spider "https://vscode-update.azurewebsites.net/latest/linux-x64/insider"
     src = self.pkgs.fetchurl {
       name = "VSCode_latest_linux-x64.tar.gz";
-      url = "https://az764295.vo.msecnd.net/insider/2ab82c12ed809fd1df921d016eed344a18a9ee8f/code-insider-${version}.tar.gz";
-      sha256 = "0h5bp1zzzy9qpsp8i92lf53i5455hc938nxqn8anl2j0sa8w9nf5";
+      url = "https://az764295.vo.msecnd.net/insider/2283b29c695da3163fd4b524617dabcfb8298bbe/code-insider-${version}.tar.gz";
+      sha256 = "07svbf6vp43142f5zggxdlhrkpmhy2div56m8j64adfxpfb70f4n";
     };
   });
 in {
@@ -55,8 +55,8 @@ in {
       {
         name = "latex-workshop";
         publisher = "James-Yu";
-        version = "5.19.0";
-        sha256 = "0gk791h4g3ymdfn1ylpkaxxp5ln93a1kc940s1msl619cclk7fpi";
+        version = "5.20.2";
+        sha256 = "0dcnjgvd9kkvbqixj33ayj05y16gas780bil3c17da4cbfjip1dp";
       }
 
       {
@@ -76,8 +76,8 @@ in {
       {
         name = "vscode-sqlite";
         publisher = "alexcvzz";
-        version = "0.3.3";
-        sha256 = "1v6vw3yyj9rsg1598j712w0w7996w7n6pw6ppwjg9q2znvqvw1g3";
+        version = "0.4.0";
+        sha256 = "0hzs27gn41hx01a43k0nvwsg980amdpq7b7njjgfdjd44r8l19fs";
       }
 
       {
@@ -146,8 +146,8 @@ in {
       {
         name = "horizon-theme-vscode";
         publisher = "jolaleye";
-        version = "1.6.3";
-        sha256 = "0b1wn2cmg40pnk68lq1ggcfrfcgaqhzxpf689kq9bklvjf73krp2";
+        version = "1.6.5";
+        sha256 = "1vicxyk5fxvr3jk60apvzrywfgmzmnd4fcdncyc43gy9iv1661h2";
       }
 
       {
@@ -195,8 +195,8 @@ in {
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "0.3.1100";
-        sha256 = "0rlihfx08hlwfbd7j6k2sri2wwzr9yap8c6yg1ijl1mlkmjc7rr6";
+        version = "0.3.1121";
+        sha256 = "13mi22r1f1kigg5787xxq1izclrb8lbjv2f0br0v43xph6xg6i3h";
       }
 
       {
@@ -223,8 +223,8 @@ in {
       {
         name = "java";
         publisher = "redhat";
-        version = "0.36.0";
-        sha256 = "1clxw9xbbbdxivysddcfz2xijlhxancpyw19dcxcjb0nx3n64lis";
+        version = "0.37.0";
+        sha256 = "05i3cdjaqfpnmh6bhan56hmkxymmyr9dymzq8f43b11xha4dpycd";
       }
 
       {
