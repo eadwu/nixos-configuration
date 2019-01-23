@@ -7,8 +7,8 @@ with config.nixos; {
 
       ../../hardware/dell/9570.nix
       # ../../hardware/gpu/nvidia/bumblebee
-      ../../hardware/gpu/nvidia/disable
-      # ../../hardware/gpu/nvidia/prime
+      # ../../hardware/gpu/nvidia/disable
+      ../../hardware/gpu/nvidia/prime
 
       # ../../modules/xserver/window-manager/bspwm
       ../../modules/xserver/window-manager/dwm
@@ -27,10 +27,10 @@ with config.nixos; {
   environment.variables.QT_AUTO_SCREEN_SCALE_FACTOR = toString settings.xserver.dpiScale;
 
   fonts.fontconfig = {
-      antialias = false;
-      # calculated: 282.42
-      dpi = 240;
-    };
+    antialias = false;
+    # calculated: 282.42
+    dpi = 240;
+  };
 
   i18n.consoleFont = "latarcyrheb-sun32";
 
@@ -50,9 +50,9 @@ with config.nixos; {
 
   services = {
     tlp.extraConfig = ''
-        # Autosuspend for USB device Goodix Fingerprint Device
-        USB_WHITELIST="27c6:5395"
-      '';
+      # Autosuspend for USB device Goodix Fingerprint Device
+      USB_WHITELIST="27c6:5395"
+    '';
 
     undervolt = rec {
       enable = true;
@@ -85,12 +85,12 @@ with config.nixos; {
       '';
 
       libinput.additionalOptions = ''
-          Option "AccelSpeed" "1"
-          Option "PalmDetection" "on"
-          Option "TappingButtonMap" "lmr"
-        '';
-      };
+        Option "AccelSpeed" "1"
+        Option "PalmDetection" "on"
+        Option "TappingButtonMap" "lmr"
+      '';
     };
+  };
 
   time.hardwareClockInLocalTime = true;
 }
