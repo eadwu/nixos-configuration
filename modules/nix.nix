@@ -4,6 +4,7 @@ with config.nixos; {
   nix = {
     autoOptimiseStore = true;
     buildCores = 0;
+    distributedBuilds = true;
     package = pkgs.nixUnstable;
     requireSignedBinaryCaches = true;
     useSandbox = true;
@@ -11,8 +12,17 @@ with config.nixos; {
     binaryCaches = [ "https://cache.nixos.org/" ];
     binaryCachePublicKeys = [ "hydra.nixos.org-1:CNHJZBh9K4tP3EKF6FkkgeVYsS3ohTl+oS0Qa8bezVs=" ];
 
+    buildMachines = [
+      { hostName = "builder";
+        system = "aarch64-linux";
+        maxJobs = 3;
+        supportedFeatures = [ "kvm" "perf" "nixos-test" "big-parallel" ]; }
+    ];
+
     extraOptions = ''
       show-trace = true
+      # useful when the builder has a faster internet connection than yours
+      # builders-use-substitutes = true
     '';
 
     nixPath = let basePath = builtins.toPath "${settings.system.home}/Downloads"; in [
@@ -37,6 +47,19 @@ with config.nixos; {
     overlays = if builtins.pathExists <nixpkgs-overlays>
       then [ (import <nixpkgs-overlays>) ]
       else [ (import ../overlays) ];
+  };
+
+  programs.ssh = {
+    extraConfig = ''
+      Host builder
+        User root
+        HostName ${settings.machines.rpi.hostName}
+
+        IdentitiesOnly yes
+        IdentityFile ${settings.machines.rpi.identityFile}
+
+        ServerAliveInterval 4
+    '';
   };
 
   system = {

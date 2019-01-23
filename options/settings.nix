@@ -81,6 +81,26 @@ in {
         '';
       };
     };
+
+    machines.rpi = {
+      hostName = mkOption {
+        type = types.str;
+        visible = false;
+        readOnly = true;
+        default = "192.168.1.209";
+        description = ''
+          Private IP of my raspberry pi 3 b+
+        '';
+      };
+
+      identityFile = mkOption {
+        type = types.path;
+        default = builtins.toPath "${cfg.system.home}/.ssh/nix_builder";
+        description = ''
+          Path to the private key to be used for SSH connections to the builder
+        '';
+      };
+    };
   };
 
   config = mkIf (cfg.system.user != null) {
