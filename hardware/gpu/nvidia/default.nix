@@ -1,24 +1,14 @@
 { pkgs, ... }:
 
 {
-  environment = {
-    systemPackages = with pkgs; [
-      vdpauinfo
-    ];
-  };
+  environment.systemPackages = with pkgs; [
+    vdpauinfo
+  ];
 
-  hardware = {
-    opengl = {
-      extraPackages = with pkgs; [
-        vaapiVdpau
-        libvdpau-va-gl
-      ];
-    };
-  };
+  hardware.opengl.extraPackages = with pkgs; [
+    vaapiVdpau
+    libvdpau-va-gl
+  ];
 
-  services = {
-    xserver = {
-      useGlamor = true;
-    };
-  };
+  services.xserver.useGlamor = true;
 }

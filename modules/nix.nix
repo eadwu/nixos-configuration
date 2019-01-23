@@ -40,27 +40,23 @@ with config.nixos; {
   };
 
   nixpkgs = {
-    config = {
-      allowUnfree = true;
-    };
+    config.allowUnfree = true;
 
     overlays = if builtins.pathExists <nixpkgs-overlays>
       then [ (import <nixpkgs-overlays>) ]
       else [ (import ../overlays) ];
   };
 
-  programs.ssh = {
-    extraConfig = ''
-      Host builder
-        User root
-        HostName ${settings.machines.rpi.hostName}
+  programs.ssh.extraConfig = ''
+    Host builder
+      User root
+      HostName ${settings.machines.rpi.hostName}
 
-        IdentitiesOnly yes
-        IdentityFile ${settings.machines.rpi.identityFile}
+      IdentitiesOnly yes
+      IdentityFile ${settings.machines.rpi.identityFile}
 
-        ServerAliveInterval 4
-    '';
-  };
+      ServerAliveInterval 4
+  '';
 
   system = {
     stateVersion = "18.09";

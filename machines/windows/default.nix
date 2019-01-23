@@ -24,23 +24,15 @@ with config.nixos; {
       <nixpkgs/nixos/modules/services/hardware/undervolt.nix>
     ];
 
-  environment = {
-    variables = {
-      QT_AUTO_SCREEN_SCALE_FACTOR = toString settings.xserver.dpiScale;
-    };
-  };
+  environment.variables.QT_AUTO_SCREEN_SCALE_FACTOR = toString settings.xserver.dpiScale;
 
-  fonts = {
-    fontconfig = {
+  fonts.fontconfig = {
       antialias = false;
       # calculated: 282.42
       dpi = 240;
     };
-  };
 
-  i18n = {
-    consoleFont = "latarcyrheb-sun32";
-  };
+  i18n.consoleFont = "latarcyrheb-sun32";
 
   nixos.settings = {
     xserver.dpiScale = 2;
@@ -57,12 +49,10 @@ with config.nixos; {
   };
 
   services = {
-    tlp = {
-      extraConfig = ''
+    tlp.extraConfig = ''
         # Autosuspend for USB device Goodix Fingerprint Device
         USB_WHITELIST="27c6:5395"
       '';
-    };
 
     undervolt = rec {
       enable = true;
@@ -94,17 +84,13 @@ with config.nixos; {
         Option "DPI" "240 x 240"
       '';
 
-      libinput = {
-        additionalOptions = ''
+      libinput.additionalOptions = ''
           Option "AccelSpeed" "1"
           Option "PalmDetection" "on"
           Option "TappingButtonMap" "lmr"
         '';
       };
     };
-  };
 
-  time = {
-    hardwareClockInLocalTime = true;
-  };
+  time.hardwareClockInLocalTime = true;
 }

@@ -8,10 +8,8 @@
       ./display-manager
     ];
 
-  services = {
-    xserver = {
-      enable = true;
-      layout = "us";
-    };
+  services.xserver = {
+    enable = true;
+    layout = "us";
   };
 }

@@ -6,10 +6,8 @@
       ../gpu/nvidia
     ];
 
-  environment = {
-    systemPackages = with pkgs; [
-      cudatoolkit
-      glxinfo
-    ];
-  };
+  environment.systemPackages = with pkgs; [
+    cudatoolkit
+    glxinfo
+  ];
 }

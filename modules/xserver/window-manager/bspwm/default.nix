@@ -4,27 +4,19 @@ assert builtins.pathExists ./bspwmrc;
 assert builtins.pathExists ./sxhkdrc;
 
 {
-  environment = {
-    systemPackages = with pkgs; [
-      polybar
-      xdo
-    ];
-  };
+  environment.systemPackages = with pkgs; [
+    polybar
+    xdo
+  ];
 
-  services = {
-    xserver = {
-      windowManager = {
-        bspwm = {
-          configFile = ./bspwmrc;
-          enable = true;
+  services.xserver.windowManager = {
+    default = "bspwm";
 
-          sxhkd = {
-            configFile = ./sxhkdrc;
-          };
-        };
+    bspwm = {
+      configFile = ./bspwmrc;
+      enable = true;
 
-        default = "bspwm";
-      };
+      sxhkd.configFile = ./sxhkdrc;
     };
   };
 }

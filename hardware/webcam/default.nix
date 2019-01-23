@@ -1,10 +1,8 @@
 { ... }:
 
 {
-  boot = {
-    blacklistedKernelModules = [
-      # Disable integrated webcam
-      "uvcvideo"
-    ];
-  };
+  boot.blacklistedKernelModules = [
+    # Disable integrated webcam
+    "uvcvideo"
+  ];
 }

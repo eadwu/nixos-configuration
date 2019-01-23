@@ -1,15 +1,8 @@
 { ... }:
 
 {
-  services = {
-    xserver = {
-      desktopManager = {
-        default = "none";
-
-        xterm = {
-          enable = false;
-        };
-      };
-    };
+  services.xserver.desktopManager = {
+    default = "none";
+    xterm.enable = false;
   };
 }

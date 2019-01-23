@@ -11,15 +11,8 @@
     };
   };
 
-  services = {
-    xserver = {
-      windowManager = {
-        default = "dwm";
-
-        dwm = {
-          enable = true;
-        };
-      };
-    };
+  services.xserver.windowManager = {
+    default = "dwm";
+    dwm.enable = true;
   };
 }
