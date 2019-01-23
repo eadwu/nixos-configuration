@@ -8,9 +8,10 @@ with config.nixos; {
       "${settings.system.user}" = {
         createHome = true;
         extraGroups = [
-          "docker"
-          "networkmanager"
           "wheel"
+          "docker"
+          "libvirtd"
+          "networkmanager"
         ];
         group = "users";
         home = settings.system.home;
