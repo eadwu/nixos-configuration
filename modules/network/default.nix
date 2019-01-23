@@ -10,9 +10,8 @@ with config.nixos; {
     hostName = settings.machine.hostname;
 
     wireless = {
-      iwd = {
         enable = true;
-      };
+      iwd.enable = false;
     };
   };
 }

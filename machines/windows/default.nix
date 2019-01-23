@@ -12,6 +12,7 @@ with config.nixos; {
 
       # ../../modules/xserver/window-manager/bspwm
       ../../modules/xserver/window-manager/dwm
+      # ../../modules/network/wireguard.nix
 
       ../../options/undervolt.nix
 
@@ -44,6 +45,15 @@ with config.nixos; {
   nixos.settings = {
     xserver.dpiScale = 2;
     system.user = "xps";
+
+    wireguard = {
+      client.addresses = [ "10.100.1.40/24" ];
+
+      server = {
+        address = "23.22.8.192";
+        credentials = "owMZpd6QLiHuMFgf6d04A6uocFGhlOzJktySIVkv6XU=";
+      };
+    };
   };
 
   services = {
