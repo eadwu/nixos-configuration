@@ -19,35 +19,12 @@ with config.nixos; {
     memorySize = 2048;
   };
 
-  nixpkgs = {
-    config = {
-      allowUnfree = true;
-    };
+  nixpkgs.config.allowUnfree = true;
+
+  services.xserver.displayManager.lightdm.greeters = {
+    enso.enable = lib.mkForce false;
+    gtk.enable = lib.mkForce true;
   };
 
-  services = {
-    xserver = {
-      displayManager = {
-        lightdm = {
-          greeters = {
-            enso = {
-              enable = lib.mkForce false;
-            };
-
-            gtk = {
-              enable = lib.mkForce true;
-            };
-          };
-        };
-      };
-    };
-  };
-
-  users = {
-    users = {
-      "${settings.system.user}" = {
-        hashedPassword = "$6$eZVmFXSPY.7$RkJCABsQErbv/9I2Ovr1ZMw6u.DX/JpGiTXtnXU1mCkQF3fFarKKXPQ2A/Pmy.5/Y7kNIPJndpV5gqSGxmsu51";
-      };
-    };
-  };
+  users.users."${settings.system.user}".hashedPassword = "$6$eZVmFXSPY.7$RkJCABsQErbv/9I2Ovr1ZMw6u.DX/JpGiTXtnXU1mCkQF3fFarKKXPQ2A/Pmy.5/Y7kNIPJndpV5gqSGxmsu51";
 }

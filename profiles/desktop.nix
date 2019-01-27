@@ -99,11 +99,5 @@ with config.nixos; {
     ];
   };
 
-  services = {
-    dbus = {
-      packages = with pkgs; [
-        gnome3.dconf
-      ];
-    };
-  };
+  services.dbus.packages = lib.singleton pkgs.gnome3.dconf;
 }

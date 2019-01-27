@@ -1,39 +1,19 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 
 {
   imports =
     [
       <nixpkgs/nixos/modules/installer/cd-dvd/channel.nix>
-      <nixpkgs/nixos/modules/installer/cd-dvd/installation-cd-minimal.nix>
+      <nixpkgs/nixos/modules/installer/cd-dvd/installation-cd-minimal-new-kernel.nix>
     ];
 
-  boot = {
-    supportedFilesystems = [
-      "bcachefs"
-    ];
-  };
+  boot.supportedFilesystems = lib.singleton "bcachefs";
 
-  environment = {
-    interactiveShellInit = ''
-      alias emacs="${pkgs.emacs}/bin/emacs --no-window-system"
-    '';
+  environment.systemPackages = lib.singleton pkgs.emacs;
 
-    systemPackages = with pkgs; [
-      emacs
-    ];
-  };
+  hardware.enableRedistributableFirmware = true;
 
-  hardware = {
-    enableRedistributableFirmware = true;
-  };
+  i18n.consoleFont = "latarcyrheb-sun32";
 
-  i18n = {
-    consoleFont = "latarcyrheb-sun32";
-  };
-
-  nixpkgs = {
-    config = {
-      allowUnfree = true;
-    };
-  };
+  nixpkgs.config.allowUnfree = true;
 }
