@@ -33,8 +33,8 @@ in with self.pkgs; {
     src = fetchFromGitHub {
       owner = "nick92";
       repo = "Enso-OS";
-      rev = "2d4184080c644b92b23f7a98e87b81b70b862bca";
-      sha256 = "0157586alivhjjhb6xainkjhw4spps3bqwi4v3cmpmcm1nq5h8f2";
+      rev = "14bf28e59ede7c57467e21a39c82792dbf531f9c";
+      sha256 = "1y4sbqhv2zhxfxbri1hal26ba7afj4i7ci0w18p5dk7k8xqq77kc";
     };
   });
 
