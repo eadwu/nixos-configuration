@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 
 {
   imports =
@@ -41,6 +41,8 @@
       VISUAL = "vim";
     };
   };
+
+  services.fstrim.enable = lib.mkDefault true;
 
   time = {
     timeZone = "America/New_York";
