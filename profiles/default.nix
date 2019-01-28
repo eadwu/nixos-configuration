@@ -31,7 +31,7 @@
 
       # Debug / Utils
       lsof
-      nix-prefetch-scripts
+      nix-universal-prefetch
       pciutils
       usbutils
     ];
