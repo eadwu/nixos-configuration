@@ -1,17 +1,11 @@
-{ config, pkgs, ... }:
+{ pkgs, ... }:
 
-with config.nixos; {
+{
   programs = {
     zsh = {
       enable = true;
       interactiveShellInit = ''
         setopt histignorespace
-
-        bios-upgrade () {
-          ${pkgs.fwupd}/bin/fwupdmgr get-devices
-          ${pkgs.fwupd}/bin/fwupdmgr get-updates
-          ${pkgs.fwupd}/bin/fwupdmgr update
-        }
 
         nix-clean () {
           nix-env --delete-generations old
@@ -30,17 +24,14 @@ with config.nixos; {
       };
 
       shellAliases = {
-        "download-audio" = "${pkgs.youtube-dl}/bin/youtube-dl --extract-audio --audio-format mp3";
-        "emacs-nox" = "${pkgs.emacs}/bin/emacs --no-window-system";
-        "nixos-generate-iso" = ''
-          nix-build "<nixpkgs/nixos>" \
-            -A config.system.build.isoImage \
-            -I nixos-config=${settings.system.home}/Downloads/nixos-configuration/profiles/iso.nix
+        "download-audio" = ''
+          ${pkgs.youtube-dl}/bin/youtube-dl --extract-audio --audio-format mp3
         '';
-        "nixos-generate-vm" = ''
-          nix-build "<nixpkgs/nixos>" \
-            -A config.system.build.virtualBoxOVA \
-            -I nixos-config=${settings.system.home}/Downloads/nixos-configuration/profiles/vm.nix
+        "emacs-nox" = ''
+          ${pkgs.emacs}/bin/emacs --no-window-system
+        '';
+        "nix-build-system" = ''
+          nix build -f "<nixpkgs/nixos>" config.system.build.toplevel
         '';
       };
     };
