@@ -8,12 +8,12 @@ in {
     pythonPackages = python36Packages;
   }).overrideAttrs (oldAttrs: rec {
     name = "blender-2.80.beta-${version}";
-    version = "7467049055a7";
+    version = "690478027bd7";
 
     src = fetchgit {
       url = "https://git.blender.org/blender.git";
       rev = version;
-      sha256 = "1qh29d3clgbpbxd72lhd563np7mgafavpb7pnc6dlsayq577k4ij";
+      sha256 = "0zdlad8bhalmvpy441isr3kgm53jz9lacjk25ap9rgqy8pk38a67";
     };
 
     cmakeFlags = oldAttrs.cmakeFlags ++ [
