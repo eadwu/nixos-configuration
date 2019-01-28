@@ -10,9 +10,10 @@ with config.nixos; {
       # ../../hardware/gpu/nvidia/disable
       ../../hardware/gpu/nvidia/prime
 
+      # ../../modules/network/wireguard.nix
+      # ../../modules/network/openvpn.nix
       # ../../modules/xserver/window-manager/bspwm
       ../../modules/xserver/window-manager/dwm
-      # ../../modules/network/wireguard.nix
 
       ../../options/undervolt.nix
 

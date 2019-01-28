@@ -14,7 +14,6 @@ with config.nixos; {
       ../modules/mpd
       ../modules/netdata.nix
       ../modules/network
-      ../modules/network/openvpn.nix
       ../modules/oblogout.nix
       ../modules/pulseaudio
       ../modules/redshift.nix

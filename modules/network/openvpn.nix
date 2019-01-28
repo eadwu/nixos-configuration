@@ -2,8 +2,6 @@
 
 with config.nixos; {
   services.openvpn.servers.protonvpn = {
-    autoStart = false;
-
     config = ''
       # ==============================================================================
       # Copyright (c) 2016-2017 ProtonVPN A.G. (Switzerland)
