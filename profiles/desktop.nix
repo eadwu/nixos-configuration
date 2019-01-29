@@ -102,25 +102,31 @@ with config.nixos; {
     ];
   };
 
-  programs.zsh.shellAliases = {
-    "home-manager" = ''
-      home-manager -2
-    '';
-    "nix-generate-iso" = ''
+  programs.zsh = {
+    interactiveShellInit = ''
+      nix-generate-iso () {
       nix build -f "<nixpkgs/nixos>" \
         -I nixos-config=${settings.system.home}/Downloads/nixos-configuration/profiles/iso.nix \
         config.system.build.isoImage
-    '';
-    "nix-generate-sd" = ''
+      }
+
+      nix-generate-sd () {
       nix build -f "<nixpkgs/nixos>" \
+          --builders "ssh://builder" \
         -I nixos-config=${settings.system.home}/Downloads/nixos-configuration/profiles/sd-image.nix \
         config.system.build.sdImage
-    '';
-    "nix-generate-vm" = ''
+      }
+
+      nix-generate-vm () {
       nix build -f "<nixpkgs/nixos>"  \
         -I nixos-config=${settings.system.home}/Downloads/nixos-configuration/profiles/vm.nix \
         config.system.build.virtualBoxOVA
+      }
     '';
+
+    shellAliases = {
+      "home-manager" = "home-manager -2";
+    };
   };
 
   services.dbus.packages = lib.singleton pkgs.gnome3.dconf;

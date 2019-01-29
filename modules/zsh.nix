@@ -15,6 +15,10 @@
           for link in /nix/var/nix/gcroots/auto/*; do rm $(readlink "$link"); done
           nix-collect-garbage -d
         }
+
+        nix-build-system () {
+          nix build -f "<nixpkgs/nixos>" config.system.build.toplevel
+        }
       '';
 
       ohMyZsh = {
@@ -24,15 +28,8 @@
       };
 
       shellAliases = {
-        "download-audio" = ''
-          ${pkgs.youtube-dl}/bin/youtube-dl --extract-audio --audio-format mp3
-        '';
-        "emacs-nox" = ''
-          ${pkgs.emacs}/bin/emacs --no-window-system
-        '';
-        "nix-build-system" = ''
-          nix build -f "<nixpkgs/nixos>" config.system.build.toplevel
-        '';
+        download-audio = "${pkgs.youtube-dl}/bin/youtube-dl --extract-audio --audio-format mp3";
+        emacs-nox = "${pkgs.emacs}/bin/emacs --no-window-system";
       };
     };
   };
