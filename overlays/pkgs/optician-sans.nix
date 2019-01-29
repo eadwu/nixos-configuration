@@ -1,7 +1,7 @@
 { stdenv, fetchFromGitHub }:
 
-stdenv.mkDerivation rec {
-  name = "optician-sans-${version}";
+stdenv.mkDerivation {
+  pname = "optician-sans";
   version = "20181218";
 
   src = fetchFromGitHub {
