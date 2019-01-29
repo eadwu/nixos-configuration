@@ -53,4 +53,6 @@ in with self.pkgs; {
   rstudioWrapper = super.rstudioWrapper.override {
     packages = rPackages;
   };
+
+  sddm-chili = libsForQt5.callPackage ./pkgs/sddm-chili.nix { };
 }

@@ -24,6 +24,22 @@ in {
           The desired hostname of the machine
         '';
       };
+
+      screen = {
+        width = mkOption {
+          type = types.int;
+          default = 1440;
+          description = ''
+          '';
+        };
+
+        height = mkOption {
+          type = types.int;
+          default = 900;
+          description = ''
+          '';
+    };
+      };
     };
 
     protonvpn = {
