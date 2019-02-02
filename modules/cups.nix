@@ -1,6 +1,11 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 
 {
+  hardware.sane = {
+    enable = true;
+    extraBackends = lib.singleton pkgs.hplip;
+  };
+
   services = {
     avahi = {
       enable = true;
@@ -9,10 +14,7 @@
 
     printing = {
       enable = true;
-
-      drivers = with pkgs; [
-        hplip
-      ];
+      drivers = lib.singleton pkgs.hplip;
     };
   };
 }
