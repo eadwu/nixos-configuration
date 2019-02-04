@@ -58,13 +58,14 @@ with config.nixos; {
       openjdk
       python
       python3
-      rustup
       rWrapper
       sass
       sqlite
       texlive.combined.scheme-full
       ## Haskell
       stack
+      ## Rust
+      rustPlatform.rust
       # Build Tools
       cmake
       gnumake
@@ -84,6 +85,7 @@ with config.nixos; {
 
     variables = {
       DOCKER_ID_USER = settings.docker.user;
+      RUST_SRC_PATH = "${pkgs.rustPlatform.rustcSrc}/lib/rustlib/src/rust/src";
     };
   };
 
