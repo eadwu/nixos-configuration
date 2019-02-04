@@ -53,4 +53,14 @@ in with self.pkgs; subOverlays // {
   rstudioWrapper = super.rstudioWrapper.override {
     packages = rPackages;
   };
+
+  rustPlatform = ((import "${fetchFromGitHub {
+    owner = "mozilla";
+    repo = "nixpkgs-mozilla";
+    rev = "507efc7f62427ded829b770a06dd0e30db0a24fe";
+    sha256 = "17p1krbs6x6rnz59g46rja56b38gcigri3h3x9ikd34cxw77wgs9";
+  }}/rust-overlay.nix" self super).rustChannelOf { date = "2019-01-26"; channel = "nightly"; }) // {
+    inherit (super.rustPlatform) buildRustPackage recurseForDerivations;
+    rustcSrc = rustPlatform.rust-src;
+  };
 }
