@@ -7,8 +7,8 @@ in {
     src = fetchFromGitLab {
       owner = "eadwu";
       repo = "dmenu";
-      rev = "eae2a506dab7168d030fb43a2fcb6c79fd601d8f";
-      sha256 = "0a143vw1nap80xzbasqy0r82ky4v6ah1ffn4mfmjxwg3m82j00np";
+      rev = "f8257adfaa69701f06b0e11abaf70ab5f1222056";
+      sha256 = "07k4nn5vahlg2fwpaamw69nmx46y7x8vzvgrppd8bi0gg9n0v4ln";
     };
   });
 
@@ -16,8 +16,8 @@ in {
     src = fetchFromGitLab {
       owner = "eadwu";
       repo = "dwm";
-      rev = "8eaac8bf786d581be80b2ab842edb46aefc44e19";
-      sha256 = "0xgga9x8b8bl754fyyjs856x6qxs8hmkhxc4ikn4g35khxms454w";
+      rev = "5788ba407883928736af330b9695ad0d3c39f898";
+      sha256 = "1wfr3m4lwrmyfrqqklrmf4rn8gbqg70kgqf5750xzqjwchclxbv2";
     };
   });
 
@@ -25,8 +25,8 @@ in {
     src = fetchFromGitLab {
       owner = "eadwu";
       repo = "st";
-      rev = "d73f211031726a5063ac53b9457f12b2473cc07b";
-      sha256 = "1ajv0gdva9ipga4zhpw92pwcw3hvn7iz3lhc57na0zihai3xdbm1";
+      rev = "7ec6cfc57e91a4a216af146bacb0f88fb2e5cc76";
+      sha256 = "1ixcin15l67qhdyf8vjngv55fj5si6jnc9nw0kk4sg876y04r6s9";
     };
   });
 }
