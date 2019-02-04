@@ -14,6 +14,8 @@ with config.nixos; {
       ./desktop.nix
     ];
 
+  nixos.settings.system.user = "vm";
+
   virtualbox = {
     baseImageSize = 64 * 1024;
     memorySize = 2048;
