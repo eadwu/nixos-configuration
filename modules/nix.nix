@@ -25,28 +25,23 @@ with config.nixos; {
       # builders-use-substitutes = true
     '';
 
-    nixPath = let
-      basePath = builtins.toPath "${settings.system.home}/Downloads";
-    in [
+    nixPath = [
       "/etc/nixos"
       "nixos-config=/etc/nixos/configuration.nix"
     ]
-      ++ (if builtins.pathExists (builtins.toPath "${basePath}/nixpkgs")
-        then lib.singleton "nixpkgs=${basePath}/nixpkgs"
+      ++ (if builtins.pathExists ../../nixpkgs
+        then lib.singleton "nixpkgs=${builtins.toString ../../nixpkgs}"
         else [
           "nixpkgs=https://gitlab.com/eadwu/nixpkgs/-/archive/develop/nixpkgs-develop.tar.gz"
           "nixpkgs=https://api.github.com/repos/eadwu/nixpkgs/tarball/develop"
         ])
-      ++ lib.optional (builtins.pathExists (builtins.toPath "${basePath}/nixos-configuration/overlays"))
-        "nixpkgs-overlays=${basePath}/nixos-configuration/overlays";
+      ++ lib.optional (builtins.pathExists ../overlays)
+        "nixpkgs-overlays=${builtins.toString ../overlays}";
   };
 
   nixpkgs = {
     config.allowUnfree = true;
-
-    overlays = if builtins.pathExists <nixpkgs-overlays>
-      then lib.singleton (import <nixpkgs-overlays>)
-      else lib.singleton (import ../overlays);
+    overlays = lib.optional (builtins.pathExists <nixpkgs-overlays>) (import <nixpkgs-overlays>);
   };
 
   programs.ssh.extraConfig = ''
