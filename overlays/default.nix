@@ -5,13 +5,15 @@ self: super: let
     rmarkdown
     RDocumentation
   ];
-in with self.pkgs; {
-  inherit (import ./pkgs/blender.nix self super) blender;
-  inherit (import ./pkgs/emacs.nix self super) emacs;
-  inherit (import ./pkgs/polybar.nix self super) polybar;
-  inherit (import ./pkgs/suckless.nix self super) dmenu dwm st;
-  inherit (import ./pkgs/vscode.nix self super) vscode;
 
+  subOverlays = let
+    lib = super.stdenv.lib;
+  in builtins.listToAttrs (lib.flatten (map
+    (filename: lib.mapAttrsToList
+      (n: v: lib.nameValuePair n v)
+      (import (./. + "/pkgs/${filename}") self super))
+    (builtins.attrNames (builtins.readDir ./pkgs))));
+in with self.pkgs; subOverlays // {
   ark = super.ark.override {
     unfreeEnableUnrar = true;
   };
@@ -44,8 +46,6 @@ in with self.pkgs; {
     visualizerSupport = true;
   };
 
-  optician-sans = callPackage ./pkgs/optician-sans.nix { };
-
   rWrapper = super.rWrapper.override {
     packages = rPackages;
   };
@@ -53,6 +53,4 @@ in with self.pkgs; {
   rstudioWrapper = super.rstudioWrapper.override {
     packages = rPackages;
   };
-
-  sddm-chili = libsForQt5.callPackage ./pkgs/sddm-chili.nix { };
 }
