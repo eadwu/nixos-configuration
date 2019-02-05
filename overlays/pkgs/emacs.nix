@@ -2,17 +2,16 @@ self: super:
 
 let
   inherit (self) pkgs;
-  inherit (pkgs) epkgs fetchgit emacsPackagesNgGen;
+  inherit (pkgs) epkgs emacsPackagesNgGen;
 
   emacs27 = (super.emacs.override {
     srcRepo = true;
     withGTK2 = false;
     withGTK3 = true;
   }).overrideAttrs (oldAttrs: {
-    src = fetchgit {
+    src = builtins.fetchGit {
       url = "https://git.savannah.gnu.org/git/emacs.git";
       rev = "1b6ef26eb653c9d1e4fdbd16d314679cdb26e8ae";
-      sha256 = "0jcpy7i0l79706h6g2lmxhjnihfngmicdkq2m3808gr23cavnfhf";
     };
 
     buildInputs = oldAttrs.buildInputs ++ (with pkgs; [

@@ -63,9 +63,8 @@ in {
     xserver = {
       background = mkOption {
         type = types.path;
-        default = "${pkgs.fetchurl {
-          url = "https://gitlab.com/eadwu/backgrounds/raw/08819ecf6e286f6d30b0d09b7ac24688b937d576/plasma-5-14-final-4k.jpg";
-          sha256 = "07cl6d07s60ighfdc0jjyvp2yacg49argcr2yf5xn1852fia5pjm";
+        default = "${builtins.fetchurl {
+          url = "https://gitlab.com/eadwu/backgrounds/raw/master/plasma-5-14-final-4k.jpg";
         }}";
         description = ''
           The wallpaper to use in X.Org

@@ -19,11 +19,8 @@ in with self.pkgs; subOverlays // {
   };
 
   capitaine-cursors = super.capitaine-cursors.overrideAttrs (oldAttrs: {
-    src = fetchFromGitHub {
-      owner = "keeferrourke";
-      repo = "capitaine-cursors";
-      rev = "960f9e9011bab281bbcb1355fc45d43295282034";
-      sha256 = "1szxwwj1x87wlvj18jdjxh4dl88hkkq9fp3sl58wcp9jw6iaixrv";
+    src = builtins.fetchGit {
+      url = "https://github.com/keeferrourke/capitaine-cursors";
     };
   });
 
@@ -32,11 +29,8 @@ in with self.pkgs; subOverlays // {
   };
 
   lightdm-enso-os-greeter = super.lightdm-enso-os-greeter.overrideAttrs (oldAttrs: {
-    src = fetchFromGitHub {
-      owner = "nick92";
-      repo = "Enso-OS";
-      rev = "14bf28e59ede7c57467e21a39c82792dbf531f9c";
-      sha256 = "1y4sbqhv2zhxfxbri1hal26ba7afj4i7ci0w18p5dk7k8xqq77kc";
+    src = builtins.fetchGit {
+      url = "https://github.com/nick92/Enso-OS";
     };
   });
 
@@ -54,11 +48,8 @@ in with self.pkgs; subOverlays // {
     packages = rPackages;
   };
 
-  rustPlatform = (import "${fetchFromGitHub {
-    owner = "mozilla";
-    repo = "nixpkgs-mozilla";
-    rev = "507efc7f62427ded829b770a06dd0e30db0a24fe";
-    sha256 = "17p1krbs6x6rnz59g46rja56b38gcigri3h3x9ikd34cxw77wgs9";
+  rustPlatform = (import "${builtins.fetchGit {
+    url = "https://github.com/mozilla/nixpkgs-mozilla";
   }}/rust-overlay.nix" self super).latest.rustChannels.nightly // {
     inherit (super.rustPlatform) buildRustPackage recurseForDerivations;
     rustcSrc = rustPlatform.rust-src;

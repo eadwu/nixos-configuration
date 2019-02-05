@@ -5,13 +5,11 @@ self: super:
     isInsiders = true;
   }).overrideAttrs(oldAttrs: rec {
     name = "vscode-insiders-${version}";
-    version = "1549046066";
+    version = "latest";
 
-    # wget --spider "https://vscode-update.azurewebsites.net/latest/linux-x64/insider"
-    src = self.pkgs.fetchurl {
+    src = builtins.fetchurl {
       name = "VSCode_latest_linux-x64.tar.gz";
-      url = "https://az764295.vo.msecnd.net/insider/8f56013e8f66650c1b0b65cc5c502691e307db21/code-insider-${version}.tar.gz";
-      sha256 = "1w3w0h6dvnq1c8pavarz03aly1gbnlnqcxcgyfxza1izkpdf356m";
+      url = "https://vscode-update.azurewebsites.net/latest/linux-x64/insider";
     };
   });
 
