@@ -115,6 +115,7 @@ with config.nixos; {
       nix-generate-sd () {
       nix build -f "<nixpkgs/nixos>" \
           --builders "ssh://builder" \
+          --arg system '"aarch64-linux"' \
           -I nixos-config=${builtins.toString ./.}/sd-image.nix \
         config.system.build.sdImage
       }
