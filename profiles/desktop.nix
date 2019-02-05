@@ -112,7 +112,7 @@ in with config.nixos; {
     interactiveShellInit = ''
       nix-generate-iso () {
         nix build -f "<nixpkgs/nixos>" \
-          -I nixos-config=${builtins.toString ./.}/iso.nix \
+          -I nixos-config=${builtins.toString ./iso.nix} \
           config.system.build.isoImage
       }
 
@@ -120,13 +120,13 @@ in with config.nixos; {
         nix build -f "<nixpkgs/nixos>" \
           --builders "ssh://builder" \
           --arg system '"aarch64-linux"' \
-          -I nixos-config=${builtins.toString ./.}/sd-image.nix \
+          -I nixos-config=${builtins.toString ./sd-image.nix} \
           config.system.build.sdImage
       }
 
       nix-generate-vm () {
         nix build -f "<nixpkgs/nixos>"  \
-          -I nixos-config=${builtins.toString ./.}/vm.nix \
+          -I nixos-config=${builtins.toString ./vm.nix} \
           config.system.build.virtualBoxOVA
       }
     '';
