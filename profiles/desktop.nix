@@ -1,6 +1,10 @@
 { config, pkgs, lib, ... }:
 
-with config.nixos; {
+let
+  cachix = (import (builtins.fetchTarball {
+    url = "https://cachix.org/api/v1/install";
+  }) { }).cachix;
+in with config.nixos; {
   imports =
     [
       ./default.nix
@@ -70,7 +74,7 @@ with config.nixos; {
       cmake
       gnumake
       # Misc
-      # cachix
+      cachix
       ffmpeg
       gnupg
       imagemagick7
