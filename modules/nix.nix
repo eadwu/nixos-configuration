@@ -25,10 +25,7 @@ with config.nixos; {
       # builders-use-substitutes = true
     '';
 
-    nixPath = [
-      "/etc/nixos"
-      "nixos-config=/etc/nixos/configuration.nix"
-    ]
+    nixPath = lib.singleton "/etc/nixos"
       ++ (if builtins.pathExists ../../nixpkgs
         then lib.singleton "nixpkgs=${builtins.toString ../../nixpkgs}"
         else [

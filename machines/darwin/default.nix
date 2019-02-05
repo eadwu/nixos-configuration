@@ -26,6 +26,8 @@
     };
   };
 
+  nix.nixPath = lib.singleton "nixos-config=${builtins.toString ./.}";
+
   nixos.settings.system.user = "yin";
 
   services.xserver.libinput.additionalOptions = ''

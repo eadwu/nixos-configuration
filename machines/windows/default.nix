@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
 with config.nixos; {
   imports =
@@ -53,6 +53,8 @@ with config.nixos; {
       };
     };
   };
+
+  nix.nixPath = lib.singleton "nixos-config=${builtins.toString ./.}";
 
   programs.zsh.interactiveShellInit = ''
     bios-upgrade () {
