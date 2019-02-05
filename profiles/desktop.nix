@@ -108,20 +108,20 @@ with config.nixos; {
     interactiveShellInit = ''
       nix-generate-iso () {
       nix build -f "<nixpkgs/nixos>" \
-        -I nixos-config=${settings.system.home}/Downloads/nixos-configuration/profiles/iso.nix \
+          -I nixos-config=${builtins.toString ./.}/iso.nix \
         config.system.build.isoImage
       }
 
       nix-generate-sd () {
       nix build -f "<nixpkgs/nixos>" \
           --builders "ssh://builder" \
-        -I nixos-config=${settings.system.home}/Downloads/nixos-configuration/profiles/sd-image.nix \
+          -I nixos-config=${builtins.toString ./.}/sd-image.nix \
         config.system.build.sdImage
       }
 
       nix-generate-vm () {
       nix build -f "<nixpkgs/nixos>"  \
-        -I nixos-config=${settings.system.home}/Downloads/nixos-configuration/profiles/vm.nix \
+          -I nixos-config=${builtins.toString ./.}/vm.nix \
         config.system.build.virtualBoxOVA
       }
     '';
