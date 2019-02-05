@@ -122,7 +122,7 @@ in {
 
       identityFile = mkOption {
         type = types.path;
-        default = builtins.toPath "${cfg.system.home}/.ssh/nix_builder";
+        default = "${cfg.system.home}/.ssh/nix_builder";
         description = ''
           Path to the private key to be used for SSH connections to the builder
         '';
