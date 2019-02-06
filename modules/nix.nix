@@ -9,15 +9,8 @@ with config.nixos; {
     requireSignedBinaryCaches = true;
     useSandbox = true;
 
-    binaryCaches = [
-      "https://cache.nixos.org/"
-      "https://system.cachix.org/"
-    ];
-
-    binaryCachePublicKeys = [
-      "hydra.nixos.org-1:CNHJZBh9K4tP3EKF6FkkgeVYsS3ohTl+oS0Qa8bezVs="
-      "system.cachix.org-1:LLfVsnv+jMrn/L6gYIaaDthJ+HUHsuhVZ6Kk7tff3dQ="
-    ];
+    binaryCaches = [ "https://cache.nixos.org/" ];
+    binaryCachePublicKeys = [ "hydra.nixos.org-1:CNHJZBh9K4tP3EKF6FkkgeVYsS3ohTl+oS0Qa8bezVs=" ];
 
     buildMachines = [
       { hostName = "builder";
