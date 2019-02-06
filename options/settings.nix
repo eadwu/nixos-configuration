@@ -38,7 +38,7 @@ in {
           default = 900;
           description = ''
           '';
-    };
+        };
       };
     };
 
@@ -53,7 +53,7 @@ in {
 
       credentials = mkOption {
         type = types.path;
-        default = builtins.toString ./credentials/protonvpn;
+        default = builtins.toString ../credentials/protonvpn;
         description = ''
           The filepath to the file which contains the credentials needed
         '';
@@ -140,7 +140,7 @@ in {
 
         credentials = mkOption {
           type = types.path;
-          default = builtins.toString ./credentials/wireguard;
+          default = builtins.toString ../credentials/wireguard;
           description = ''
             File which contains your private key
           '';
@@ -178,7 +178,7 @@ in {
   config = mkIf (cfg.system.user != null) {
     nixos.settings.system = with cfg.system; {
       home = "/home/${user}";
-      credentials = builtins.toString ./credentials + "/${user}";
+      credentials = builtins.toString ../credentials + "/${user}";
     };
   };
 }
