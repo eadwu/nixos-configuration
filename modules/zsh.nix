@@ -18,8 +18,6 @@
 
         nix-build-system () {
           nix build \
-            --argstr substituters https://system.cachix.org \
-            --argstr trusted-public-keys system.cachix.org-1:LLfVsnv+jMrn/L6gYIaaDthJ+HUHsuhVZ6Kk7tff3dQ= \
             -f "<nixpkgs/nixos>" \
             config.system.build.toplevel
         }
