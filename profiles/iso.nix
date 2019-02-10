@@ -8,8 +8,10 @@
     ];
 
   boot = {
-    zfs.enableUnstable = true;
+    kernelPackages = lib.mkForce pkgs.linuxPackages_latest;
+    kernelPatches = lib.singleton (import ../patches/kernel/bcachefs-support.nix);
     supportedFilesystems = lib.singleton "bcachefs";
+    zfs.enableUnstable = true;
   };
 
   environment.systemPackages = with pkgs; [
