@@ -7,8 +7,8 @@ with config.nixos; {
 
       ../../hardware/dell/9570.nix
       # ../../hardware/gpu/nvidia/bumblebee
-      # ../../hardware/gpu/nvidia/disable
-      ../../hardware/gpu/nvidia/prime
+      ../../hardware/gpu/nvidia/disable
+      # ../../hardware/gpu/nvidia/prime
 
       # ../../modules/network/wireguard.nix
       # ../../modules/network/openvpn.nix
