@@ -4,7 +4,7 @@
   imports =
     [
       <nixpkgs/nixos/modules/installer/cd-dvd/channel.nix>
-      <nixpkgs/nixos/modules/installer/cd-dvd/installation-cd-minimal-new-kernel.nix>
+      <nixpkgs/nixos/modules/installer/cd-dvd/installation-cd-minimal.nix>
     ];
 
   boot = {
@@ -12,7 +12,11 @@
     supportedFilesystems = lib.singleton "bcachefs";
   };
 
-  environment.systemPackages = lib.singleton pkgs.emacs;
+  environment.systemPackages = with pkgs; [
+    git
+    emacs
+    mkpasswd
+  ];
 
   hardware.enableRedistributableFirmware = true;
 
