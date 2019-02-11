@@ -36,8 +36,8 @@ self: super:
 
       { name = "Ionide-fsharp";
         publisher = "Ionide";
-        version = "3.32.0";
-        sha256 = "1g09i3zzq2rgmlg3pcbsp6r0w71c61v57a85ivbpz6z0lwr5603k"; }
+        version = "3.33.0";
+        sha256 = "0ichfnpy48bb1z2vpg6x1m7z5z2pdzx5fnf6zz6r2ykzl8x2agjn"; }
 
       { name = "latex-workshop";
         publisher = "James-Yu";
@@ -66,8 +66,8 @@ self: super:
 
       { name = "solargraph";
         publisher = "castwide";
-        version = "0.19.2";
-        sha256 = "1hyg1sfkg5syzw653r5yswfc23hr8cq31mddnj43nj13h3il1dn9"; }
+        version = "0.19.3";
+        sha256 = "0l72b3fksxkqi36cdnvn0h1l8lznsa9k84ijaw3ms81d02nh368n"; }
 
       { name = "path-intellisense";
         publisher = "christian-kohler";
@@ -91,8 +91,8 @@ self: super:
 
       { name = "gitlens";
         publisher = "eamodio";
-        version = "9.4.1";
-        sha256 = "15a39p8wj84hypz0m25chrnqz3zyg4wjnx9z1vv3qqpppybqy2w8"; }
+        version = "9.5.0";
+        sha256 = "1gzw65p3z1zkbq165xmki4cp2as3y8smyr8my9bv7j5hkz7p8xvs"; }
 
       { name = "tslint";
         publisher = "eg2";
@@ -201,8 +201,8 @@ self: super:
 
       { name = "vscode-maven";
         publisher = "vscjava";
-        version = "0.14.1";
-        sha256 = "1q8cp76271shlzily3bsdby6zq2bqch9gr4n9yhk0lkh80vp18n7"; }
+        version = "0.14.2";
+        sha256 = "1xsszmcblrij7mhairwj3bwjfk91jd6n0c6f801w79vlapanxyd9"; }
     ];
   };
 }
