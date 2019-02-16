@@ -3,7 +3,7 @@ self: super:
 with self.pkgs; {
   optician-sans = stdenv.mkDerivation {
     pname = "optician-sans";
-    version = "master";
+    version = "latest";
 
     src = builtins.fetchGit {
       url = "https://github.com/anewtypeofinterference/Optician-Sans";

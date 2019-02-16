@@ -7,8 +7,9 @@ in {
   blender = (super.blender.override {
     pythonPackages = python37Packages;
   }).overrideAttrs (oldAttrs: rec {
-    name = "blender-${version}";
-    version = "2.80";
+    name = "${pname}-${version}";
+    pname = "blender";
+    version = "2.80.beta";
 
     src = builtins.fetchGit {
       url = "https://git.blender.org/blender.git";

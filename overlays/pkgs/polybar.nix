@@ -1,13 +1,17 @@
 self: super:
 
 let
-  inherit (self.pkgs) fetchFromGitHub;
+  inherit (self.pkgs) stdenv fetchFromGitHub;
 in {
   polybar = (super.polybar.override {
     githubSupport = true;
     mpdSupport = true;
     pulseSupport = true;
-  }).overrideAttrs (oldAttrs: {
+  }).overrideAttrs (oldAttrs: rec {
+    name = "${pname}-${version}";
+    pname = stdenv.lib.removeSuffix "-${oldAttrs.version}" oldAttrs.name;
+    version = "unstable-2019-02-08";
+
     src = fetchFromGitHub {
       owner = "jaagr";
       repo = "polybar";

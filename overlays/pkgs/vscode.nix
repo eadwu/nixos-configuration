@@ -4,7 +4,8 @@ self: super:
   vscode = (super.vscode.override {
     isInsiders = true;
   }).overrideAttrs(oldAttrs: rec {
-    name = "vscode-insiders-${version}";
+    name = "${pname}-${version}";
+    pname = "vscode-insiders";
     version = "latest";
 
     src = builtins.fetchurl {

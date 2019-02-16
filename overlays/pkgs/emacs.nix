@@ -2,13 +2,17 @@ self: super:
 
 let
   inherit (self) pkgs;
-  inherit (pkgs) epkgs emacsPackagesNgGen;
+  inherit (pkgs) epkgs stdenv emacsPackagesNgGen;
 
   emacs27 = (super.emacs.override {
     srcRepo = true;
     withGTK2 = false;
     withGTK3 = true;
-  }).overrideAttrs (oldAttrs: {
+  }).overrideAttrs (oldAttrs: rec {
+    name = "${pname}-${version}";
+    pname = stdenv.lib.removeSuffix "-${oldAttrs.version}" oldAttrs.name;
+    version = "unstable-2019-01-14";
+
     src = builtins.fetchGit {
       url = "https://git.savannah.gnu.org/git/emacs.git";
       rev = "1b6ef26eb653c9d1e4fdbd16d314679cdb26e8ae";
