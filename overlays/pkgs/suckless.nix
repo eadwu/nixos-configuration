@@ -4,7 +4,7 @@ self: super:
   dmenu = super.dmenu.overrideAttrs (oldAttrs: rec {
     name = "${pname}-${version}";
     pname = "dmenu";
-    version = "latest";
+    version = "develop";
 
     src = builtins.fetchGit {
       url = "https://gitlab.com/eadwu/dmenu";
@@ -15,7 +15,7 @@ self: super:
   dwm = super.dwm.overrideAttrs (oldAttrs: rec {
     name = "${pname}-${version}";
     pname = "dwm";
-    version = "latest";
+    version = "develop";
 
     src = builtins.fetchGit {
       url = "https://gitlab.com/eadwu/dwm";
@@ -26,7 +26,7 @@ self: super:
   st = super.st.overrideAttrs (oldAttrs: rec {
     name = "${pname}-${version}";
     pname = "st";
-    version = "latest";
+    version = "develop";
 
     src = builtins.fetchGit {
       url = "https://gitlab.com/eadwu/st";
