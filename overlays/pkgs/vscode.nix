@@ -6,7 +6,7 @@ self: super:
   }).overrideAttrs(oldAttrs: rec {
     name = "${pname}-${version}";
     pname = "vscode-insiders";
-    version = "latest";
+    version = "nightly";
 
     src = builtins.fetchurl {
       name = "VSCode_latest_linux-x64.tar.gz";
