@@ -28,6 +28,2041 @@ index 3adee82be311..6870baffef82 100644
     memory-allocation
     mm-api
     gfp_mask-from-fs-io
+diff --git a/arch/alpha/include/asm/pgalloc.h b/arch/alpha/include/asm/pgalloc.h
+index ab3e3a8638fb..b19f62f02f71 100644
+--- a/arch/alpha/include/asm/pgalloc.h
++++ b/arch/alpha/include/asm/pgalloc.h
+@@ -39,9 +39,9 @@ pgd_free(struct mm_struct *mm, pgd_t *pgd)
+ }
+ 
+ static inline pmd_t *
+-pmd_alloc_one(struct mm_struct *mm, unsigned long address)
++pmd_alloc_one(struct mm_struct *mm, unsigned long address, gfp_t gfp)
+ {
+-	pmd_t *ret = (pmd_t *)__get_free_page(GFP_KERNEL|__GFP_ZERO);
++	pmd_t *ret = (pmd_t *)get_zeroed_page(gfp);
+ 	return ret;
+ }
+ 
+@@ -52,10 +52,10 @@ pmd_free(struct mm_struct *mm, pmd_t *pmd)
+ }
+ 
+ static inline pte_t *
+-pte_alloc_one_kernel(struct mm_struct *mm, unsigned long address)
++pte_alloc_one_kernel(struct mm_struct *mm, unsigned long address,
++		     gfp_t gfp)
+ {
+-	pte_t *pte = (pte_t *)__get_free_page(GFP_KERNEL|__GFP_ZERO);
+-	return pte;
++	return (pte_t *)get_zeroed_page(gfp);
+ }
+ 
+ static inline void
+@@ -67,7 +67,7 @@ pte_free_kernel(struct mm_struct *mm, pte_t *pte)
+ static inline pgtable_t
+ pte_alloc_one(struct mm_struct *mm, unsigned long address)
+ {
+-	pte_t *pte = pte_alloc_one_kernel(mm, address);
++	pte_t *pte = pte_alloc_one_kernel(mm, address, GFP_KERNEL);
+ 	struct page *page;
+ 
+ 	if (!pte)
+diff --git a/arch/arc/include/asm/pgalloc.h b/arch/arc/include/asm/pgalloc.h
+index 3749234b7419..6fdd860c61ee 100644
+--- a/arch/arc/include/asm/pgalloc.h
++++ b/arch/arc/include/asm/pgalloc.h
+@@ -91,14 +91,10 @@ static inline int __get_order_pte(void)
+ }
+ 
+ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
+-					unsigned long address)
++					  unsigned long address,
++					  gfp_t gfp)
+ {
+-	pte_t *pte;
+-
+-	pte = (pte_t *) __get_free_pages(GFP_KERNEL | __GFP_ZERO,
+-					 __get_order_pte());
+-
+-	return pte;
++	return (pte_t *) __get_free_pages(gfp|__GFP_ZERO, __get_order_pte());
+ }
+ 
+ static inline pgtable_t
+diff --git a/arch/arm/include/asm/pgalloc.h b/arch/arm/include/asm/pgalloc.h
+index 2d7344f0e208..dcd025a16884 100644
+--- a/arch/arm/include/asm/pgalloc.h
++++ b/arch/arm/include/asm/pgalloc.h
+@@ -27,9 +27,10 @@
+ 
+ #ifdef CONFIG_ARM_LPAE
+ 
+-static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
++static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr,
++				   gfp_t gfp)
+ {
+-	return (pmd_t *)get_zeroed_page(GFP_KERNEL);
++	return (pmd_t *)get_zeroed_page(gfp);
+ }
+ 
+ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
+@@ -48,7 +49,7 @@ static inline void pud_populate(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
+ /*
+  * Since we have only two-level page tables, these are trivial
+  */
+-#define pmd_alloc_one(mm,addr)		({ BUG(); ((pmd_t *)2); })
++#define pmd_alloc_one(mm,addr,gfp)	({ BUG(); ((pmd_t *)2); })
+ #define pmd_free(mm, pmd)		do { } while (0)
+ #define pud_populate(mm,pmd,pte)	BUG()
+ 
+@@ -81,11 +82,12 @@ static inline void clean_pte_table(pte_t *pte)
+  *  +------------+
+  */
+ static inline pte_t *
+-pte_alloc_one_kernel(struct mm_struct *mm, unsigned long addr)
++pte_alloc_one_kernel(struct mm_struct *mm, unsigned long addr,
++		     gfp_t gfp)
+ {
+ 	pte_t *pte;
+ 
+-	pte = (pte_t *)__get_free_page(PGALLOC_GFP);
++	pte = (pte_t *)get_zeroed_page(gfp);
+ 	if (pte)
+ 		clean_pte_table(pte);
+ 
+diff --git a/arch/arm/mm/idmap.c b/arch/arm/mm/idmap.c
+index 1d1edd064199..64b44901565f 100644
+--- a/arch/arm/mm/idmap.c
++++ b/arch/arm/mm/idmap.c
+@@ -27,7 +27,7 @@ static void idmap_add_pmd(pud_t *pud, unsigned long addr, unsigned long end,
+ 	unsigned long next;
+ 
+ 	if (pud_none_or_clear_bad(pud) || (pud_val(*pud) & L_PGD_SWAPPER)) {
+-		pmd = pmd_alloc_one(&init_mm, addr);
++		pmd = pmd_alloc_one(&init_mm, addr, GFP_KERNEL);
+ 		if (!pmd) {
+ 			pr_warn("Failed to allocate identity pmd.\n");
+ 			return;
+diff --git a/arch/arm/mm/mmu.c b/arch/arm/mm/mmu.c
+index f5cc1ccfea3d..d31ca40274e1 100644
+--- a/arch/arm/mm/mmu.c
++++ b/arch/arm/mm/mmu.c
+@@ -980,10 +980,11 @@ void __init create_mapping_late(struct mm_struct *mm, struct map_desc *md,
+ 				bool ng)
+ {
+ #ifdef CONFIG_ARM_LPAE
+-	pud_t *pud = pud_alloc(mm, pgd_offset(mm, md->virtual), md->virtual);
++	pud_t *pud = pud_alloc(mm, pgd_offset(mm, md->virtual), md->virtual,
++			       GFP_KERNEL);
+ 	if (WARN_ON(!pud))
+ 		return;
+-	pmd_alloc(mm, pud, 0);
++	pmd_alloc(mm, pud, 0, GFP_KERNEL);
+ #endif
+ 	__create_mapping(mm, md, late_alloc, ng);
+ }
+diff --git a/arch/arm/mm/pgd.c b/arch/arm/mm/pgd.c
+index a1606d950251..6c3a6406726e 100644
+--- a/arch/arm/mm/pgd.c
++++ b/arch/arm/mm/pgd.c
+@@ -57,11 +57,11 @@ pgd_t *pgd_alloc(struct mm_struct *mm)
+ 	 * Allocate PMD table for modules and pkmap mappings.
+ 	 */
+ 	new_pud = pud_alloc(mm, new_pgd + pgd_index(MODULES_VADDR),
+-			    MODULES_VADDR);
++			    MODULES_VADDR, GFP_KERNEL);
+ 	if (!new_pud)
+ 		goto no_pud;
+ 
+-	new_pmd = pmd_alloc(mm, new_pud, 0);
++	new_pmd = pmd_alloc(mm, new_pud, 0, GFP_KERNEL);
+ 	if (!new_pmd)
+ 		goto no_pmd;
+ #endif
+@@ -72,11 +72,11 @@ pgd_t *pgd_alloc(struct mm_struct *mm)
+ 		 * contains the machine vectors. The vectors are always high
+ 		 * with LPAE.
+ 		 */
+-		new_pud = pud_alloc(mm, new_pgd, 0);
++		new_pud = pud_alloc(mm, new_pgd, 0, GFP_KERNEL);
+ 		if (!new_pud)
+ 			goto no_pud;
+ 
+-		new_pmd = pmd_alloc(mm, new_pud, 0);
++		new_pmd = pmd_alloc(mm, new_pud, 0, GFP_KERNEL);
+ 		if (!new_pmd)
+ 			goto no_pmd;
+ 
+diff --git a/arch/arm64/include/asm/pgalloc.h b/arch/arm64/include/asm/pgalloc.h
+index 2e05bcd944c8..8075c17f562d 100644
+--- a/arch/arm64/include/asm/pgalloc.h
++++ b/arch/arm64/include/asm/pgalloc.h
+@@ -26,14 +26,14 @@
+ 
+ #define check_pgt_cache()		do { } while (0)
+ 
+-#define PGALLOC_GFP	(GFP_KERNEL | __GFP_ZERO)
+ #define PGD_SIZE	(PTRS_PER_PGD * sizeof(pgd_t))
+ 
+ #if CONFIG_PGTABLE_LEVELS > 2
+ 
+-static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
++static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr,
++				   gfp_t gfp)
+ {
+-	return (pmd_t *)__get_free_page(PGALLOC_GFP);
++	return (pmd_t *)get_zeroed_page(gfp);
+ }
+ 
+ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmdp)
+@@ -60,9 +60,10 @@ static inline void __pud_populate(pud_t *pudp, phys_addr_t pmdp, pudval_t prot)
+ 
+ #if CONFIG_PGTABLE_LEVELS > 3
+ 
+-static inline pud_t *pud_alloc_one(struct mm_struct *mm, unsigned long addr)
++static inline pud_t *pud_alloc_one(struct mm_struct *mm, unsigned long addr,
++				   gfp_t gfp)
+ {
+-	return (pud_t *)__get_free_page(PGALLOC_GFP);
++	return (pud_t *)get_zeroed_page(gfp);
+ }
+ 
+ static inline void pud_free(struct mm_struct *mm, pud_t *pudp)
+@@ -91,9 +92,10 @@ extern pgd_t *pgd_alloc(struct mm_struct *mm);
+ extern void pgd_free(struct mm_struct *mm, pgd_t *pgdp);
+ 
+ static inline pte_t *
+-pte_alloc_one_kernel(struct mm_struct *mm, unsigned long addr)
++pte_alloc_one_kernel(struct mm_struct *mm, unsigned long addr,
++		     gfp_t gfp)
+ {
+-	return (pte_t *)__get_free_page(PGALLOC_GFP);
++	return (pte_t *)get_zeroed_page(gfp);
+ }
+ 
+ static inline pgtable_t
+@@ -101,7 +103,7 @@ pte_alloc_one(struct mm_struct *mm, unsigned long addr)
+ {
+ 	struct page *pte;
+ 
+-	pte = alloc_pages(PGALLOC_GFP, 0);
++	pte = alloc_pages(GFP_KERNEL|__GFP_ZERO, 0);
+ 	if (!pte)
+ 		return NULL;
+ 	if (!pgtable_page_ctor(pte)) {
+diff --git a/arch/arm64/mm/hugetlbpage.c b/arch/arm64/mm/hugetlbpage.c
+index f58ea503ad01..b23a72c394cb 100644
+--- a/arch/arm64/mm/hugetlbpage.c
++++ b/arch/arm64/mm/hugetlbpage.c
+@@ -210,14 +210,14 @@ pte_t *huge_pte_alloc(struct mm_struct *mm,
+ 	pte_t *ptep = NULL;
+ 
+ 	pgdp = pgd_offset(mm, addr);
+-	pudp = pud_alloc(mm, pgdp, addr);
++	pudp = pud_alloc(mm, pgdp, addr, GFP_KERNEL);
+ 	if (!pudp)
+ 		return NULL;
+ 
+ 	if (sz == PUD_SIZE) {
+ 		ptep = (pte_t *)pudp;
+ 	} else if (sz == (PAGE_SIZE * CONT_PTES)) {
+-		pmdp = pmd_alloc(mm, pudp, addr);
++		pmdp = pmd_alloc(mm, pudp, addr, GFP_KERNEL);
+ 
+ 		WARN_ON(addr & (sz - 1));
+ 		/*
+@@ -233,9 +233,9 @@ pte_t *huge_pte_alloc(struct mm_struct *mm,
+ 		    pud_none(READ_ONCE(*pudp)))
+ 			ptep = huge_pmd_share(mm, addr, pudp);
+ 		else
+-			ptep = (pte_t *)pmd_alloc(mm, pudp, addr);
++			ptep = (pte_t *)pmd_alloc(mm, pudp, addr, GFP_KERNEL);
+ 	} else if (sz == (PMD_SIZE * CONT_PMDS)) {
+-		pmdp = pmd_alloc(mm, pudp, addr);
++		pmdp = pmd_alloc(mm, pudp, addr, GFP_KERNEL);
+ 		WARN_ON(addr & (sz - 1));
+ 		return (pte_t *)pmdp;
+ 	}
+diff --git a/arch/csky/include/asm/pgalloc.h b/arch/csky/include/asm/pgalloc.h
+index bf4f4a0e140e..401bb5fc63ce 100644
+--- a/arch/csky/include/asm/pgalloc.h
++++ b/arch/csky/include/asm/pgalloc.h
+@@ -25,13 +25,17 @@ static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd,
+ extern void pgd_init(unsigned long *p);
+ 
+ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
+-					unsigned long address)
++					  unsigned long address,
++					  gfp_t gfp)
+ {
+ 	pte_t *pte;
+ 	unsigned long *kaddr, i;
+ 
+-	pte = (pte_t *) __get_free_pages(GFP_KERNEL | __GFP_RETRY_MAYFAIL,
++	pte = (pte_t *) __get_free_pages(gfp | __GFP_RETRY_MAYFAIL,
+ 					 PTE_ORDER);
++	if (!pte)
++		return NULL;
++
+ 	kaddr = (unsigned long *)pte;
+ 	if (address & 0x80000000)
+ 		for (i = 0; i < (PAGE_SIZE/4); i++)
+diff --git a/arch/hexagon/include/asm/pgalloc.h b/arch/hexagon/include/asm/pgalloc.h
+index eeebf862c46c..f3e3be398ad6 100644
+--- a/arch/hexagon/include/asm/pgalloc.h
++++ b/arch/hexagon/include/asm/pgalloc.h
+@@ -76,10 +76,10 @@ static inline struct page *pte_alloc_one(struct mm_struct *mm,
+ 
+ /* _kernel variant gets to use a different allocator */
+ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
+-					  unsigned long address)
++					  unsigned long address,
++					  gfp_t gfp)
+ {
+-	gfp_t flags =  GFP_KERNEL | __GFP_ZERO;
+-	return (pte_t *) __get_free_page(flags);
++	return (pte_t *) get_zeroed_page(gfp);
+ }
+ 
+ static inline void pte_free(struct mm_struct *mm, struct page *pte)
+diff --git a/arch/ia64/include/asm/pgalloc.h b/arch/ia64/include/asm/pgalloc.h
+index 3ee5362f2661..c2d4316ee68f 100644
+--- a/arch/ia64/include/asm/pgalloc.h
++++ b/arch/ia64/include/asm/pgalloc.h
+@@ -40,9 +40,10 @@ pgd_populate(struct mm_struct *mm, pgd_t * pgd_entry, pud_t * pud)
+ 	pgd_val(*pgd_entry) = __pa(pud);
+ }
+ 
+-static inline pud_t *pud_alloc_one(struct mm_struct *mm, unsigned long addr)
++static inline pud_t *pud_alloc_one(struct mm_struct *mm, unsigned long addr,
++				   gfp_t gfp)
+ {
+-	return quicklist_alloc(0, GFP_KERNEL, NULL);
++	return quicklist_alloc(0, gfp, NULL);
+ }
+ 
+ static inline void pud_free(struct mm_struct *mm, pud_t *pud)
+@@ -58,9 +59,10 @@ pud_populate(struct mm_struct *mm, pud_t * pud_entry, pmd_t * pmd)
+ 	pud_val(*pud_entry) = __pa(pmd);
+ }
+ 
+-static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
++static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr,
++				   gfp_t gfp)
+ {
+-	return quicklist_alloc(0, GFP_KERNEL, NULL);
++	return quicklist_alloc(0, gfp, NULL);
+ }
+ 
+ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
+@@ -100,9 +102,10 @@ static inline pgtable_t pte_alloc_one(struct mm_struct *mm, unsigned long addr)
+ }
+ 
+ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
+-					  unsigned long addr)
++					  unsigned long addr,
++					  gfp_t gfp)
+ {
+-	return quicklist_alloc(0, GFP_KERNEL, NULL);
++	return quicklist_alloc(0, gfp, NULL);
+ }
+ 
+ static inline void pte_free(struct mm_struct *mm, pgtable_t pte)
+diff --git a/arch/ia64/mm/hugetlbpage.c b/arch/ia64/mm/hugetlbpage.c
+index d16e419fd712..01e08edc9d90 100644
+--- a/arch/ia64/mm/hugetlbpage.c
++++ b/arch/ia64/mm/hugetlbpage.c
+@@ -35,9 +35,9 @@ huge_pte_alloc(struct mm_struct *mm, unsigned long addr, unsigned long sz)
+ 	pte_t *pte = NULL;
+ 
+ 	pgd = pgd_offset(mm, taddr);
+-	pud = pud_alloc(mm, pgd, taddr);
++	pud = pud_alloc(mm, pgd, taddr, GFP_KERNEL);
+ 	if (pud) {
+-		pmd = pmd_alloc(mm, pud, taddr);
++		pmd = pmd_alloc(mm, pud, taddr, GFP_KERNEL);
+ 		if (pmd)
+ 			pte = pte_alloc_map(mm, pmd, taddr);
+ 	}
+diff --git a/arch/ia64/mm/init.c b/arch/ia64/mm/init.c
+index d5e12ff1d73c..b3c91de1db8a 100644
+--- a/arch/ia64/mm/init.c
++++ b/arch/ia64/mm/init.c
+@@ -217,13 +217,13 @@ put_kernel_page (struct page *page, unsigned long address, pgprot_t pgprot)
+ 	pgd = pgd_offset_k(address);		/* note: this is NOT pgd_offset()! */
+ 
+ 	{
+-		pud = pud_alloc(&init_mm, pgd, address);
++		pud = pud_alloc(&init_mm, pgd, address, GFP_KERNEL);
+ 		if (!pud)
+ 			goto out;
+-		pmd = pmd_alloc(&init_mm, pud, address);
++		pmd = pmd_alloc(&init_mm, pud, address, GFP_KERNEL);
+ 		if (!pmd)
+ 			goto out;
+-		pte = pte_alloc_kernel(pmd, address);
++		pte = pte_alloc_kernel(pmd, address, GFP_KERNEL);
+ 		if (!pte)
+ 			goto out;
+ 		if (!pte_none(*pte))
+diff --git a/arch/m68k/include/asm/mcf_pgalloc.h b/arch/m68k/include/asm/mcf_pgalloc.h
+index 12fe700632f4..c0f83306ac93 100644
+--- a/arch/m68k/include/asm/mcf_pgalloc.h
++++ b/arch/m68k/include/asm/mcf_pgalloc.h
+@@ -13,15 +13,10 @@ extern inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
+ extern const char bad_pmd_string[];
+ 
+ extern inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
+-	unsigned long address)
++					  unsigned long address,
++					  gfp_t gfp)
+ {
+-	unsigned long page = __get_free_page(GFP_DMA);
+-
+-	if (!page)
+-		return NULL;
+-
+-	memset((void *)page, 0, PAGE_SIZE);
+-	return (pte_t *) (page);
++	return (pte_t *) get_zeroed_page(gfp|GFP_DMA);
+ }
+ 
+ extern inline pmd_t *pmd_alloc_kernel(pgd_t *pgd, unsigned long address)
+@@ -30,7 +25,7 @@ extern inline pmd_t *pmd_alloc_kernel(pgd_t *pgd, unsigned long address)
+ }
+ 
+ #define pmd_alloc_one_fast(mm, address) ({ BUG(); ((pmd_t *)1); })
+-#define pmd_alloc_one(mm, address)      ({ BUG(); ((pmd_t *)2); })
++#define pmd_alloc_one(mm, address, gfp) ({ BUG(); ((pmd_t *)2); })
+ 
+ #define pte_alloc_one_fast(mm, addr) pte_alloc_one(mm, addr)
+ 
+diff --git a/arch/m68k/include/asm/motorola_pgalloc.h b/arch/m68k/include/asm/motorola_pgalloc.h
+index 7859a86319cf..a6694a56b7e7 100644
+--- a/arch/m68k/include/asm/motorola_pgalloc.h
++++ b/arch/m68k/include/asm/motorola_pgalloc.h
+@@ -8,11 +8,13 @@
+ extern pmd_t *get_pointer_table(void);
+ extern int free_pointer_table(pmd_t *);
+ 
+-static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm, unsigned long address)
++static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
++					  unsigned long address,
++					  gfp_t gfp)
+ {
+ 	pte_t *pte;
+ 
+-	pte = (pte_t *)__get_free_page(GFP_KERNEL|__GFP_ZERO);
++	pte = (pte_t *)get_zeroed_page(gfp);
+ 	if (pte) {
+ 		__flush_page_to_ram(pte);
+ 		flush_tlb_kernel_page(pte);
+@@ -67,7 +69,8 @@ static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t page,
+ }
+ 
+ 
+-static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address)
++static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address,
++				   gfp_t gfp)
+ {
+ 	return get_pointer_table();
+ }
+diff --git a/arch/m68k/include/asm/sun3_pgalloc.h b/arch/m68k/include/asm/sun3_pgalloc.h
+index 11485d38de4e..e35831a0ae79 100644
+--- a/arch/m68k/include/asm/sun3_pgalloc.h
++++ b/arch/m68k/include/asm/sun3_pgalloc.h
+@@ -15,7 +15,7 @@
+ 
+ extern const char bad_pmd_string[];
+ 
+-#define pmd_alloc_one(mm,address)       ({ BUG(); ((pmd_t *)2); })
++#define pmd_alloc_one(mm,address,gfp)       ({ BUG(); ((pmd_t *)2); })
+ 
+ 
+ static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
+@@ -36,15 +36,10 @@ do {							\
+ } while (0)
+ 
+ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
+-					  unsigned long address)
++					  unsigned long address,
++					  gfp_t gfp)
+ {
+-	unsigned long page = __get_free_page(GFP_KERNEL);
+-
+-	if (!page)
+-		return NULL;
+-
+-	memset((void *)page, 0, PAGE_SIZE);
+-	return (pte_t *) (page);
++	return (pte_t *) get_zeroed_page(gfp);
+ }
+ 
+ static inline pgtable_t pte_alloc_one(struct mm_struct *mm,
+diff --git a/arch/m68k/mm/kmap.c b/arch/m68k/mm/kmap.c
+index 40a3b327da07..8de716049a84 100644
+--- a/arch/m68k/mm/kmap.c
++++ b/arch/m68k/mm/kmap.c
+@@ -196,7 +196,7 @@ void __iomem *__ioremap(unsigned long physaddr, unsigned long size, int cachefla
+ 			printk ("\npa=%#lx va=%#lx ", physaddr, virtaddr);
+ #endif
+ 		pgd_dir = pgd_offset_k(virtaddr);
+-		pmd_dir = pmd_alloc(&init_mm, pgd_dir, virtaddr);
++		pmd_dir = pmd_alloc(&init_mm, pgd_dir, virtaddr, GFP_KERNEL);
+ 		if (!pmd_dir) {
+ 			printk("ioremap: no mem for pmd_dir\n");
+ 			return NULL;
+@@ -208,7 +208,8 @@ void __iomem *__ioremap(unsigned long physaddr, unsigned long size, int cachefla
+ 			virtaddr += PTRTREESIZE;
+ 			size -= PTRTREESIZE;
+ 		} else {
+-			pte_dir = pte_alloc_kernel(pmd_dir, virtaddr);
++			pte_dir = pte_alloc_kernel(pmd_dir, virtaddr,
++						   GFP_KERNEL);
+ 			if (!pte_dir) {
+ 				printk("ioremap: no mem for pte_dir\n");
+ 				return NULL;
+diff --git a/arch/m68k/sun3x/dvma.c b/arch/m68k/sun3x/dvma.c
+index 89e630e66555..86ffbe278513 100644
+--- a/arch/m68k/sun3x/dvma.c
++++ b/arch/m68k/sun3x/dvma.c
+@@ -95,7 +95,8 @@ inline int dvma_map_cpu(unsigned long kaddr,
+ 		pmd_t *pmd;
+ 		unsigned long end2;
+ 
+-		if((pmd = pmd_alloc(&init_mm, pgd, vaddr)) == NULL) {
++		pmd = pmd_alloc(&init_mm, pgd, vaddr, GFP_KERNEL);
++		if (!pmd) {
+ 			ret = -ENOMEM;
+ 			goto out;
+ 		}
+@@ -109,7 +110,8 @@ inline int dvma_map_cpu(unsigned long kaddr,
+ 			pte_t *pte;
+ 			unsigned long end3;
+ 
+-			if((pte = pte_alloc_kernel(pmd, vaddr)) == NULL) {
++			pte = pte_alloc_kernel(pmd, vaddr, GFP_KERNEL);
++			if (!pte) {
+ 				ret = -ENOMEM;
+ 				goto out;
+ 			}
+diff --git a/arch/microblaze/include/asm/pgalloc.h b/arch/microblaze/include/asm/pgalloc.h
+index 7c89390c0c13..ea779632b903 100644
+--- a/arch/microblaze/include/asm/pgalloc.h
++++ b/arch/microblaze/include/asm/pgalloc.h
+@@ -106,9 +106,10 @@ static inline void free_pgd_slow(pgd_t *pgd)
+  * the pgd will always be present..
+  */
+ #define pmd_alloc_one_fast(mm, address)	({ BUG(); ((pmd_t *)1); })
+-#define pmd_alloc_one(mm, address)	({ BUG(); ((pmd_t *)2); })
++#define pmd_alloc_one(mm, address, gfp)	({ BUG(); ((pmd_t *)2); })
+ 
+-extern pte_t *pte_alloc_one_kernel(struct mm_struct *mm, unsigned long addr);
++extern pte_t *pte_alloc_one_kernel(struct mm_struct *mm, unsigned long addr,
++				   gfp_t gfp);
+ 
+ static inline struct page *pte_alloc_one(struct mm_struct *mm,
+ 		unsigned long address)
+@@ -181,7 +182,7 @@ static inline void pte_free(struct mm_struct *mm, struct page *ptepage)
+  * We don't have any real pmd's, and this code never triggers because
+  * the pgd will always be present..
+  */
+-#define pmd_alloc_one(mm, address)	({ BUG(); ((pmd_t *)2); })
++#define pmd_alloc_one(mm, address, gfp)	({ BUG(); ((pmd_t *)2); })
+ #define pmd_free(mm, x)			do { } while (0)
+ #define __pmd_free_tlb(tlb, x, addr)	pmd_free((tlb)->mm, x)
+ #define pgd_populate(mm, pmd, pte)	BUG()
+diff --git a/arch/microblaze/mm/pgtable.c b/arch/microblaze/mm/pgtable.c
+index 7f525962cdfa..7e4e57c46899 100644
+--- a/arch/microblaze/mm/pgtable.c
++++ b/arch/microblaze/mm/pgtable.c
+@@ -144,7 +144,7 @@ int map_page(unsigned long va, phys_addr_t pa, int flags)
+ 	/* Use upper 10 bits of VA to index the first level map */
+ 	pd = pmd_offset(pgd_offset_k(va), va);
+ 	/* Use middle 10 bits of VA to index the second-level map */
+-	pg = pte_alloc_kernel(pd, va); /* from powerpc - pgtable.c */
++	pg = pte_alloc_kernel(pd, va, GFP_KERNEL); /* from powerpc - pgtable.c */
+ 	/* pg = pte_alloc_kernel(&init_mm, pd, va); */
+ 
+ 	if (pg != NULL) {
+@@ -236,11 +236,12 @@ unsigned long iopa(unsigned long addr)
+ }
+ 
+ __ref pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
+-		unsigned long address)
++				  unsigned long address,
++				  gfp_t gfp)
+ {
+ 	pte_t *pte;
+ 	if (mem_init_done) {
+-		pte = (pte_t *)__get_free_page(GFP_KERNEL | __GFP_ZERO);
++		pte = (pte_t *)get_zeroed_page(gfp);
+ 	} else {
+ 		pte = (pte_t *)early_get_page();
+ 		if (pte)
+diff --git a/arch/mips/include/asm/pgalloc.h b/arch/mips/include/asm/pgalloc.h
+index 39b9f311c4ef..5528f8bf74ef 100644
+--- a/arch/mips/include/asm/pgalloc.h
++++ b/arch/mips/include/asm/pgalloc.h
+@@ -51,9 +51,9 @@ static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
+ }
+ 
+ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
+-	unsigned long address)
++	unsigned long address, gfp_t gfp)
+ {
+-	return (pte_t *)__get_free_pages(GFP_KERNEL | __GFP_ZERO, PTE_ORDER);
++	return (pte_t *)__get_free_pages(gfp | __GFP_ZERO, PTE_ORDER);
+ }
+ 
+ static inline struct page *pte_alloc_one(struct mm_struct *mm,
+@@ -91,11 +91,12 @@ do {							\
+ 
+ #ifndef __PAGETABLE_PMD_FOLDED
+ 
+-static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address)
++static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address,
++				   gfp_t gfp)
+ {
+ 	pmd_t *pmd;
+ 
+-	pmd = (pmd_t *) __get_free_pages(GFP_KERNEL, PMD_ORDER);
++	pmd = (pmd_t *) __get_free_pages(gfp, PMD_ORDER);
+ 	if (pmd)
+ 		pmd_init((unsigned long)pmd, (unsigned long)invalid_pte_table);
+ 	return pmd;
+@@ -112,11 +113,12 @@ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
+ 
+ #ifndef __PAGETABLE_PUD_FOLDED
+ 
+-static inline pud_t *pud_alloc_one(struct mm_struct *mm, unsigned long address)
++static inline pud_t *pud_alloc_one(struct mm_struct *mm, unsigned long address,
++				   gfp_t gfp)
+ {
+ 	pud_t *pud;
+ 
+-	pud = (pud_t *) __get_free_pages(GFP_KERNEL, PUD_ORDER);
++	pud = (pud_t *) __get_free_pages(gfp, PUD_ORDER);
+ 	if (pud)
+ 		pud_init((unsigned long)pud, (unsigned long)invalid_pmd_table);
+ 	return pud;
+diff --git a/arch/mips/mm/hugetlbpage.c b/arch/mips/mm/hugetlbpage.c
+index cef152234312..27843e10f680 100644
+--- a/arch/mips/mm/hugetlbpage.c
++++ b/arch/mips/mm/hugetlbpage.c
+@@ -29,9 +29,9 @@ pte_t *huge_pte_alloc(struct mm_struct *mm, unsigned long addr,
+ 	pte_t *pte = NULL;
+ 
+ 	pgd = pgd_offset(mm, addr);
+-	pud = pud_alloc(mm, pgd, addr);
++	pud = pud_alloc(mm, pgd, addr, GFP_KERNEL);
+ 	if (pud)
+-		pte = (pte_t *)pmd_alloc(mm, pud, addr);
++		pte = (pte_t *)pmd_alloc(mm, pud, addr, GFP_KERNEL);
+ 
+ 	return pte;
+ }
+diff --git a/arch/mips/mm/ioremap.c b/arch/mips/mm/ioremap.c
+index 1601d90b087b..40da8f0ba70b 100644
+--- a/arch/mips/mm/ioremap.c
++++ b/arch/mips/mm/ioremap.c
+@@ -56,7 +56,7 @@ static inline int remap_area_pmd(pmd_t * pmd, unsigned long address,
+ 	phys_addr -= address;
+ 	BUG_ON(address >= end);
+ 	do {
+-		pte_t * pte = pte_alloc_kernel(pmd, address);
++		pte_t *pte = pte_alloc_kernel(pmd, address, GFP_KERNEL);
+ 		if (!pte)
+ 			return -ENOMEM;
+ 		remap_area_pte(pte, address, end - address, address + phys_addr, flags);
+@@ -82,10 +82,10 @@ static int remap_area_pages(unsigned long address, phys_addr_t phys_addr,
+ 		pmd_t *pmd;
+ 
+ 		error = -ENOMEM;
+-		pud = pud_alloc(&init_mm, dir, address);
++		pud = pud_alloc(&init_mm, dir, address, GFP_KERNEL);
+ 		if (!pud)
+ 			break;
+-		pmd = pmd_alloc(&init_mm, pud, address);
++		pmd = pmd_alloc(&init_mm, pud, address, GFP_KERNEL);
+ 		if (!pmd)
+ 			break;
+ 		if (remap_area_pmd(pmd, address, end - address,
+diff --git a/arch/nds32/include/asm/pgalloc.h b/arch/nds32/include/asm/pgalloc.h
+index 27448869131a..0b6dca83d687 100644
+--- a/arch/nds32/include/asm/pgalloc.h
++++ b/arch/nds32/include/asm/pgalloc.h
+@@ -12,8 +12,8 @@
+ /*
+  * Since we have only two-level page tables, these are trivial
+  */
+-#define pmd_alloc_one(mm, addr)		({ BUG(); ((pmd_t *)2); })
+-#define pmd_free(mm, pmd)			do { } while (0)
++#define pmd_alloc_one(mm, addr, gfp)	({ BUG(); ((pmd_t *)2); })
++#define pmd_free(mm, pmd)		do { } while (0)
+ #define pgd_populate(mm, pmd, pte)	BUG()
+ #define pmd_pgtable(pmd) pmd_page(pmd)
+ 
+@@ -23,15 +23,10 @@ extern void pgd_free(struct mm_struct *mm, pgd_t * pgd);
+ #define check_pgt_cache()		do { } while (0)
+ 
+ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
+-					  unsigned long addr)
++					  unsigned long addr,
++					  gfp_t gfp)
+ {
+-	pte_t *pte;
+-
+-	pte =
+-	    (pte_t *) __get_free_page(GFP_KERNEL | __GFP_RETRY_MAYFAIL |
+-				      __GFP_ZERO);
+-
+-	return pte;
++	return (pte_t *) get_zeroed_page(gfp | __GFP_RETRY_MAYFAIL);
+ }
+ 
+ static inline pgtable_t pte_alloc_one(struct mm_struct *mm, unsigned long addr)
+diff --git a/arch/nds32/kernel/dma.c b/arch/nds32/kernel/dma.c
+index d0dbd4fe9645..920a00376214 100644
+--- a/arch/nds32/kernel/dma.c
++++ b/arch/nds32/kernel/dma.c
+@@ -300,7 +300,7 @@ static int __init consistent_init(void)
+ 
+ 	do {
+ 		pgd = pgd_offset(&init_mm, CONSISTENT_BASE);
+-		pmd = pmd_alloc(&init_mm, pgd, CONSISTENT_BASE);
++		pmd = pmd_alloc(&init_mm, pgd, CONSISTENT_BASE, GFP_KERNEL);
+ 		if (!pmd) {
+ 			pr_err("%s: no pmd tables\n", __func__);
+ 			ret = -ENOMEM;
+@@ -310,7 +310,7 @@ static int __init consistent_init(void)
+ 		 * It's not necessary to warn here. */
+ 		/* WARN_ON(!pmd_none(*pmd)); */
+ 
+-		pte = pte_alloc_kernel(pmd, CONSISTENT_BASE);
++		pte = pte_alloc_kernel(pmd, CONSISTENT_BASE, GFP_KERNEL);
+ 		if (!pte) {
+ 			ret = -ENOMEM;
+ 			break;
+diff --git a/arch/nios2/include/asm/pgalloc.h b/arch/nios2/include/asm/pgalloc.h
+index bb47d08c8ef7..ddf18f052c1d 100644
+--- a/arch/nios2/include/asm/pgalloc.h
++++ b/arch/nios2/include/asm/pgalloc.h
+@@ -38,13 +38,9 @@ static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
+ }
+ 
+ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
+-	unsigned long address)
++	unsigned long address, gf_t gfp)
+ {
+-	pte_t *pte;
+-
+-	pte = (pte_t *) __get_free_pages(GFP_KERNEL|__GFP_ZERO, PTE_ORDER);
+-
+-	return pte;
++	return (pte_t *)__get_free_pages(gfp|__GFP_ZERO, PTE_ORDER);
+ }
+ 
+ static inline pgtable_t pte_alloc_one(struct mm_struct *mm,
+diff --git a/arch/nios2/mm/ioremap.c b/arch/nios2/mm/ioremap.c
+index 3a28177a01eb..50c38da029ce 100644
+--- a/arch/nios2/mm/ioremap.c
++++ b/arch/nios2/mm/ioremap.c
+@@ -61,7 +61,7 @@ static inline int remap_area_pmd(pmd_t *pmd, unsigned long address,
+ 	if (address >= end)
+ 		BUG();
+ 	do {
+-		pte_t *pte = pte_alloc_kernel(pmd, address);
++		pte_t *pte = pte_alloc_kernel(pmd, address, GFP_KERNEL);
+ 
+ 		if (!pte)
+ 			return -ENOMEM;
+@@ -90,10 +90,10 @@ static int remap_area_pages(unsigned long address, unsigned long phys_addr,
+ 		pmd_t *pmd;
+ 
+ 		error = -ENOMEM;
+-		pud = pud_alloc(&init_mm, dir, address);
++		pud = pud_alloc(&init_mm, dir, address, GFP_KERNEL);
+ 		if (!pud)
+ 			break;
+-		pmd = pmd_alloc(&init_mm, pud, address);
++		pmd = pmd_alloc(&init_mm, pud, address, GFP_KERNEL);
+ 		if (!pmd)
+ 			break;
+ 		if (remap_area_pmd(pmd, address, end - address,
+diff --git a/arch/openrisc/include/asm/pgalloc.h b/arch/openrisc/include/asm/pgalloc.h
+index 8999b9226512..6c5e3838cb15 100644
+--- a/arch/openrisc/include/asm/pgalloc.h
++++ b/arch/openrisc/include/asm/pgalloc.h
+@@ -70,7 +70,8 @@ static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
+ 	free_page((unsigned long)pgd);
+ }
+ 
+-extern pte_t *pte_alloc_one_kernel(struct mm_struct *mm, unsigned long address);
++extern pte_t *pte_alloc_one_kernel(struct mm_struct *mm, unsigned long address,
++				   gfp_t gfp);
+ 
+ static inline struct page *pte_alloc_one(struct mm_struct *mm,
+ 					 unsigned long address)
+diff --git a/arch/openrisc/mm/ioremap.c b/arch/openrisc/mm/ioremap.c
+index c9697529b3f0..22999f29ba97 100644
+--- a/arch/openrisc/mm/ioremap.c
++++ b/arch/openrisc/mm/ioremap.c
+@@ -119,17 +119,18 @@ EXPORT_SYMBOL(iounmap);
+  */
+ 
+ pte_t __ref *pte_alloc_one_kernel(struct mm_struct *mm,
+-					 unsigned long address)
++				  unsigned long address,
++				  gfp_t gfp)
+ {
+ 	pte_t *pte;
+ 
+ 	if (likely(mem_init_done)) {
+-		pte = (pte_t *) __get_free_page(GFP_KERNEL);
++		pte = (pte_t *) get_zeroed_page(gfp);
+ 	} else {
+ 		pte = (pte_t *) __va(memblock_phys_alloc(PAGE_SIZE, PAGE_SIZE));
++		if (pte)
++			clear_page(pte);
+ 	}
+ 
+-	if (pte)
+-		clear_page(pte);
+ 	return pte;
+ }
+diff --git a/arch/parisc/include/asm/pgalloc.h b/arch/parisc/include/asm/pgalloc.h
+index cf13275f7c6d..b426b033204a 100644
+--- a/arch/parisc/include/asm/pgalloc.h
++++ b/arch/parisc/include/asm/pgalloc.h
+@@ -62,12 +62,10 @@ static inline void pgd_populate(struct mm_struct *mm, pgd_t *pgd, pmd_t *pmd)
+ 		        (__u32)(__pa((unsigned long)pmd) >> PxD_VALUE_SHIFT));
+ }
+ 
+-static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address)
++static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address,
++				   gfp_t gfp)
+ {
+-	pmd_t *pmd = (pmd_t *)__get_free_pages(GFP_KERNEL, PMD_ORDER);
+-	if (pmd)
+-		memset(pmd, 0, PAGE_SIZE<<PMD_ORDER);
+-	return pmd;
++	return (pmd_t *)__get_free_pages(gfp|__GFP_ZERO, PMD_ORDER);
+ }
+ 
+ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
+@@ -94,7 +92,7 @@ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
+  * inside the pgd, so has no extra memory associated with it.
+  */
+ 
+-#define pmd_alloc_one(mm, addr)		({ BUG(); ((pmd_t *)2); })
++#define pmd_alloc_one(mm, addr, gfp)	({ BUG(); ((pmd_t *)2); })
+ #define pmd_free(mm, x)			do { } while (0)
+ #define pgd_populate(mm, pmd, pte)	BUG()
+ 
+@@ -135,10 +133,9 @@ pte_alloc_one(struct mm_struct *mm, unsigned long address)
+ }
+ 
+ static inline pte_t *
+-pte_alloc_one_kernel(struct mm_struct *mm, unsigned long addr)
++pte_alloc_one_kernel(struct mm_struct *mm, unsigned long addr, gfp_t gfp)
+ {
+-	pte_t *pte = (pte_t *)__get_free_page(GFP_KERNEL|__GFP_ZERO);
+-	return pte;
++	return (pte_t *)get_zeroed_page(gfp);
+ }
+ 
+ static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
+diff --git a/arch/parisc/kernel/pci-dma.c b/arch/parisc/kernel/pci-dma.c
+index 04c48f1ef3fb..a26930adf68c 100644
+--- a/arch/parisc/kernel/pci-dma.c
++++ b/arch/parisc/kernel/pci-dma.c
+@@ -113,7 +113,7 @@ static inline int map_pmd_uncached(pmd_t * pmd, unsigned long vaddr,
+ 	if (end > PGDIR_SIZE)
+ 		end = PGDIR_SIZE;
+ 	do {
+-		pte_t * pte = pte_alloc_kernel(pmd, vaddr);
++		pte_t *pte = pte_alloc_kernel(pmd, vaddr, GFP_KERNEL);
+ 		if (!pte)
+ 			return -ENOMEM;
+ 		if (map_pte_uncached(pte, orig_vaddr, end - vaddr, paddr_ptr))
+@@ -134,8 +134,8 @@ static inline int map_uncached_pages(unsigned long vaddr, unsigned long size,
+ 	dir = pgd_offset_k(vaddr);
+ 	do {
+ 		pmd_t *pmd;
+-		
+-		pmd = pmd_alloc(NULL, dir, vaddr);
++
++		pmd = pmd_alloc(NULL, dir, vaddr, GFP_KERNEL);
+ 		if (!pmd)
+ 			return -ENOMEM;
+ 		if (map_pmd_uncached(pmd, vaddr, end - vaddr, &paddr))
+diff --git a/arch/parisc/mm/hugetlbpage.c b/arch/parisc/mm/hugetlbpage.c
+index d77479ae3af2..6351549539fe 100644
+--- a/arch/parisc/mm/hugetlbpage.c
++++ b/arch/parisc/mm/hugetlbpage.c
+@@ -61,9 +61,9 @@ pte_t *huge_pte_alloc(struct mm_struct *mm,
+ 	addr &= HPAGE_MASK;
+ 
+ 	pgd = pgd_offset(mm, addr);
+-	pud = pud_alloc(mm, pgd, addr);
++	pud = pud_alloc(mm, pgd, addr, GFP_KERNEL);
+ 	if (pud) {
+-		pmd = pmd_alloc(mm, pud, addr);
++		pmd = pmd_alloc(mm, pud, addr, GFP_KERNEL);
+ 		if (pmd)
+ 			pte = pte_alloc_map(mm, pmd, addr);
+ 	}
+diff --git a/arch/powerpc/include/asm/book3s/32/pgalloc.h b/arch/powerpc/include/asm/book3s/32/pgalloc.h
+index 82e44b1a00ae..923c7ae66830 100644
+--- a/arch/powerpc/include/asm/book3s/32/pgalloc.h
++++ b/arch/powerpc/include/asm/book3s/32/pgalloc.h
+@@ -45,7 +45,7 @@ static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
+  * We don't have any real pmd's, and this code never triggers because
+  * the pgd will always be present..
+  */
+-/* #define pmd_alloc_one(mm,address)       ({ BUG(); ((pmd_t *)2); }) */
++/* #define pmd_alloc_one(mm,address,gfp) ({ BUG(); ((pmd_t *)2); }) */
+ #define pmd_free(mm, x) 		do { } while (0)
+ #define __pmd_free_tlb(tlb,x,a)		do { } while (0)
+ /* #define pgd_populate(mm, pmd, pte)      BUG() */
+@@ -82,7 +82,8 @@ static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmdp,
+ #define pmd_pgtable(pmd) pmd_page(pmd)
+ #endif
+ 
+-extern pte_t *pte_alloc_one_kernel(struct mm_struct *mm, unsigned long addr);
++extern pte_t *pte_alloc_one_kernel(struct mm_struct *mm, unsigned long addr,
++				   gfp_t gfp);
+ extern pgtable_t pte_alloc_one(struct mm_struct *mm, unsigned long addr);
+ 
+ static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
+diff --git a/arch/powerpc/include/asm/book3s/64/pgalloc.h b/arch/powerpc/include/asm/book3s/64/pgalloc.h
+index 391ed2c3b697..4096a4dd48cc 100644
+--- a/arch/powerpc/include/asm/book3s/64/pgalloc.h
++++ b/arch/powerpc/include/asm/book3s/64/pgalloc.h
+@@ -42,8 +42,8 @@ extern struct kmem_cache *pgtable_cache[];
+ 			pgtable_cache[(shift) - 1];	\
+ 		})
+ 
+-extern pte_t *pte_fragment_alloc(struct mm_struct *, unsigned long, int);
+-extern pmd_t *pmd_fragment_alloc(struct mm_struct *, unsigned long);
++extern pte_t *pte_fragment_alloc(struct mm_struct *, unsigned long, int, gfp_t);
++extern pmd_t *pmd_fragment_alloc(struct mm_struct *, unsigned long, gfp_t);
+ extern void pte_fragment_free(unsigned long *, int);
+ extern void pmd_fragment_free(unsigned long *);
+ extern void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int shift);
+@@ -116,12 +116,13 @@ static inline void pgd_populate(struct mm_struct *mm, pgd_t *pgd, pud_t *pud)
+ 	pgd_set(pgd, __pgtable_ptr_val(pud) | PGD_VAL_BITS);
+ }
+ 
+-static inline pud_t *pud_alloc_one(struct mm_struct *mm, unsigned long addr)
++static inline pud_t *pud_alloc_one(struct mm_struct *mm, unsigned long addr,
++				   gfp_t gfp)
+ {
+ 	pud_t *pud;
+ 
+ 	pud = kmem_cache_alloc(PGT_CACHE(PUD_CACHE_INDEX),
+-			       pgtable_gfp_flags(mm, GFP_KERNEL));
++			       pgtable_gfp_flags(mm, gfp));
+ 	/*
+ 	 * Tell kmemleak to ignore the PUD, that means don't scan it for
+ 	 * pointers and don't consider it a leak. PUDs are typically only
+@@ -154,9 +155,10 @@ static inline void __pud_free_tlb(struct mmu_gather *tlb, pud_t *pud,
+ 	pgtable_free_tlb(tlb, pud, PUD_INDEX);
+ }
+ 
+-static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
++static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr,
++				   gfp_t gfp)
+ {
+-	return pmd_fragment_alloc(mm, addr);
++	return pmd_fragment_alloc(mm, addr, gfp);
+ }
+ 
+ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
+@@ -193,15 +195,16 @@ static inline pgtable_t pmd_pgtable(pmd_t pmd)
+ }
+ 
+ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
+-					  unsigned long address)
++					  unsigned long address,
++					  gfp_t gfp)
+ {
+-	return (pte_t *)pte_fragment_alloc(mm, address, 1);
++	return (pte_t *)pte_fragment_alloc(mm, address, 1, gfp);
+ }
+ 
+ static inline pgtable_t pte_alloc_one(struct mm_struct *mm,
+ 				      unsigned long address)
+ {
+-	return (pgtable_t)pte_fragment_alloc(mm, address, 0);
++	return (pgtable_t)pte_fragment_alloc(mm, address, 0, GFP_KERNEL);
+ }
+ 
+ static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
+diff --git a/arch/powerpc/include/asm/nohash/32/pgalloc.h b/arch/powerpc/include/asm/nohash/32/pgalloc.h
+index 8825953c225b..5ce1a8d623b2 100644
+--- a/arch/powerpc/include/asm/nohash/32/pgalloc.h
++++ b/arch/powerpc/include/asm/nohash/32/pgalloc.h
+@@ -45,8 +45,8 @@ static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
+  * We don't have any real pmd's, and this code never triggers because
+  * the pgd will always be present..
+  */
+-/* #define pmd_alloc_one(mm,address)       ({ BUG(); ((pmd_t *)2); }) */
+-#define pmd_free(mm, x) 		do { } while (0)
++/* #define pmd_alloc_one(mm,address,gfp) ({ BUG(); ((pmd_t *)2); }) */
++#define pmd_free(mm, x)			do { } while (0)
+ #define __pmd_free_tlb(tlb,x,a)		do { } while (0)
+ /* #define pgd_populate(mm, pmd, pte)      BUG() */
+ 
+@@ -83,7 +83,8 @@ static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmdp,
+ #define pmd_pgtable(pmd) pmd_page(pmd)
+ #endif
+ 
+-extern pte_t *pte_alloc_one_kernel(struct mm_struct *mm, unsigned long addr);
++extern pte_t *pte_alloc_one_kernel(struct mm_struct *mm, unsigned long addr,
++				   gfp_t gfp);
+ extern pgtable_t pte_alloc_one(struct mm_struct *mm, unsigned long addr);
+ 
+ static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
+diff --git a/arch/powerpc/include/asm/nohash/64/pgalloc.h b/arch/powerpc/include/asm/nohash/64/pgalloc.h
+index e2d62d033708..7ca3f325aa9c 100644
+--- a/arch/powerpc/include/asm/nohash/64/pgalloc.h
++++ b/arch/powerpc/include/asm/nohash/64/pgalloc.h
+@@ -54,10 +54,11 @@ static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
+ 
+ #define pgd_populate(MM, PGD, PUD)	pgd_set(PGD, (unsigned long)PUD)
+ 
+-static inline pud_t *pud_alloc_one(struct mm_struct *mm, unsigned long addr)
++static inline pud_t *pud_alloc_one(struct mm_struct *mm, unsigned long addr,
++				   gfp_t gfp)
+ {
+ 	return kmem_cache_alloc(PGT_CACHE(PUD_INDEX_SIZE),
+-			pgtable_gfp_flags(mm, GFP_KERNEL));
++			pgtable_gfp_flags(mm, gfp));
+ }
+ 
+ static inline void pud_free(struct mm_struct *mm, pud_t *pud)
+@@ -84,10 +85,11 @@ static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd,
+ 
+ #define pmd_pgtable(pmd) pmd_page(pmd)
+ 
+-static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
++static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr,
++				   gfp_t gfp)
+ {
+ 	return kmem_cache_alloc(PGT_CACHE(PMD_CACHE_INDEX),
+-			pgtable_gfp_flags(mm, GFP_KERNEL));
++			pgtable_gfp_flags(mm, gfp));
+ }
+ 
+ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
+@@ -97,9 +99,10 @@ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
+ 
+ 
+ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
+-					  unsigned long address)
++					  unsigned long address,
++					  gfp_t gfp)
+ {
+-	return (pte_t *)__get_free_page(GFP_KERNEL | __GFP_ZERO);
++	return (pte_t *)get_zeroed_page(gfp);
+ }
+ 
+ static inline pgtable_t pte_alloc_one(struct mm_struct *mm,
+diff --git a/arch/powerpc/kvm/book3s_64_mmu_radix.c b/arch/powerpc/kvm/book3s_64_mmu_radix.c
+index d68162ee159b..50da75f6fa5b 100644
+--- a/arch/powerpc/kvm/book3s_64_mmu_radix.c
++++ b/arch/powerpc/kvm/book3s_64_mmu_radix.c
+@@ -482,7 +482,7 @@ int kvmppc_create_pte(struct kvm *kvm, pgd_t *pgtable, pte_t pte,
+ 	if (pgd_present(*pgd))
+ 		pud = pud_offset(pgd, gpa);
+ 	else
+-		new_pud = pud_alloc_one(kvm->mm, gpa);
++		new_pud = pud_alloc_one(kvm->mm, gpa, GFP_KERNEL);
+ 
+ 	pmd = NULL;
+ 	if (pud && pud_present(*pud) && !pud_huge(*pud))
+diff --git a/arch/powerpc/mm/hugetlbpage.c b/arch/powerpc/mm/hugetlbpage.c
+index 8cf035e68378..bcd1cfab6df1 100644
+--- a/arch/powerpc/mm/hugetlbpage.c
++++ b/arch/powerpc/mm/hugetlbpage.c
+@@ -148,7 +148,7 @@ pte_t *huge_pte_alloc(struct mm_struct *mm, unsigned long addr, unsigned long sz
+ 		hpdp = (hugepd_t *)pg;
+ 	} else {
+ 		pdshift = PUD_SHIFT;
+-		pu = pud_alloc(mm, pg, addr);
++		pu = pud_alloc(mm, pg, addr, GFP_KERNEL);
+ 		if (pshift == PUD_SHIFT)
+ 			return (pte_t *)pu;
+ 		else if (pshift > PMD_SHIFT) {
+@@ -156,7 +156,7 @@ pte_t *huge_pte_alloc(struct mm_struct *mm, unsigned long addr, unsigned long sz
+ 			hpdp = (hugepd_t *)pu;
+ 		} else {
+ 			pdshift = PMD_SHIFT;
+-			pm = pmd_alloc(mm, pu, addr);
++			pm = pmd_alloc(mm, pu, addr, GFP_KERNEL);
+ 			if (pshift == PMD_SHIFT)
+ 				/* 16MB hugepage */
+ 				return (pte_t *)pm;
+@@ -172,13 +172,13 @@ pte_t *huge_pte_alloc(struct mm_struct *mm, unsigned long addr, unsigned long sz
+ 		hpdp = (hugepd_t *)pg;
+ 	} else {
+ 		pdshift = PUD_SHIFT;
+-		pu = pud_alloc(mm, pg, addr);
++		pu = pud_alloc(mm, pg, addr, GFP_KERNEL);
+ 		if (pshift >= PUD_SHIFT) {
+ 			ptl = pud_lockptr(mm, pu);
+ 			hpdp = (hugepd_t *)pu;
+ 		} else {
+ 			pdshift = PMD_SHIFT;
+-			pm = pmd_alloc(mm, pu, addr);
++			pm = pmd_alloc(mm, pu, addr, GFP_KERNEL);
+ 			ptl = pmd_lockptr(mm, pm);
+ 			hpdp = (hugepd_t *)pm;
+ 		}
+diff --git a/arch/powerpc/mm/pgtable-book3e.c b/arch/powerpc/mm/pgtable-book3e.c
+index e0ccf36714b2..ded846507c17 100644
+--- a/arch/powerpc/mm/pgtable-book3e.c
++++ b/arch/powerpc/mm/pgtable-book3e.c
+@@ -80,13 +80,13 @@ int map_kernel_page(unsigned long ea, unsigned long pa, pgprot_t prot)
+ 	BUILD_BUG_ON(TASK_SIZE_USER64 > PGTABLE_RANGE);
+ 	if (slab_is_available()) {
+ 		pgdp = pgd_offset_k(ea);
+-		pudp = pud_alloc(&init_mm, pgdp, ea);
++		pudp = pud_alloc(&init_mm, pgdp, ea, GFP_KERNEL);
+ 		if (!pudp)
+ 			return -ENOMEM;
+-		pmdp = pmd_alloc(&init_mm, pudp, ea);
++		pmdp = pmd_alloc(&init_mm, pudp, ea, GFP_KERNEL);
+ 		if (!pmdp)
+ 			return -ENOMEM;
+-		ptep = pte_alloc_kernel(pmdp, ea);
++		ptep = pte_alloc_kernel(pmdp, ea, GFP_KERNEL);
+ 		if (!ptep)
+ 			return -ENOMEM;
+ 	} else {
+diff --git a/arch/powerpc/mm/pgtable-book3s64.c b/arch/powerpc/mm/pgtable-book3s64.c
+index 9f93c9f985c5..17c9a607ca39 100644
+--- a/arch/powerpc/mm/pgtable-book3s64.c
++++ b/arch/powerpc/mm/pgtable-book3s64.c
+@@ -259,15 +259,14 @@ static pmd_t *get_pmd_from_cache(struct mm_struct *mm)
+ 	return (pmd_t *)ret;
+ }
+ 
+-static pmd_t *__alloc_for_pmdcache(struct mm_struct *mm)
++static pmd_t *__alloc_for_pmdcache(struct mm_struct *mm, gfp_t gfp)
+ {
+ 	void *ret = NULL;
+ 	struct page *page;
+-	gfp_t gfp = GFP_KERNEL_ACCOUNT | __GFP_ZERO;
+ 
+-	if (mm == &init_mm)
+-		gfp &= ~__GFP_ACCOUNT;
+-	page = alloc_page(gfp);
++	if (mm != &init_mm)
++		gfp |= __GFP_ACCOUNT;
++	page = alloc_page(gfp|__GFP_ZERO);
+ 	if (!page)
+ 		return NULL;
+ 	if (!pgtable_pmd_page_ctor(page)) {
+@@ -300,7 +299,8 @@ static pmd_t *__alloc_for_pmdcache(struct mm_struct *mm)
+ 	return (pmd_t *)ret;
+ }
+ 
+-pmd_t *pmd_fragment_alloc(struct mm_struct *mm, unsigned long vmaddr)
++pmd_t *pmd_fragment_alloc(struct mm_struct *mm, unsigned long vmaddr,
++			  gfp_t gfp)
+ {
+ 	pmd_t *pmd;
+ 
+@@ -308,7 +308,7 @@ pmd_t *pmd_fragment_alloc(struct mm_struct *mm, unsigned long vmaddr)
+ 	if (pmd)
+ 		return pmd;
+ 
+-	return __alloc_for_pmdcache(mm);
++	return __alloc_for_pmdcache(mm, gfp);
+ }
+ 
+ void pmd_fragment_free(unsigned long *pmd)
+@@ -341,13 +341,14 @@ static pte_t *get_pte_from_cache(struct mm_struct *mm)
+ 	return (pte_t *)ret;
+ }
+ 
+-static pte_t *__alloc_for_ptecache(struct mm_struct *mm, int kernel)
++static pte_t *__alloc_for_ptecache(struct mm_struct *mm, int kernel,
++				   gfp_t gfp)
+ {
+ 	void *ret = NULL;
+ 	struct page *page;
+ 
+ 	if (!kernel) {
+-		page = alloc_page(PGALLOC_GFP | __GFP_ACCOUNT);
++		page = alloc_page(gfp | __GFP_ZERO | __GFP_ACCOUNT);
+ 		if (!page)
+ 			return NULL;
+ 		if (!pgtable_page_ctor(page)) {
+@@ -355,7 +356,7 @@ static pte_t *__alloc_for_ptecache(struct mm_struct *mm, int kernel)
+ 			return NULL;
+ 		}
+ 	} else {
+-		page = alloc_page(PGALLOC_GFP);
++		page = alloc_page(gfp | __GFP_ZERO);
+ 		if (!page)
+ 			return NULL;
+ 	}
+@@ -384,7 +385,8 @@ static pte_t *__alloc_for_ptecache(struct mm_struct *mm, int kernel)
+ 	return (pte_t *)ret;
+ }
+ 
+-pte_t *pte_fragment_alloc(struct mm_struct *mm, unsigned long vmaddr, int kernel)
++pte_t *pte_fragment_alloc(struct mm_struct *mm, unsigned long vmaddr,
++			  int kernel, gfp_t gfp)
+ {
+ 	pte_t *pte;
+ 
+@@ -392,7 +394,7 @@ pte_t *pte_fragment_alloc(struct mm_struct *mm, unsigned long vmaddr, int kernel
+ 	if (pte)
+ 		return pte;
+ 
+-	return __alloc_for_ptecache(mm, kernel);
++	return __alloc_for_ptecache(mm, kernel, gfp);
+ }
+ 
+ void pte_fragment_free(unsigned long *table, int kernel)
+diff --git a/arch/powerpc/mm/pgtable-hash64.c b/arch/powerpc/mm/pgtable-hash64.c
+index c08d49046a96..d90deb67d81e 100644
+--- a/arch/powerpc/mm/pgtable-hash64.c
++++ b/arch/powerpc/mm/pgtable-hash64.c
+@@ -152,13 +152,13 @@ int hash__map_kernel_page(unsigned long ea, unsigned long pa, pgprot_t prot)
+ 	BUILD_BUG_ON(TASK_SIZE_USER64 > H_PGTABLE_RANGE);
+ 	if (slab_is_available()) {
+ 		pgdp = pgd_offset_k(ea);
+-		pudp = pud_alloc(&init_mm, pgdp, ea);
++		pudp = pud_alloc(&init_mm, pgdp, ea, GFP_KERNEL);
+ 		if (!pudp)
+ 			return -ENOMEM;
+-		pmdp = pmd_alloc(&init_mm, pudp, ea);
++		pmdp = pmd_alloc(&init_mm, pudp, ea, GFP_KERNEL);
+ 		if (!pmdp)
+ 			return -ENOMEM;
+-		ptep = pte_alloc_kernel(pmdp, ea);
++		ptep = pte_alloc_kernel(pmdp, ea, GFP_KERNEL);
+ 		if (!ptep)
+ 			return -ENOMEM;
+ 		set_pte_at(&init_mm, ea, ptep, pfn_pte(pa >> PAGE_SHIFT, prot));
+diff --git a/arch/powerpc/mm/pgtable-radix.c b/arch/powerpc/mm/pgtable-radix.c
+index 931156069a81..11007d789d88 100644
+--- a/arch/powerpc/mm/pgtable-radix.c
++++ b/arch/powerpc/mm/pgtable-radix.c
+@@ -149,21 +149,21 @@ static int __map_kernel_page(unsigned long ea, unsigned long pa,
+ 	 * boot.
+ 	 */
+ 	pgdp = pgd_offset_k(ea);
+-	pudp = pud_alloc(&init_mm, pgdp, ea);
++	pudp = pud_alloc(&init_mm, pgdp, ea, GFP_KERNEL);
+ 	if (!pudp)
+ 		return -ENOMEM;
+ 	if (map_page_size == PUD_SIZE) {
+ 		ptep = (pte_t *)pudp;
+ 		goto set_the_pte;
+ 	}
+-	pmdp = pmd_alloc(&init_mm, pudp, ea);
++	pmdp = pmd_alloc(&init_mm, pudp, ea, GFP_KERNEL);
+ 	if (!pmdp)
+ 		return -ENOMEM;
+ 	if (map_page_size == PMD_SIZE) {
+ 		ptep = pmdp_ptep(pmdp);
+ 		goto set_the_pte;
+ 	}
+-	ptep = pte_alloc_kernel(pmdp, ea);
++	ptep = pte_alloc_kernel(pmdp, ea, GFP_KERNEL);
+ 	if (!ptep)
+ 		return -ENOMEM;
+ 
+@@ -198,21 +198,21 @@ void radix__change_memory_range(unsigned long start, unsigned long end,
+ 
+ 	for (idx = start; idx < end; idx += PAGE_SIZE) {
+ 		pgdp = pgd_offset_k(idx);
+-		pudp = pud_alloc(&init_mm, pgdp, idx);
++		pudp = pud_alloc(&init_mm, pgdp, idx, GFP_KERNEL);
+ 		if (!pudp)
+ 			continue;
+ 		if (pud_huge(*pudp)) {
+ 			ptep = (pte_t *)pudp;
+ 			goto update_the_pte;
+ 		}
+-		pmdp = pmd_alloc(&init_mm, pudp, idx);
++		pmdp = pmd_alloc(&init_mm, pudp, idx, GFP_KERNEL);
+ 		if (!pmdp)
+ 			continue;
+ 		if (pmd_huge(*pmdp)) {
+ 			ptep = pmdp_ptep(pmdp);
+ 			goto update_the_pte;
+ 		}
+-		ptep = pte_alloc_kernel(pmdp, idx);
++		ptep = pte_alloc_kernel(pmdp, idx, GFP_KERNEL);
+ 		if (!ptep)
+ 			continue;
+ update_the_pte:
+diff --git a/arch/powerpc/mm/pgtable_32.c b/arch/powerpc/mm/pgtable_32.c
+index bda3c6f1bd32..ea2b935560c2 100644
+--- a/arch/powerpc/mm/pgtable_32.c
++++ b/arch/powerpc/mm/pgtable_32.c
+@@ -43,12 +43,13 @@ EXPORT_SYMBOL(ioremap_bot);	/* aka VMALLOC_END */
+ 
+ extern char etext[], _stext[], _sinittext[], _einittext[];
+ 
+-__ref pte_t *pte_alloc_one_kernel(struct mm_struct *mm, unsigned long address)
++__ref pte_t *pte_alloc_one_kernel(struct mm_struct *mm, unsigned long address,
++				  gfp_t gfp)
+ {
+ 	pte_t *pte;
+ 
+ 	if (slab_is_available()) {
+-		pte = (pte_t *)__get_free_page(GFP_KERNEL|__GFP_ZERO);
++		pte = (pte_t *)get_zeroed_page(gfp);
+ 	} else {
+ 		pte = __va(memblock_phys_alloc(PAGE_SIZE, PAGE_SIZE));
+ 		if (pte)
+@@ -231,7 +232,7 @@ int map_kernel_page(unsigned long va, phys_addr_t pa, pgprot_t prot)
+ 	/* Use upper 10 bits of VA to index the first level map */
+ 	pd = pmd_offset(pud_offset(pgd_offset_k(va), va), va);
+ 	/* Use middle 10 bits of VA to index the second-level map */
+-	pg = pte_alloc_kernel(pd, va);
++	pg = pte_alloc_kernel(pd, va, GFP_KERNEL);
+ 	if (pg != 0) {
+ 		err = 0;
+ 		/* The PTE should never be already set nor present in the
+diff --git a/arch/riscv/include/asm/pgalloc.h b/arch/riscv/include/asm/pgalloc.h
+index a79ed5faff3a..b7abec623292 100644
+--- a/arch/riscv/include/asm/pgalloc.h
++++ b/arch/riscv/include/asm/pgalloc.h
+@@ -67,10 +67,10 @@ static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
+ 
+ #ifndef __PAGETABLE_PMD_FOLDED
+ 
+-static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
++static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr,
++				   gfp_t gfp)
+ {
+-	return (pmd_t *)__get_free_page(
+-		GFP_KERNEL | __GFP_RETRY_MAYFAIL | __GFP_ZERO);
++	return (pmd_t *)get_zeroed_page(gfp|__GFP_RETRY_MAYFAIL);
+ }
+ 
+ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
+@@ -83,10 +83,9 @@ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
+ #endif /* __PAGETABLE_PMD_FOLDED */
+ 
+ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
+-	unsigned long address)
++	unsigned long address, gfp_t gfp)
+ {
+-	return (pte_t *)__get_free_page(
+-		GFP_KERNEL | __GFP_RETRY_MAYFAIL | __GFP_ZERO);
++	return (pte_t *)get_zeroed_page(gfp | __GFP_RETRY_MAYFAIL);
+ }
+ 
+ static inline struct page *pte_alloc_one(struct mm_struct *mm,
+diff --git a/arch/s390/include/asm/pgalloc.h b/arch/s390/include/asm/pgalloc.h
+index 5ee733720a57..f685dfe51802 100644
+--- a/arch/s390/include/asm/pgalloc.h
++++ b/arch/s390/include/asm/pgalloc.h
+@@ -19,10 +19,10 @@
+ 
+ #define CRST_ALLOC_ORDER 2
+ 
+-unsigned long *crst_table_alloc(struct mm_struct *);
++unsigned long *crst_table_alloc(struct mm_struct *, gfp_t);
+ void crst_table_free(struct mm_struct *, unsigned long *);
+ 
+-unsigned long *page_table_alloc(struct mm_struct *);
++unsigned long *page_table_alloc(struct mm_struct *, gfp_t);
+ struct page *page_table_alloc_pgste(struct mm_struct *mm);
+ void page_table_free(struct mm_struct *, unsigned long *);
+ void page_table_free_rcu(struct mmu_gather *, unsigned long *, unsigned long);
+@@ -48,9 +48,10 @@ static inline unsigned long pgd_entry_type(struct mm_struct *mm)
+ int crst_table_upgrade(struct mm_struct *mm, unsigned long limit);
+ void crst_table_downgrade(struct mm_struct *);
+ 
+-static inline p4d_t *p4d_alloc_one(struct mm_struct *mm, unsigned long address)
++static inline p4d_t *p4d_alloc_one(struct mm_struct *mm, unsigned long address,
++				   gfp_t gfp)
+ {
+-	unsigned long *table = crst_table_alloc(mm);
++	unsigned long *table = crst_table_alloc(mm, gfp);
+ 
+ 	if (table)
+ 		crst_table_init(table, _REGION2_ENTRY_EMPTY);
+@@ -58,18 +59,20 @@ static inline p4d_t *p4d_alloc_one(struct mm_struct *mm, unsigned long address)
+ }
+ #define p4d_free(mm, p4d) crst_table_free(mm, (unsigned long *) p4d)
+ 
+-static inline pud_t *pud_alloc_one(struct mm_struct *mm, unsigned long address)
++static inline pud_t *pud_alloc_one(struct mm_struct *mm, unsigned long address,
++				   gfp_t gfp)
+ {
+-	unsigned long *table = crst_table_alloc(mm);
++	unsigned long *table = crst_table_alloc(mm, gfp);
+ 	if (table)
+ 		crst_table_init(table, _REGION3_ENTRY_EMPTY);
+ 	return (pud_t *) table;
+ }
+ #define pud_free(mm, pud) crst_table_free(mm, (unsigned long *) pud)
+ 
+-static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long vmaddr)
++static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long vmaddr,
++				   gfp_t gfp)
+ {
+-	unsigned long *table = crst_table_alloc(mm);
++	unsigned long *table = crst_table_alloc(mm, gfp);
+ 
+ 	if (!table)
+ 		return NULL;
+@@ -104,7 +107,7 @@ static inline void pud_populate(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
+ 
+ static inline pgd_t *pgd_alloc(struct mm_struct *mm)
+ {
+-	unsigned long *table = crst_table_alloc(mm);
++	unsigned long *table = crst_table_alloc(mm, GFP_KERNEL);
+ 
+ 	if (!table)
+ 		return NULL;
+@@ -139,8 +142,8 @@ static inline void pmd_populate(struct mm_struct *mm,
+ /*
+  * page table entry allocation/free routines.
+  */
+-#define pte_alloc_one_kernel(mm, vmaddr) ((pte_t *) page_table_alloc(mm))
+-#define pte_alloc_one(mm, vmaddr) ((pte_t *) page_table_alloc(mm))
++#define pte_alloc_one_kernel(mm, vmaddr, gfp) ((pte_t *) page_table_alloc(mm, gfp))
++#define pte_alloc_one(mm, vmaddr) ((pte_t *) page_table_alloc(mm, GFP_KERNEL))
+ 
+ #define pte_free_kernel(mm, pte) page_table_free(mm, (unsigned long *) pte)
+ #define pte_free(mm, pte) page_table_free(mm, (unsigned long *) pte)
+diff --git a/arch/s390/mm/hugetlbpage.c b/arch/s390/mm/hugetlbpage.c
+index b0246c705a19..eeb14683696d 100644
+--- a/arch/s390/mm/hugetlbpage.c
++++ b/arch/s390/mm/hugetlbpage.c
+@@ -192,14 +192,14 @@ pte_t *huge_pte_alloc(struct mm_struct *mm,
+ 	pmd_t *pmdp = NULL;
+ 
+ 	pgdp = pgd_offset(mm, addr);
+-	p4dp = p4d_alloc(mm, pgdp, addr);
++	p4dp = p4d_alloc(mm, pgdp, addr, GFP_KERNEL);
+ 	if (p4dp) {
+-		pudp = pud_alloc(mm, p4dp, addr);
++		pudp = pud_alloc(mm, p4dp, addr, GFP_KERNEL);
+ 		if (pudp) {
+ 			if (sz == PUD_SIZE)
+ 				return (pte_t *) pudp;
+ 			else if (sz == PMD_SIZE)
+-				pmdp = pmd_alloc(mm, pudp, addr);
++				pmdp = pmd_alloc(mm, pudp, addr, GFP_KERNEL);
+ 		}
+ 	}
+ 	return (pte_t *) pmdp;
+diff --git a/arch/s390/mm/pgalloc.c b/arch/s390/mm/pgalloc.c
+index 6791562779ee..ca828d731f52 100644
+--- a/arch/s390/mm/pgalloc.c
++++ b/arch/s390/mm/pgalloc.c
+@@ -53,9 +53,9 @@ __initcall(page_table_register_sysctl);
+ 
+ #endif /* CONFIG_PGSTE */
+ 
+-unsigned long *crst_table_alloc(struct mm_struct *mm)
++unsigned long *crst_table_alloc(struct mm_struct *mm, gfp_t gfp)
+ {
+-	struct page *page = alloc_pages(GFP_KERNEL, 2);
++	struct page *page = alloc_pages(gfp, 2);
+ 
+ 	if (!page)
+ 		return NULL;
+@@ -87,7 +87,7 @@ int crst_table_upgrade(struct mm_struct *mm, unsigned long end)
+ 	rc = 0;
+ 	notify = 0;
+ 	while (mm->context.asce_limit < end) {
+-		table = crst_table_alloc(mm);
++		table = crst_table_alloc(mm, GFP_KERNEL);
+ 		if (!table) {
+ 			rc = -ENOMEM;
+ 			break;
+@@ -179,7 +179,7 @@ void page_table_free_pgste(struct page *page)
+ /*
+  * page table entry allocation/free routines.
+  */
+-unsigned long *page_table_alloc(struct mm_struct *mm)
++unsigned long *page_table_alloc(struct mm_struct *mm, gfp_t gfp)
+ {
+ 	unsigned long *table;
+ 	struct page *page;
+@@ -209,7 +209,7 @@ unsigned long *page_table_alloc(struct mm_struct *mm)
+ 			return table;
+ 	}
+ 	/* Allocate a fresh page */
+-	page = alloc_page(GFP_KERNEL);
++	page = alloc_page(gfp);
+ 	if (!page)
+ 		return NULL;
+ 	if (!pgtable_page_ctor(page)) {
+diff --git a/arch/s390/mm/pgtable.c b/arch/s390/mm/pgtable.c
+index f2cc7da473e4..8284f99b9de4 100644
+--- a/arch/s390/mm/pgtable.c
++++ b/arch/s390/mm/pgtable.c
+@@ -418,13 +418,13 @@ static pmd_t *pmd_alloc_map(struct mm_struct *mm, unsigned long addr)
+ 	pmd_t *pmd;
+ 
+ 	pgd = pgd_offset(mm, addr);
+-	p4d = p4d_alloc(mm, pgd, addr);
++	p4d = p4d_alloc(mm, pgd, addr, GFP_KERNEL);
+ 	if (!p4d)
+ 		return NULL;
+-	pud = pud_alloc(mm, p4d, addr);
++	pud = pud_alloc(mm, p4d, addr, GFP_KERNEL);
+ 	if (!pud)
+ 		return NULL;
+-	pmd = pmd_alloc(mm, pud, addr);
++	pmd = pmd_alloc(mm, pud, addr, GFP_KERNEL);
+ 	return pmd;
+ }
+ 
+diff --git a/arch/s390/mm/vmem.c b/arch/s390/mm/vmem.c
+index 0472e27febdf..47ffefab75c4 100644
+--- a/arch/s390/mm/vmem.c
++++ b/arch/s390/mm/vmem.c
+@@ -54,7 +54,7 @@ pte_t __ref *vmem_pte_alloc(void)
+ 	pte_t *pte;
+ 
+ 	if (slab_is_available())
+-		pte = (pte_t *) page_table_alloc(&init_mm);
++		pte = (pte_t *) page_table_alloc(&init_mm, GFP_KERNEL);
+ 	else
+ 		pte = (pte_t *) memblock_phys_alloc(size, size);
+ 	if (!pte)
+diff --git a/arch/sh/include/asm/pgalloc.h b/arch/sh/include/asm/pgalloc.h
+index ed053a359ab7..6ace12b14388 100644
+--- a/arch/sh/include/asm/pgalloc.h
++++ b/arch/sh/include/asm/pgalloc.h
+@@ -12,7 +12,8 @@ extern void pgd_free(struct mm_struct *mm, pgd_t *pgd);
+ 
+ #if PAGETABLE_LEVELS > 2
+ extern void pud_populate(struct mm_struct *mm, pud_t *pudp, pmd_t *pmd);
+-extern pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address);
++extern pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address,
++			    gfp_t gfp);
+ extern void pmd_free(struct mm_struct *mm, pmd_t *pmd);
+ #endif
+ 
+@@ -33,9 +34,10 @@ static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd,
+  * Allocate and free page tables.
+  */
+ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
+-					  unsigned long address)
++					  unsigned long address,
++					  gfp_t gfp)
+ {
+-	return quicklist_alloc(QUICK_PT, GFP_KERNEL, NULL);
++	return quicklist_alloc(QUICK_PT, gfp, NULL);
+ }
+ 
+ static inline pgtable_t pte_alloc_one(struct mm_struct *mm,
+diff --git a/arch/sh/mm/hugetlbpage.c b/arch/sh/mm/hugetlbpage.c
+index 960deb1f24a1..1eb4932cdb64 100644
+--- a/arch/sh/mm/hugetlbpage.c
++++ b/arch/sh/mm/hugetlbpage.c
+@@ -32,9 +32,9 @@ pte_t *huge_pte_alloc(struct mm_struct *mm,
+ 
+ 	pgd = pgd_offset(mm, addr);
+ 	if (pgd) {
+-		pud = pud_alloc(mm, pgd, addr);
++		pud = pud_alloc(mm, pgd, addr, GFP_KERNEL);
+ 		if (pud) {
+-			pmd = pmd_alloc(mm, pud, addr);
++			pmd = pmd_alloc(mm, pud, addr, GFP_KERNEL);
+ 			if (pmd)
+ 				pte = pte_alloc_map(mm, pmd, addr);
+ 		}
+diff --git a/arch/sh/mm/init.c b/arch/sh/mm/init.c
+index c8c13c777162..3f6b1731805a 100644
+--- a/arch/sh/mm/init.c
++++ b/arch/sh/mm/init.c
+@@ -53,13 +53,13 @@ static pte_t *__get_pte_phys(unsigned long addr)
+ 		return NULL;
+ 	}
+ 
+-	pud = pud_alloc(NULL, pgd, addr);
++	pud = pud_alloc(NULL, pgd, addr, GFP_KERNEL);
+ 	if (unlikely(!pud)) {
+ 		pud_ERROR(*pud);
+ 		return NULL;
+ 	}
+ 
+-	pmd = pmd_alloc(NULL, pud, addr);
++	pmd = pmd_alloc(NULL, pud, addr, GFP_KERNEL);
+ 	if (unlikely(!pmd)) {
+ 		pmd_ERROR(*pmd);
+ 		return NULL;
+diff --git a/arch/sh/mm/pgtable.c b/arch/sh/mm/pgtable.c
+index 5c8f9247c3c2..972f54fa09ea 100644
+--- a/arch/sh/mm/pgtable.c
++++ b/arch/sh/mm/pgtable.c
+@@ -2,8 +2,6 @@
+ #include <linux/mm.h>
+ #include <linux/slab.h>
+ 
+-#define PGALLOC_GFP GFP_KERNEL | __GFP_ZERO
+-
+ static struct kmem_cache *pgd_cachep;
+ #if PAGETABLE_LEVELS > 2
+ static struct kmem_cache *pmd_cachep;
+@@ -32,7 +30,7 @@ void pgtable_cache_init(void)
+ 
+ pgd_t *pgd_alloc(struct mm_struct *mm)
+ {
+-	return kmem_cache_alloc(pgd_cachep, PGALLOC_GFP);
++	return kmem_cache_alloc(pgd_cachep, GFP_KERNEL|__GFP_ZERO);
+ }
+ 
+ void pgd_free(struct mm_struct *mm, pgd_t *pgd)
+@@ -46,9 +44,9 @@ void pud_populate(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
+ 	set_pud(pud, __pud((unsigned long)pmd));
+ }
+ 
+-pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address)
++pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address, gfp_t gfp)
+ {
+-	return kmem_cache_alloc(pmd_cachep, PGALLOC_GFP);
++	return kmem_cache_alloc(pmd_cachep, gfp|__GFP_ZERO);
+ }
+ 
+ void pmd_free(struct mm_struct *mm, pmd_t *pmd)
+diff --git a/arch/sparc/include/asm/pgalloc_32.h b/arch/sparc/include/asm/pgalloc_32.h
+index 90459481c6c7..7e55b0adaa8b 100644
+--- a/arch/sparc/include/asm/pgalloc_32.h
++++ b/arch/sparc/include/asm/pgalloc_32.h
+@@ -38,7 +38,8 @@ static inline void pgd_set(pgd_t * pgdp, pmd_t * pmdp)
+ #define pgd_populate(MM, PGD, PMD)      pgd_set(PGD, PMD)
+ 
+ static inline pmd_t *pmd_alloc_one(struct mm_struct *mm,
+-				   unsigned long address)
++				   unsigned long address,
++				   gfp_t gfp)
+ {
+ 	return srmmu_get_nocache(SRMMU_PMD_TABLE_SIZE,
+ 				 SRMMU_PMD_TABLE_SIZE);
+@@ -61,7 +62,8 @@ void pmd_set(pmd_t *pmdp, pte_t *ptep);
+ pgtable_t pte_alloc_one(struct mm_struct *mm, unsigned long address);
+ 
+ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
+-					  unsigned long address)
++					  unsigned long address,
++					  gfp_t gfp)
+ {
+ 	return srmmu_get_nocache(PTE_SIZE, PTE_SIZE);
+ }
+diff --git a/arch/sparc/include/asm/pgalloc_64.h b/arch/sparc/include/asm/pgalloc_64.h
+index 874632f34f62..0a605dff7fa7 100644
+--- a/arch/sparc/include/asm/pgalloc_64.h
++++ b/arch/sparc/include/asm/pgalloc_64.h
+@@ -40,9 +40,10 @@ static inline void __pud_populate(pud_t *pud, pmd_t *pmd)
+ 
+ #define pud_populate(MM, PUD, PMD)	__pud_populate(PUD, PMD)
+ 
+-static inline pud_t *pud_alloc_one(struct mm_struct *mm, unsigned long addr)
++static inline pud_t *pud_alloc_one(struct mm_struct *mm, unsigned long addr,
++				   gfp_t gfp)
+ {
+-	return kmem_cache_alloc(pgtable_cache, GFP_KERNEL);
++	return kmem_cache_alloc(pgtable_cache, gfp);
+ }
+ 
+ static inline void pud_free(struct mm_struct *mm, pud_t *pud)
+@@ -50,9 +51,10 @@ static inline void pud_free(struct mm_struct *mm, pud_t *pud)
+ 	kmem_cache_free(pgtable_cache, pud);
+ }
+ 
+-static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
++static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr,
++				   gfp_t gfp)
+ {
+-	return kmem_cache_alloc(pgtable_cache, GFP_KERNEL);
++	return kmem_cache_alloc(pgtable_cache, gfp);
+ }
+ 
+ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
+@@ -61,7 +63,8 @@ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
+ }
+ 
+ pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
+-			    unsigned long address);
++			    unsigned long address,
++			    gfp_t gfp);
+ pgtable_t pte_alloc_one(struct mm_struct *mm,
+ 			unsigned long address);
+ void pte_free_kernel(struct mm_struct *mm, pte_t *pte);
+diff --git a/arch/sparc/mm/hugetlbpage.c b/arch/sparc/mm/hugetlbpage.c
+index f78793a06bbd..aeacfb0aabbe 100644
+--- a/arch/sparc/mm/hugetlbpage.c
++++ b/arch/sparc/mm/hugetlbpage.c
+@@ -281,12 +281,12 @@ pte_t *huge_pte_alloc(struct mm_struct *mm,
+ 	pmd_t *pmd;
+ 
+ 	pgd = pgd_offset(mm, addr);
+-	pud = pud_alloc(mm, pgd, addr);
++	pud = pud_alloc(mm, pgd, addr, GFP_KERNEL);
+ 	if (!pud)
+ 		return NULL;
+ 	if (sz >= PUD_SIZE)
+ 		return (pte_t *)pud;
+-	pmd = pmd_alloc(mm, pud, addr);
++	pmd = pmd_alloc(mm, pud, addr, GFP_KERNEL);
+ 	if (!pmd)
+ 		return NULL;
+ 	if (sz >= PMD_SIZE)
+diff --git a/arch/sparc/mm/init_64.c b/arch/sparc/mm/init_64.c
+index 3c8aac21f426..8cad1352a7ea 100644
+--- a/arch/sparc/mm/init_64.c
++++ b/arch/sparc/mm/init_64.c
+@@ -2926,15 +2926,10 @@ void __flush_tlb_all(void)
+ }
+ 
+ pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
+-			    unsigned long address)
++			    unsigned long address,
++			    gfp_t gfp)
+ {
+-	struct page *page = alloc_page(GFP_KERNEL | __GFP_ZERO);
+-	pte_t *pte = NULL;
+-
+-	if (page)
+-		pte = (pte_t *) page_address(page);
+-
+-	return pte;
++	return (pte_t *) get_zeroed_page(gfp);
+ }
+ 
+ pgtable_t pte_alloc_one(struct mm_struct *mm,
+diff --git a/arch/sparc/mm/srmmu.c b/arch/sparc/mm/srmmu.c
+index a6142c5abf61..f80e2ffd9c5b 100644
+--- a/arch/sparc/mm/srmmu.c
++++ b/arch/sparc/mm/srmmu.c
+@@ -369,7 +369,8 @@ pgtable_t pte_alloc_one(struct mm_struct *mm, unsigned long address)
+ 	unsigned long pte;
+ 	struct page *page;
+ 
+-	if ((pte = (unsigned long)pte_alloc_one_kernel(mm, address)) == 0)
++	pte = (unsigned long) pte_alloc_one_kernel(mm, address, GFP_KERNEL);
++	if (!pte)
+ 		return NULL;
+ 	page = pfn_to_page(__nocache_pa(pte) >> PAGE_SHIFT);
+ 	if (!pgtable_page_ctor(page)) {
+diff --git a/arch/um/include/asm/pgalloc.h b/arch/um/include/asm/pgalloc.h
+index bf90b2aa2002..843f2f94f8b5 100644
+--- a/arch/um/include/asm/pgalloc.h
++++ b/arch/um/include/asm/pgalloc.h
+@@ -25,7 +25,7 @@
+ extern pgd_t *pgd_alloc(struct mm_struct *);
+ extern void pgd_free(struct mm_struct *mm, pgd_t *pgd);
+ 
+-extern pte_t *pte_alloc_one_kernel(struct mm_struct *, unsigned long);
++extern pte_t *pte_alloc_one_kernel(struct mm_struct *, unsigned long, gfp_t);
+ extern pgtable_t pte_alloc_one(struct mm_struct *, unsigned long);
+ 
+ static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
+diff --git a/arch/um/include/asm/pgtable-3level.h b/arch/um/include/asm/pgtable-3level.h
+index c4d876dfb9ac..7f5fd792348f 100644
+--- a/arch/um/include/asm/pgtable-3level.h
++++ b/arch/um/include/asm/pgtable-3level.h
+@@ -80,7 +80,8 @@ static inline void pgd_mkuptodate(pgd_t pgd) { pgd_val(pgd) &= ~_PAGE_NEWPAGE; }
+ #endif
+ 
+ struct mm_struct;
+-extern pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address);
++extern pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address,
++			    gfp_t gfp);
+ 
+ static inline void pud_clear (pud_t *pud)
+ {
+diff --git a/arch/um/kernel/mem.c b/arch/um/kernel/mem.c
+index 1067469ba2ea..b5a432197cf2 100644
+--- a/arch/um/kernel/mem.c
++++ b/arch/um/kernel/mem.c
+@@ -199,12 +199,10 @@ void pgd_free(struct mm_struct *mm, pgd_t *pgd)
+ 	free_page((unsigned long) pgd);
+ }
+ 
+-pte_t *pte_alloc_one_kernel(struct mm_struct *mm, unsigned long address)
++pte_t *pte_alloc_one_kernel(struct mm_struct *mm, unsigned long address,
++			    gfp_t gfp)
+ {
+-	pte_t *pte;
+-
+-	pte = (pte_t *)__get_free_page(GFP_KERNEL|__GFP_ZERO);
+-	return pte;
++	return (pte_t *)get_zeroed_page(gfp);
+ }
+ 
+ pgtable_t pte_alloc_one(struct mm_struct *mm, unsigned long address)
+@@ -222,14 +220,10 @@ pgtable_t pte_alloc_one(struct mm_struct *mm, unsigned long address)
+ }
+ 
+ #ifdef CONFIG_3_LEVEL_PGTABLES
+-pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address)
++pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address,
++		     gfp_t gfp)
+ {
+-	pmd_t *pmd = (pmd_t *) __get_free_page(GFP_KERNEL);
+-
+-	if (pmd)
+-		memset(pmd, 0, PAGE_SIZE);
+-
+-	return pmd;
++	return (pmd_t *) get_zeroed_page(gfp);
+ }
+ #endif
+ 
+diff --git a/arch/um/kernel/skas/mmu.c b/arch/um/kernel/skas/mmu.c
+index 7a1f2a936fd1..b677b615d691 100644
+--- a/arch/um/kernel/skas/mmu.c
++++ b/arch/um/kernel/skas/mmu.c
+@@ -24,11 +24,11 @@ static int init_stub_pte(struct mm_struct *mm, unsigned long proc,
+ 	pte_t *pte;
+ 
+ 	pgd = pgd_offset(mm, proc);
+-	pud = pud_alloc(mm, pgd, proc);
++	pud = pud_alloc(mm, pgd, proc, GFP_KERNEL);
+ 	if (!pud)
+ 		goto out;
+ 
+-	pmd = pmd_alloc(mm, pud, proc);
++	pmd = pmd_alloc(mm, pud, proc, GFP_KERNEL);
+ 	if (!pmd)
+ 		goto out_pmd;
+ 
+diff --git a/arch/unicore32/include/asm/pgalloc.h b/arch/unicore32/include/asm/pgalloc.h
+index f0fdb268f8f2..7079b684d302 100644
+--- a/arch/unicore32/include/asm/pgalloc.h
++++ b/arch/unicore32/include/asm/pgalloc.h
+@@ -28,17 +28,16 @@ extern void free_pgd_slow(struct mm_struct *mm, pgd_t *pgd);
+ #define pgd_alloc(mm)			get_pgd_slow(mm)
+ #define pgd_free(mm, pgd)		free_pgd_slow(mm, pgd)
+ 
+-#define PGALLOC_GFP	(GFP_KERNEL | __GFP_ZERO)
+-
+ /*
+  * Allocate one PTE table.
+  */
+ static inline pte_t *
+-pte_alloc_one_kernel(struct mm_struct *mm, unsigned long addr)
++pte_alloc_one_kernel(struct mm_struct *mm, unsigned long addr,
++		     gfp_t gfp)
+ {
+ 	pte_t *pte;
+ 
+-	pte = (pte_t *)__get_free_page(PGALLOC_GFP);
++	pte = (pte_t *)get_zeroed_page(gfp);
+ 	if (pte)
+ 		clean_dcache_area(pte, PTRS_PER_PTE * sizeof(pte_t));
+ 
+@@ -50,7 +49,7 @@ pte_alloc_one(struct mm_struct *mm, unsigned long addr)
+ {
+ 	struct page *pte;
+ 
+-	pte = alloc_pages(PGALLOC_GFP, 0);
++	pte = alloc_pages(GFP_KERNEL|__GFP_ZERO, 0);
+ 	if (!pte)
+ 		return NULL;
+ 	if (!PageHighMem(pte)) {
+diff --git a/arch/unicore32/mm/pgd.c b/arch/unicore32/mm/pgd.c
+index a830a300aaa1..b9c628a55f21 100644
+--- a/arch/unicore32/mm/pgd.c
++++ b/arch/unicore32/mm/pgd.c
+@@ -50,7 +50,7 @@ pgd_t *get_pgd_slow(struct mm_struct *mm)
+ 		 * On UniCore, first page must always be allocated since it
+ 		 * contains the machine vectors.
+ 		 */
+-		new_pmd = pmd_alloc(mm, (pud_t *)new_pgd, 0);
++		new_pmd = pmd_alloc(mm, (pud_t *)new_pgd, 0, GFP_KERNEL);
+ 		if (!new_pmd)
+ 			goto no_pmd;
+ 
+diff --git a/arch/x86/include/asm/pgalloc.h b/arch/x86/include/asm/pgalloc.h
+index ec7f43327033..ad4f54430f4b 100644
+--- a/arch/x86/include/asm/pgalloc.h
++++ b/arch/x86/include/asm/pgalloc.h
+@@ -47,7 +47,7 @@ extern gfp_t __userpte_alloc_gfp;
+ extern pgd_t *pgd_alloc(struct mm_struct *);
+ extern void pgd_free(struct mm_struct *mm, pgd_t *pgd);
+ 
+-extern pte_t *pte_alloc_one_kernel(struct mm_struct *, unsigned long);
++extern pte_t *pte_alloc_one_kernel(struct mm_struct *, unsigned long, gfp_t);
+ extern pgtable_t pte_alloc_one(struct mm_struct *, unsigned long);
+ 
+ /* Should really implement gc for free page table pages. This could be
+@@ -92,14 +92,14 @@ static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd,
+ #define pmd_pgtable(pmd) pmd_page(pmd)
+ 
+ #if CONFIG_PGTABLE_LEVELS > 2
+-static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
++static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr,
++				   gfp_t gfp)
+ {
+ 	struct page *page;
+-	gfp_t gfp = GFP_KERNEL_ACCOUNT | __GFP_ZERO;
+ 
+-	if (mm == &init_mm)
+-		gfp &= ~__GFP_ACCOUNT;
+-	page = alloc_pages(gfp, 0);
++	if (mm != &init_mm)
++		gfp |= __GFP_ACCOUNT;
++	page = alloc_pages(gfp|__GFP_ZERO, 0);
+ 	if (!page)
+ 		return NULL;
+ 	if (!pgtable_pmd_page_ctor(page)) {
+@@ -141,12 +141,11 @@ static inline void p4d_populate(struct mm_struct *mm, p4d_t *p4d, pud_t *pud)
+ 	set_p4d(p4d, __p4d(_PAGE_TABLE | __pa(pud)));
+ }
+ 
+-static inline pud_t *pud_alloc_one(struct mm_struct *mm, unsigned long addr)
++static inline pud_t *pud_alloc_one(struct mm_struct *mm, unsigned long addr,
++				   gfp_t gfp)
+ {
+-	gfp_t gfp = GFP_KERNEL_ACCOUNT;
+-
+-	if (mm == &init_mm)
+-		gfp &= ~__GFP_ACCOUNT;
++	if (mm != &init_mm)
++		gfp |= __GFP_ACCOUNT;
+ 	return (pud_t *)get_zeroed_page(gfp);
+ }
+ 
+@@ -173,12 +172,11 @@ static inline void pgd_populate(struct mm_struct *mm, pgd_t *pgd, p4d_t *p4d)
+ 	set_pgd(pgd, __pgd(_PAGE_TABLE | __pa(p4d)));
+ }
+ 
+-static inline p4d_t *p4d_alloc_one(struct mm_struct *mm, unsigned long addr)
++static inline p4d_t *p4d_alloc_one(struct mm_struct *mm, unsigned long addr,
++				   gfp_t gfp)
+ {
+-	gfp_t gfp = GFP_KERNEL_ACCOUNT;
+-
+-	if (mm == &init_mm)
+-		gfp &= ~__GFP_ACCOUNT;
++	if (mm != &init_mm)
++		gfp |= __GFP_ACCOUNT;
+ 	return (p4d_t *)get_zeroed_page(gfp);
+ }
+ 
+diff --git a/arch/x86/kernel/espfix_64.c b/arch/x86/kernel/espfix_64.c
+index aebd0d5bc086..46df9bb51f93 100644
+--- a/arch/x86/kernel/espfix_64.c
++++ b/arch/x86/kernel/espfix_64.c
+@@ -126,7 +126,7 @@ void __init init_espfix_bsp(void)
+ 
+ 	/* Install the espfix pud into the kernel page directory */
+ 	pgd = &init_top_pgt[pgd_index(ESPFIX_BASE_ADDR)];
+-	p4d = p4d_alloc(&init_mm, pgd, ESPFIX_BASE_ADDR);
++	p4d = p4d_alloc(&init_mm, pgd, ESPFIX_BASE_ADDR, GFP_KERNEL);
+ 	p4d_populate(&init_mm, p4d, espfix_pud_page);
+ 
+ 	/* Randomize the locations */
+diff --git a/arch/x86/kernel/tboot.c b/arch/x86/kernel/tboot.c
+index a2486f444073..8fb9ec9fb5c2 100644
+--- a/arch/x86/kernel/tboot.c
++++ b/arch/x86/kernel/tboot.c
+@@ -124,13 +124,13 @@ static int map_tboot_page(unsigned long vaddr, unsigned long pfn,
+ 	pte_t *pte;
+ 
+ 	pgd = pgd_offset(&tboot_mm, vaddr);
+-	p4d = p4d_alloc(&tboot_mm, pgd, vaddr);
++	p4d = p4d_alloc(&tboot_mm, pgd, vaddr, GFP_KERNEL);
+ 	if (!p4d)
+ 		return -1;
+-	pud = pud_alloc(&tboot_mm, p4d, vaddr);
++	pud = pud_alloc(&tboot_mm, p4d, vaddr, GFP_KERNEL);
+ 	if (!pud)
+ 		return -1;
+-	pmd = pmd_alloc(&tboot_mm, pud, vaddr);
++	pmd = pmd_alloc(&tboot_mm, pud, vaddr, GFP_KERNEL);
+ 	if (!pmd)
+ 		return -1;
+ 	pte = pte_alloc_map(&tboot_mm, pmd, vaddr);
+diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
+index 59274e2c1ac4..9658a9196362 100644
+--- a/arch/x86/mm/pgtable.c
++++ b/arch/x86/mm/pgtable.c
+@@ -23,9 +23,10 @@ EXPORT_SYMBOL(physical_mask);
+ 
+ gfp_t __userpte_alloc_gfp = PGALLOC_GFP | PGALLOC_USER_GFP;
+ 
+-pte_t *pte_alloc_one_kernel(struct mm_struct *mm, unsigned long address)
++pte_t *pte_alloc_one_kernel(struct mm_struct *mm, unsigned long address,
++			    gfp_t gfp)
+ {
+-	return (pte_t *)__get_free_page(PGALLOC_GFP & ~__GFP_ACCOUNT);
++	return (pte_t *) get_zeroed_page(gfp);
+ }
+ 
+ pgtable_t pte_alloc_one(struct mm_struct *mm, unsigned long address)
+diff --git a/arch/x86/platform/efi/efi_64.c b/arch/x86/platform/efi/efi_64.c
+index cf0347f61b21..9cb455ba2864 100644
+--- a/arch/x86/platform/efi/efi_64.c
++++ b/arch/x86/platform/efi/efi_64.c
+@@ -106,7 +106,7 @@ pgd_t * __init efi_call_phys_prolog(void)
+ 		pgd_efi = pgd_offset_k(addr_pgd);
+ 		save_pgd[pgd] = *pgd_efi;
+ 
+-		p4d = p4d_alloc(&init_mm, pgd_efi, addr_pgd);
++		p4d = p4d_alloc(&init_mm, pgd_efi, addr_pgd, GFP_KERNEL);
+ 		if (!p4d) {
+ 			pr_err("Failed to allocate p4d table!\n");
+ 			goto out;
+@@ -116,7 +116,8 @@ pgd_t * __init efi_call_phys_prolog(void)
+ 			addr_p4d = addr_pgd + i * P4D_SIZE;
+ 			p4d_efi = p4d + p4d_index(addr_p4d);
+ 
+-			pud = pud_alloc(&init_mm, p4d_efi, addr_p4d);
++			pud = pud_alloc(&init_mm, p4d_efi, addr_p4d,
++					GFP_KERNEL);
+ 			if (!pud) {
+ 				pr_err("Failed to allocate pud table!\n");
+ 				goto out;
+@@ -217,13 +218,13 @@ int __init efi_alloc_page_tables(void)
+ 		return -ENOMEM;
+ 
+ 	pgd = efi_pgd + pgd_index(EFI_VA_END);
+-	p4d = p4d_alloc(&init_mm, pgd, EFI_VA_END);
++	p4d = p4d_alloc(&init_mm, pgd, EFI_VA_END, GFP_KERNEL);
+ 	if (!p4d) {
+ 		free_page((unsigned long)efi_pgd);
+ 		return -ENOMEM;
+ 	}
+ 
+-	pud = pud_alloc(&init_mm, p4d, EFI_VA_END);
++	pud = pud_alloc(&init_mm, p4d, EFI_VA_END, GFP_KERNEL);
+ 	if (!pud) {
+ 		if (pgtable_l5_enabled())
+ 			free_page((unsigned long) pgd_page_vaddr(*pgd));
+diff --git a/arch/xtensa/include/asm/pgalloc.h b/arch/xtensa/include/asm/pgalloc.h
+index 1065bc8bcae5..76e31eed171e 100644
+--- a/arch/xtensa/include/asm/pgalloc.h
++++ b/arch/xtensa/include/asm/pgalloc.h
+@@ -39,12 +39,13 @@ static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
+ }
+ 
+ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
+-					 unsigned long address)
++					  unsigned long address,
++					  gfp_t gfp)
+ {
+ 	pte_t *ptep;
+ 	int i;
+ 
+-	ptep = (pte_t *)__get_free_page(GFP_KERNEL);
++	ptep = (pte_t *)__get_free_page(gfp);
+ 	if (!ptep)
+ 		return NULL;
+ 	for (i = 0; i < 1024; i++)
 diff --git a/drivers/md/bcache/Kconfig b/drivers/md/bcache/Kconfig
 index f6e0a8b3a61e..3dd1d48987a3 100644
 --- a/drivers/md/bcache/Kconfig
@@ -722,10 +2757,10 @@ index 000000000000..e06724309ff8
 +#endif /* _BCACHEFS_ACL_H */
 diff --git a/fs/bcachefs/alloc_background.c b/fs/bcachefs/alloc_background.c
 new file mode 100644
-index 000000000000..2552d45799ca
+index 000000000000..88f01f57beb6
 --- /dev/null
 +++ b/fs/bcachefs/alloc_background.c
-@@ -0,0 +1,1548 @@
+@@ -0,0 +1,1554 @@
 +#include "bcachefs.h"
 +#include "alloc_background.h"
 +#include "alloc_foreground.h"
@@ -910,6 +2945,7 @@ index 000000000000..2552d45799ca
 +	g->_mark.data_type	= get_alloc_field(a, &d, idx++);
 +	g->_mark.dirty_sectors	= get_alloc_field(a, &d, idx++);
 +	g->_mark.cached_sectors	= get_alloc_field(a, &d, idx++);
++	g->oldest_gen		= get_alloc_field(a, &d, idx++);
 +}
 +
 +static void __alloc_write_key(struct bkey_i_alloc *a, struct bucket *g,
@@ -927,6 +2963,7 @@ index 000000000000..2552d45799ca
 +	put_alloc_field(a, &d, idx++, m.data_type);
 +	put_alloc_field(a, &d, idx++, m.dirty_sectors);
 +	put_alloc_field(a, &d, idx++, m.cached_sectors);
++	put_alloc_field(a, &d, idx++, g->oldest_gen);
 +
 +	set_bkey_val_bytes(&a->k, (void *) d - (void *) &a->v);
 +}
@@ -1610,7 +3647,9 @@ index 000000000000..2552d45799ca
 +
 +		ret = __bch2_alloc_write_key(c, ca, b, &iter,
 +				must_flush ? &journal_seq : NULL,
-+				!fifo_empty(&ca->free_inc) ? BTREE_INSERT_NOWAIT : 0);
++				BTREE_INSERT_GC_LOCK_HELD|
++				(!fifo_empty(&ca->free_inc)
++				 ? BTREE_INSERT_NOWAIT : 0));
 +	}
 +
 +	bch2_btree_iter_unlock(&iter);
@@ -1984,7 +4023,8 @@ index 000000000000..2552d45799ca
 +
 +void bch2_dev_allocator_quiesce(struct bch_fs *c, struct bch_dev *ca)
 +{
-+	closure_wait_event(&c->freelist_wait, ca->allocator_blocked_full);
++	if (ca->alloc_thread)
++		closure_wait_event(&c->freelist_wait, ca->allocator_blocked_full);
 +}
 +
 +/* stop allocator thread: */
@@ -2197,7 +4237,6 @@ index 000000000000..2552d45799ca
 +							   &journal_seq);
 +
 +				fifo_push(&ca->free[RESERVE_BTREE], bu);
-+				bucket_set_dirty(ca, bu);
 +			}
 +		}
 +
@@ -2261,6 +4300,8 @@ index 000000000000..2552d45799ca
 +			return ret;
 +		}
 +	}
++
++	set_bit(BCH_FS_ALLOCATOR_RUNNING, &c->flags);
 +
 +	return bch2_alloc_write(c, false, &wrote);
 +}
@@ -3604,10 +5645,10 @@ index 000000000000..66457fc722fd
 +#endif /* _BCACHEFS_ALLOC_TYPES_H */
 diff --git a/fs/bcachefs/bcachefs.h b/fs/bcachefs/bcachefs.h
 new file mode 100644
-index 000000000000..f42b2f9052c6
+index 000000000000..052ec263618e
 --- /dev/null
 +++ b/fs/bcachefs/bcachefs.h
-@@ -0,0 +1,801 @@
+@@ -0,0 +1,803 @@
 +#ifndef _BCACHEFS_H
 +#define _BCACHEFS_H
 +
@@ -4006,8 +6047,6 @@ index 000000000000..f42b2f9052c6
 +	struct bucket_array __rcu *buckets[2];
 +	unsigned long		*buckets_nouse;
 +	unsigned long		*buckets_written;
-+	/* most out of date gen in the btree */
-+	u8			*oldest_gens;
 +	struct rw_semaphore	bucket_lock;
 +
 +	struct bch_dev_usage __percpu *usage[2];
@@ -4084,6 +6123,7 @@ index 000000000000..f42b2f9052c6
 +	/* startup: */
 +	BCH_FS_ALLOC_READ_DONE,
 +	BCH_FS_ALLOCATOR_STARTED,
++	BCH_FS_ALLOCATOR_RUNNING,
 +	BCH_FS_INITIAL_GC_DONE,
 +	BCH_FS_FSCK_DONE,
 +	BCH_FS_STARTED,
@@ -4151,6 +6191,8 @@ index 000000000000..f42b2f9052c6
 +	struct bch_replicas_cpu replicas_gc;
 +	struct mutex		replicas_gc_lock;
 +
++	struct journal_entry_res replicas_journal_res;
++
 +	struct bch_disk_groups_cpu __rcu *disk_groups;
 +
 +	struct bch_opts		opts;
@@ -4172,6 +6214,7 @@ index 000000000000..f42b2f9052c6
 +		u32		time_base_hi;
 +		u32		time_precision;
 +		u64		features;
++		u64		compat;
 +	}			sb;
 +
 +	struct bch_sb_handle	disk_sb;
@@ -4411,10 +6454,10 @@ index 000000000000..f42b2f9052c6
 +#endif /* _BCACHEFS_H */
 diff --git a/fs/bcachefs/bcachefs_format.h b/fs/bcachefs/bcachefs_format.h
 new file mode 100644
-index 000000000000..9245465da1fd
+index 000000000000..5f430720098f
 --- /dev/null
 +++ b/fs/bcachefs/bcachefs_format.h
-@@ -0,0 +1,1526 @@
+@@ -0,0 +1,1551 @@
 +#ifndef _BCACHEFS_FORMAT_H
 +#define _BCACHEFS_FORMAT_H
 +
@@ -5242,7 +7285,8 @@ index 000000000000..9245465da1fd
 +	x(write_time, 2)			\
 +	x(data_type, 1)				\
 +	x(dirty_sectors, 2)			\
-+	x(cached_sectors, 2)
++	x(cached_sectors, 2)			\
++	x(oldest_gen, 1)
 +
 +enum {
 +#define x(name, bytes) BCH_ALLOC_FIELD_##name,
@@ -5691,6 +7735,10 @@ index 000000000000..9245465da1fd
 +	BCH_FEATURE_NR,
 +};
 +
++enum bch_sb_compat {
++	BCH_COMPAT_FEAT_ALLOC_INFO	= 0,
++};
++
 +/* options: */
 +
 +#define BCH_REPLICAS_MAX		4U
@@ -5771,7 +7819,9 @@ index 000000000000..9245465da1fd
 +	x(btree_root,		1)		\
 +	x(prio_ptrs,		2)		\
 +	x(blacklist,		3)		\
-+	x(blacklist_v2,		4)
++	x(blacklist_v2,		4)		\
++	x(usage,		5)		\
++	x(data_usage,		6)
 +
 +enum {
 +#define x(f, nr)	BCH_JSET_ENTRY_##f	= nr,
@@ -5800,6 +7850,24 @@ index 000000000000..9245465da1fd
 +	__le64			start;
 +	__le64			end;
 +};
++
++enum {
++	FS_USAGE_RESERVED		= 0,
++	FS_USAGE_INODES			= 1,
++	FS_USAGE_KEY_VERSION		= 2,
++	FS_USAGE_NR			= 3
++};
++
++struct jset_entry_usage {
++	struct jset_entry	entry;
++	__le64			v;
++} __attribute__((packed));
++
++struct jset_entry_data_usage {
++	struct jset_entry	entry;
++	__le64			v;
++	struct bch_replicas_entry r;
++} __attribute__((packed));
 +
 +/*
 + * On disk format for a journal entry:
@@ -12618,10 +14686,10 @@ index 000000000000..08e6f2a68ecb
 +#endif /* _BCACHEFS_BTREE_CACHE_H */
 diff --git a/fs/bcachefs/btree_gc.c b/fs/bcachefs/btree_gc.c
 new file mode 100644
-index 000000000000..433e8f22fd19
+index 000000000000..91153cb17c0a
 --- /dev/null
 +++ b/fs/bcachefs/btree_gc.c
-@@ -0,0 +1,1263 @@
+@@ -0,0 +1,1199 @@
 +/*
 + * Copyright (C) 2010 Kent Overstreet <kent.overstreet@gmail.com>
 + * Copyright (C) 2014 Datera Inc.
@@ -12762,24 +14830,23 @@ index 000000000000..433e8f22fd19
 +
 +		bkey_for_each_ptr(ptrs, ptr) {
 +			struct bch_dev *ca = bch_dev_bkey_exists(c, ptr->dev);
-+			size_t b = PTR_BUCKET_NR(ca, ptr);
-+			struct bucket *g = PTR_BUCKET(ca, ptr);
++			struct bucket *g = PTR_BUCKET(ca, ptr, true);
 +
 +			if (mustfix_fsck_err_on(!g->gen_valid, c,
 +					"found ptr with missing gen in alloc btree,\n"
 +					"type %u gen %u",
 +					k.k->type, ptr->gen)) {
-+				g->_mark.gen = ptr->gen;
-+				g->gen_valid = 1;
-+				bucket_set_dirty(ca, b);
++				g->_mark.gen	= ptr->gen;
++				g->_mark.dirty	= true;
++				g->gen_valid	= 1;
 +			}
 +
 +			if (mustfix_fsck_err_on(gen_cmp(ptr->gen, g->mark.gen) > 0, c,
 +					"%u ptr gen in the future: %u > %u",
 +					k.k->type, ptr->gen, g->mark.gen)) {
-+				g->_mark.gen = ptr->gen;
-+				g->gen_valid = 1;
-+				bucket_set_dirty(ca, b);
++				g->_mark.gen	= ptr->gen;
++				g->_mark.dirty	= true;
++				g->gen_valid	= 1;
 +				set_bit(BCH_FS_FIXED_GENS, &c->flags);
 +			}
 +		}
@@ -12787,10 +14854,10 @@ index 000000000000..433e8f22fd19
 +
 +	bkey_for_each_ptr(ptrs, ptr) {
 +		struct bch_dev *ca = bch_dev_bkey_exists(c, ptr->dev);
-+		size_t b = PTR_BUCKET_NR(ca, ptr);
++		struct bucket *g = PTR_BUCKET(ca, ptr, true);
 +
-+		if (gen_after(ca->oldest_gens[b], ptr->gen))
-+			ca->oldest_gens[b] = ptr->gen;
++		if (gen_after(g->oldest_gen, ptr->gen))
++			g->oldest_gen = ptr->gen;
 +
 +		*max_stale = max(*max_stale, ptr_stale(ca, ptr));
 +	}
@@ -12854,11 +14921,11 @@ index 000000000000..433e8f22fd19
 +
 +		bch2_verify_btree_nr_keys(b);
 +
++		gc_pos_set(c, gc_pos_btree_node(b));
++
 +		ret = btree_gc_mark_node(c, b, &max_stale, initial);
 +		if (ret)
 +			break;
-+
-+		gc_pos_set(c, gc_pos_btree_node(b));
 +
 +		if (!initial) {
 +			if (max_stale > 64)
@@ -13107,88 +15174,38 @@ index 000000000000..433e8f22fd19
 +	percpu_up_write(&c->mark_lock);
 +}
 +
-+static void bch2_gc_done_nocheck(struct bch_fs *c)
-+{
-+	struct bch_dev *ca;
-+	unsigned i;
-+
-+	{
-+		struct genradix_iter dst_iter = genradix_iter_init(&c->stripes[0], 0);
-+		struct genradix_iter src_iter = genradix_iter_init(&c->stripes[1], 0);
-+		struct stripe *dst, *src;
-+
-+		c->ec_stripes_heap.used = 0;
-+
-+		while ((dst = genradix_iter_peek(&dst_iter, &c->stripes[0])) &&
-+		       (src = genradix_iter_peek(&src_iter, &c->stripes[1]))) {
-+			*dst = *src;
-+
-+			if (dst->alive)
-+				bch2_stripes_heap_insert(c, dst, dst_iter.pos);
-+
-+			genradix_iter_advance(&dst_iter, &c->stripes[0]);
-+			genradix_iter_advance(&src_iter, &c->stripes[1]);
-+		}
-+	}
-+
-+	for_each_member_device(ca, c, i) {
-+		struct bucket_array *src = __bucket_array(ca, 1);
-+
-+		memcpy(__bucket_array(ca, 0), src,
-+		       sizeof(struct bucket_array) +
-+		       sizeof(struct bucket) * src->nbuckets);
-+	};
-+
-+	for_each_member_device(ca, c, i) {
-+		unsigned nr = sizeof(struct bch_dev_usage) / sizeof(u64);
-+		struct bch_dev_usage *dst = (void *)
-+			bch2_acc_percpu_u64s((void *) ca->usage[0], nr);
-+		struct bch_dev_usage *src = (void *)
-+			bch2_acc_percpu_u64s((void *) ca->usage[1], nr);
-+
-+		*dst = *src;
-+	}
-+
-+	{
-+		unsigned nr = sizeof(struct bch_fs_usage) / sizeof(u64) +
-+			c->replicas.nr;
-+		struct bch_fs_usage *dst = (void *)
-+			bch2_acc_percpu_u64s((void *) c->usage[0], nr);
-+		struct bch_fs_usage *src = (void *)
-+			bch2_acc_percpu_u64s((void *) c->usage[1], nr);
-+
-+		memcpy(&dst->s.gc_start[0],
-+		       &src->s.gc_start[0],
-+		       nr * sizeof(u64) - offsetof(typeof(*dst), s.gc_start));
-+	}
-+}
-+
 +static void bch2_gc_done(struct bch_fs *c, bool initial)
 +{
 +	struct bch_dev *ca;
++	bool verify = !initial ||
++		(c->sb.compat & (1ULL << BCH_COMPAT_FEAT_ALLOC_INFO));
 +	unsigned i;
 +
 +#define copy_field(_f, _msg, ...)					\
 +	if (dst->_f != src->_f) {					\
-+		bch_err(c, _msg ": got %llu, should be %llu, fixing"	\
-+			, ##__VA_ARGS__, dst->_f, src->_f);		\
++		if (verify)						\
++			bch_err(c, _msg ": got %llu, should be %llu, fixing"\
++				, ##__VA_ARGS__, dst->_f, src->_f);	\
 +		dst->_f = src->_f;					\
 +	}
 +#define copy_stripe_field(_f, _msg, ...)				\
 +	if (dst->_f != src->_f) {					\
-+		bch_err_ratelimited(c, "stripe %zu has wrong "_msg	\
-+			": got %u, should be %u, fixing",		\
-+			dst_iter.pos, ##__VA_ARGS__,			\
-+			dst->_f, src->_f);				\
++		if (verify)						\
++			bch_err_ratelimited(c, "stripe %zu has wrong "_msg\
++				": got %u, should be %u, fixing",	\
++				dst_iter.pos, ##__VA_ARGS__,		\
++				dst->_f, src->_f);			\
 +		dst->_f = src->_f;					\
 +		dst->dirty = true;					\
 +	}
 +#define copy_bucket_field(_f)						\
 +	if (dst->b[b].mark._f != src->b[b].mark._f) {			\
-+		bch_err_ratelimited(c, "dev %u bucket %zu has wrong " #_f\
-+			": got %u, should be %u, fixing",		\
-+			i, b, dst->b[b].mark._f, src->b[b].mark._f);	\
++		if (verify)						\
++			bch_err_ratelimited(c, "dev %u bucket %zu has wrong " #_f\
++				": got %u, should be %u, fixing", i, b,	\
++				dst->b[b].mark._f, src->b[b].mark._f);	\
 +		dst->b[b]._mark._f = src->b[b].mark._f;			\
++		dst->b[b]._mark.dirty = true;				\
 +	}
 +#define copy_dev_field(_f, _msg, ...)					\
 +	copy_field(_f, "dev %u has wrong " _msg, i, ##__VA_ARGS__)
@@ -13196,11 +15213,6 @@ index 000000000000..433e8f22fd19
 +	copy_field(_f, "fs has wrong " _msg, ##__VA_ARGS__)
 +
 +	percpu_down_write(&c->mark_lock);
-+
-+	if (initial) {
-+		bch2_gc_done_nocheck(c);
-+		goto out;
-+	}
 +
 +	{
 +		struct genradix_iter dst_iter = genradix_iter_init(&c->stripes[0], 0);
@@ -13252,6 +15264,11 @@ index 000000000000..433e8f22fd19
 +			copy_bucket_field(stripe);
 +			copy_bucket_field(dirty_sectors);
 +			copy_bucket_field(cached_sectors);
++
++			if (dst->b[b].oldest_gen != src->b[b].oldest_gen) {
++				dst->b[b].oldest_gen = src->b[b].oldest_gen;
++				dst->b[b]._mark.dirty = true;
++			}
 +		}
 +	};
 +
@@ -13264,16 +15281,16 @@ index 000000000000..433e8f22fd19
 +		unsigned b;
 +
 +		for (b = 0; b < BCH_DATA_NR; b++)
-+			copy_dev_field(buckets[b],
-+				       "buckets[%s]", bch2_data_types[b]);
-+		copy_dev_field(buckets_alloc, "buckets_alloc");
-+		copy_dev_field(buckets_ec, "buckets_ec");
++			copy_dev_field(buckets[b],	"buckets[%s]",
++				       bch2_data_types[b]);
++		copy_dev_field(buckets_alloc,		"buckets_alloc");
++		copy_dev_field(buckets_ec,		"buckets_ec");
++		copy_dev_field(buckets_unavailable,	"buckets_unavailable");
 +
 +		for (b = 0; b < BCH_DATA_NR; b++)
-+			copy_dev_field(sectors[b],
-+				       "sectors[%s]", bch2_data_types[b]);
-+		copy_dev_field(sectors_fragmented,
-+			       "sectors_fragmented");
++			copy_dev_field(sectors[b],	"sectors[%s]",
++				       bch2_data_types[b]);
++		copy_dev_field(sectors_fragmented,	"sectors_fragmented");
 +	}
 +
 +	{
@@ -13295,13 +15312,16 @@ index 000000000000..433e8f22fd19
 +				      "persistent_reserved[%i]", i);
 +
 +		for (i = 0; i < c->replicas.nr; i++) {
-+			/*
-+			 * XXX: print out replicas entry
-+			 */
-+			copy_fs_field(data[i], "data[%i]", i);
++			struct bch_replicas_entry *e =
++				cpu_replicas_entry(&c->replicas, i);
++			char buf[80];
++
++			bch2_replicas_entry_to_text(&PBUF(buf), e);
++
++			copy_fs_field(data[i], "%s", buf);
 +		}
 +	}
-+out:
++
 +	percpu_up_write(&c->mark_lock);
 +
 +#undef copy_fs_field
@@ -13316,13 +15336,14 @@ index 000000000000..433e8f22fd19
 +	struct bch_dev *ca;
 +	unsigned i;
 +
++	percpu_down_write(&c->mark_lock);
++
 +	/*
 +	 * indicate to stripe code that we need to allocate for the gc stripes
 +	 * radix tree, too
 +	 */
 +	gc_pos_set(c, gc_phase(GC_PHASE_START));
 +
-+	percpu_down_write(&c->mark_lock);
 +	BUG_ON(c->usage[1]);
 +
 +	c->usage[1] = __alloc_percpu_gfp(sizeof(struct bch_fs_usage) +
@@ -13364,7 +15385,9 @@ index 000000000000..433e8f22fd19
 +		dst->nbuckets		= src->nbuckets;
 +
 +		for (b = 0; b < src->nbuckets; b++)
-+			dst->b[b]._mark.gen = src->b[b].mark.gen;
++			dst->b[b]._mark.gen =
++				dst->b[b].oldest_gen =
++				src->b[b].mark.gen;
 +	};
 +
 +	percpu_up_write(&c->mark_lock);
@@ -13438,9 +15461,6 @@ index 000000000000..433e8f22fd19
 +
 +	bch2_gc_free(c);
 +	up_write(&c->gc_lock);
-+
-+	if (!ret && initial)
-+		set_bit(BCH_FS_INITIAL_GC_DONE, &c->flags);
 +
 +	trace_gc_end(c);
 +	bch2_time_stats_update(&c->times[BCH_TIME_btree_gc], start_time);
@@ -13869,28 +15889,12 @@ index 000000000000..433e8f22fd19
 +	wake_up_process(p);
 +	return 0;
 +}
-+
-+/* Initial GC computes bucket marks during startup */
-+
-+int bch2_initial_gc(struct bch_fs *c, struct list_head *journal)
-+{
-+	int ret = bch2_gc(c, journal, true);
-+
-+	/*
-+	 * Skip past versions that might have possibly been used (as nonces),
-+	 * but hadn't had their pointers written:
-+	 */
-+	if (c->sb.encryption_type)
-+		atomic64_add(1 << 16, &c->key_version);
-+
-+	return ret;
-+}
 diff --git a/fs/bcachefs/btree_gc.h b/fs/bcachefs/btree_gc.h
 new file mode 100644
-index 000000000000..1905acfa028a
+index 000000000000..df51eb83ab49
 --- /dev/null
 +++ b/fs/bcachefs/btree_gc.h
-@@ -0,0 +1,118 @@
+@@ -0,0 +1,117 @@
 +#ifndef _BCACHEFS_BTREE_GC_H
 +#define _BCACHEFS_BTREE_GC_H
 +
@@ -13900,7 +15904,6 @@ index 000000000000..1905acfa028a
 +int bch2_gc(struct bch_fs *, struct list_head *, bool);
 +void bch2_gc_thread_stop(struct bch_fs *);
 +int bch2_gc_thread_start(struct bch_fs *);
-+int bch2_initial_gc(struct bch_fs *, struct list_head *);
 +void bch2_mark_dev_superblock(struct bch_fs *, struct bch_dev *, unsigned);
 +
 +/*
@@ -14002,7 +16005,7 @@ index 000000000000..1905acfa028a
 +
 +	do {
 +		seq = read_seqcount_begin(&c->gc_pos_lock);
-+		ret = gc_pos_cmp(pos, c->gc_pos) < 0;
++		ret = gc_pos_cmp(pos, c->gc_pos) <= 0;
 +	} while (read_seqcount_retry(&c->gc_pos_lock, seq));
 +
 +	return ret;
@@ -18381,7 +20384,7 @@ index 000000000000..9054de0dbd2e
 +
 diff --git a/fs/bcachefs/btree_types.h b/fs/bcachefs/btree_types.h
 new file mode 100644
-index 000000000000..dce4ed385e8e
+index 000000000000..fe6b1eea35a9
 --- /dev/null
 +++ b/fs/bcachefs/btree_types.h
 @@ -0,0 +1,510 @@
@@ -18861,6 +20864,7 @@ index 000000000000..dce4ed385e8e
 +	__BKEY_PADDED(key, BKEY_BTREE_PTR_VAL_U64s_MAX);
 +	u8			level;
 +	u8			alive;
++	s8			error;
 +};
 +
 +/*
@@ -18875,7 +20879,6 @@ index 000000000000..dce4ed385e8e
 +	/* leaf node needs to be split */
 +	BTREE_INSERT_BTREE_NODE_FULL,
 +	BTREE_INSERT_ENOSPC,
-+	BTREE_INSERT_NEED_GC_LOCK,
 +	BTREE_INSERT_NEED_MARK_REPLICAS,
 +};
 +
@@ -19075,7 +21078,7 @@ index 000000000000..4bd0725846d0
 +#endif /* _BCACHEFS_BTREE_UPDATE_H */
 diff --git a/fs/bcachefs/btree_update_interior.c b/fs/bcachefs/btree_update_interior.c
 new file mode 100644
-index 000000000000..0f2fa6f72619
+index 000000000000..b1b858dedaf0
 --- /dev/null
 +++ b/fs/bcachefs/btree_update_interior.c
 @@ -0,0 +1,2193 @@
@@ -19564,7 +21567,7 @@ index 000000000000..0f2fa6f72619
 +	struct btree *b;
 +	struct disk_reservation disk_res = { 0, 0 };
 +	unsigned sectors = nr_nodes * c->opts.btree_node_size;
-+	int ret, disk_res_flags = BCH_DISK_RESERVATION_GC_LOCK_HELD;
++	int ret, disk_res_flags = 0;
 +
 +	if (flags & BTREE_INSERT_NOFAIL)
 +		disk_res_flags |= BCH_DISK_RESERVATION_NOFAIL;
@@ -20167,8 +22170,7 @@ index 000000000000..0f2fa6f72619
 +		bch2_btree_node_free_index(as, NULL,
 +					   bkey_i_to_s_c(&old->key),
 +					   fs_usage);
-+	bch2_fs_usage_apply(c, fs_usage, &as->reserve->disk_res,
-+			    gc_pos_btree_root(b->btree_id));
++	bch2_fs_usage_apply(c, fs_usage, &as->reserve->disk_res);
 +
 +	percpu_up_read_preempt_enable(&c->mark_lock);
 +	mutex_unlock(&c->btree_interior_update_lock);
@@ -20269,8 +22271,7 @@ index 000000000000..0f2fa6f72619
 +					   bkey_disassemble(b, k, &tmp),
 +					   fs_usage);
 +
-+	bch2_fs_usage_apply(c, fs_usage, &as->reserve->disk_res,
-+			    gc_pos_btree_node(b));
++	bch2_fs_usage_apply(c, fs_usage, &as->reserve->disk_res);
 +
 +	percpu_up_read_preempt_enable(&c->mark_lock);
 +	mutex_unlock(&c->btree_interior_update_lock);
@@ -20645,7 +22646,8 @@ index 000000000000..0f2fa6f72619
 +	closure_init_stack(&cl);
 +
 +	/* Hack, because gc and splitting nodes doesn't mix yet: */
-+	if (!down_read_trylock(&c->gc_lock)) {
++	if (!(flags & BTREE_INSERT_GC_LOCK_HELD) &&
++	    !down_read_trylock(&c->gc_lock)) {
 +		if (flags & BTREE_INSERT_NOUNLOCK)
 +			return -EINTR;
 +
@@ -20688,7 +22690,8 @@ index 000000000000..0f2fa6f72619
 +	 */
 +	__bch2_btree_iter_downgrade(iter, 1);
 +out:
-+	up_read(&c->gc_lock);
++	if (!(flags & BTREE_INSERT_GC_LOCK_HELD))
++		up_read(&c->gc_lock);
 +	closure_sync(&cl);
 +	return ret;
 +}
@@ -20766,7 +22769,8 @@ index 000000000000..0f2fa6f72619
 +	}
 +
 +	/* We're changing btree topology, doesn't mix with gc: */
-+	if (!down_read_trylock(&c->gc_lock))
++	if (!(flags & BTREE_INSERT_GC_LOCK_HELD) &&
++	    !down_read_trylock(&c->gc_lock))
 +		goto err_cycle_gc_lock;
 +
 +	if (!bch2_btree_iter_upgrade(iter, U8_MAX,
@@ -20826,7 +22830,8 @@ index 000000000000..0f2fa6f72619
 +
 +	bch2_btree_update_done(as);
 +
-+	up_read(&c->gc_lock);
++	if (!(flags & BTREE_INSERT_GC_LOCK_HELD))
++		up_read(&c->gc_lock);
 +out:
 +	bch2_btree_iter_verify_locks(iter);
 +
@@ -20857,7 +22862,8 @@ index 000000000000..0f2fa6f72619
 +
 +err_unlock:
 +	six_unlock_intent(&m->lock);
-+	up_read(&c->gc_lock);
++	if (!(flags & BTREE_INSERT_GC_LOCK_HELD))
++		up_read(&c->gc_lock);
 +err:
 +	BUG_ON(ret == -EAGAIN && (flags & BTREE_INSERT_NOUNLOCK));
 +
@@ -21023,8 +23029,7 @@ index 000000000000..0f2fa6f72619
 +	ret = bch2_disk_reservation_add(c, &as->reserve->disk_res,
 +			c->opts.btree_node_size *
 +			bch2_bkey_nr_ptrs(bkey_i_to_s_c(&new_key->k_i)),
-+			BCH_DISK_RESERVATION_NOFAIL|
-+			BCH_DISK_RESERVATION_GC_LOCK_HELD);
++			BCH_DISK_RESERVATION_NOFAIL);
 +	BUG_ON(ret);
 +
 +	parent = btree_node_parent(iter, b);
@@ -21070,8 +23075,7 @@ index 000000000000..0f2fa6f72619
 +		bch2_btree_node_free_index(as, NULL,
 +					   bkey_i_to_s_c(&b->key),
 +					   fs_usage);
-+		bch2_fs_usage_apply(c, fs_usage, &as->reserve->disk_res,
-+				    gc_pos_btree_root(b->btree_id));
++		bch2_fs_usage_apply(c, fs_usage, &as->reserve->disk_res);
 +
 +		percpu_up_read_preempt_enable(&c->mark_lock);
 +		mutex_unlock(&c->btree_interior_update_lock);
@@ -21198,7 +23202,6 @@ index 000000000000..0f2fa6f72619
 +	BUG_ON(btree_node_root(c, b));
 +
 +	__bch2_btree_set_root_inmem(c, b);
-+	bch2_btree_set_root_ondisk(c, b, READ);
 +}
 +
 +void bch2_btree_root_alloc(struct bch_fs *c, enum btree_id id)
@@ -21620,10 +23623,10 @@ index 000000000000..6ae17ffa4101
 +#endif /* _BCACHEFS_BTREE_UPDATE_INTERIOR_H */
 diff --git a/fs/bcachefs/btree_update_leaf.c b/fs/bcachefs/btree_update_leaf.c
 new file mode 100644
-index 000000000000..0df894fcf1ae
+index 000000000000..9d457d6c7c67
 --- /dev/null
 +++ b/fs/bcachefs/btree_update_leaf.c
-@@ -0,0 +1,913 @@
+@@ -0,0 +1,904 @@
 +
 +#include "bcachefs.h"
 +#include "btree_update.h"
@@ -22249,6 +24252,9 @@ index 000000000000..0df894fcf1ae
 +	/* for the sake of sanity: */
 +	BUG_ON(trans->nr > 1 && !(trans->flags & BTREE_INSERT_ATOMIC));
 +
++	if (trans->flags & BTREE_INSERT_GC_LOCK_HELD)
++		lockdep_assert_held(&c->gc_lock);
++
 +	bubble_sort(trans->entries, trans->nr, btree_trans_cmp);
 +
 +	trans_for_each_entry(trans, i)
@@ -22340,18 +24346,6 @@ index 000000000000..0df894fcf1ae
 +			trans_restart(" (split)");
 +			ret = -EINTR;
 +		}
-+		break;
-+	case BTREE_INSERT_NEED_GC_LOCK:
-+		ret = -EINTR;
-+
-+		if (!down_read_trylock(&c->gc_lock)) {
-+			if (flags & BTREE_INSERT_NOUNLOCK)
-+				goto out;
-+
-+			bch2_btree_iter_unlock(trans->entries[0].iter);
-+			down_read(&c->gc_lock);
-+		}
-+		up_read(&c->gc_lock);
 +		break;
 +	case BTREE_INSERT_ENOSPC:
 +		ret = -ENOSPC;
@@ -22539,10 +24533,10 @@ index 000000000000..0df894fcf1ae
 +}
 diff --git a/fs/bcachefs/buckets.c b/fs/bcachefs/buckets.c
 new file mode 100644
-index 000000000000..b71e2d8ef889
+index 000000000000..ba426be953f3
 --- /dev/null
 +++ b/fs/bcachefs/buckets.c
-@@ -0,0 +1,1266 @@
+@@ -0,0 +1,1244 @@
 +/*
 + * Code for manipulating bucket marks for garbage collection.
 + *
@@ -22658,6 +24652,36 @@ index 000000000000..b71e2d8ef889
 +	}
 +}
 +
++void bch2_fs_usage_initialize(struct bch_fs *c)
++{
++	struct bch_fs_usage *usage;
++	unsigned i, nr;
++
++	percpu_down_write(&c->mark_lock);
++	nr = sizeof(struct bch_fs_usage) / sizeof(u64) + c->replicas.nr;
++	usage = (void *) bch2_acc_percpu_u64s((void *) c->usage[0], nr);
++
++	for (i = 0; i < BCH_REPLICAS_MAX; i++)
++		usage->s.reserved += usage->persistent_reserved[i];
++
++	for (i = 0; i < c->replicas.nr; i++) {
++		struct bch_replicas_entry *e =
++			cpu_replicas_entry(&c->replicas, i);
++
++		switch (e->data_type) {
++		case BCH_DATA_BTREE:
++		case BCH_DATA_USER:
++			usage->s.data	+= usage->data[i];
++			break;
++		case BCH_DATA_CACHED:
++			usage->s.cached	+= usage->data[i];
++			break;
++		}
++	}
++
++	percpu_up_write(&c->mark_lock);
++}
++
 +#define bch2_usage_read_raw(_stats)					\
 +({									\
 +	typeof(*this_cpu_ptr(_stats)) _acc;				\
@@ -22769,8 +24793,7 @@ index 000000000000..b71e2d8ef889
 +
 +int bch2_fs_usage_apply(struct bch_fs *c,
 +			struct bch_fs_usage *fs_usage,
-+			struct disk_reservation *disk_res,
-+			struct gc_pos gc_pos)
++			struct disk_reservation *disk_res)
 +{
 +	s64 added = fs_usage->s.data + fs_usage->s.reserved;
 +	s64 should_not_have_added;
@@ -22798,13 +24821,6 @@ index 000000000000..b71e2d8ef889
 +	acc_u64s((u64 *) this_cpu_ptr(c->usage[0]),
 +		 (u64 *) fs_usage,
 +		 sizeof(*fs_usage) / sizeof(u64) + c->replicas.nr);
-+
-+	if (gc_visited(c, gc_pos)) {
-+		BUG_ON(!c->usage[1]);
-+		acc_u64s((u64 *) this_cpu_ptr(c->usage[1]),
-+			 (u64 *) fs_usage,
-+			 sizeof(*fs_usage) / sizeof(u64) + c->replicas.nr);
-+	}
 +
 +	return ret;
 +}
@@ -22916,15 +24932,28 @@ index 000000000000..b71e2d8ef889
 +	update_replicas(c, fs_usage, &r.e, sectors);
 +}
 +
-+static void __bch2_invalidate_bucket(struct bch_fs *c, struct bch_dev *ca,
-+				     size_t b, struct bucket_mark *old,
-+				     bool gc)
++#define do_mark_fn(fn, c, pos, flags, ...)				\
++({									\
++	int gc, ret = 0;						\
++									\
++	percpu_rwsem_assert_held(&c->mark_lock);			\
++									\
++	for (gc = 0; gc < 2 && !ret; gc++)				\
++		if (!gc == !(flags & BCH_BUCKET_MARK_GC) ||		\
++		    (gc && gc_visited(c, pos)))				\
++			ret = fn(c, __VA_ARGS__, gc);			\
++	ret;								\
++})
++
++static int __bch2_invalidate_bucket(struct bch_fs *c, struct bch_dev *ca,
++				    size_t b, struct bucket_mark *ret,
++				    bool gc)
 +{
 +	struct bch_fs_usage *fs_usage = this_cpu_ptr(c->usage[gc]);
 +	struct bucket *g = __bucket(ca, b, gc);
-+	struct bucket_mark new;
++	struct bucket_mark old, new;
 +
-+	*old = bucket_data_cmpxchg(c, ca, fs_usage, g, new, ({
++	old = bucket_data_cmpxchg(c, ca, fs_usage, g, new, ({
 +		BUG_ON(!is_available_bucket(new));
 +
 +		new.owned_by_allocator	= true;
@@ -22935,26 +24964,29 @@ index 000000000000..b71e2d8ef889
 +		new.gen++;
 +	}));
 +
-+	if (old->cached_sectors)
++	if (old.cached_sectors)
 +		update_cached_sectors(c, fs_usage, ca->dev_idx,
-+				      -old->cached_sectors);
++				      -((s64) old.cached_sectors));
++
++	if (!gc)
++		*ret = old;
++	return 0;
 +}
 +
 +void bch2_invalidate_bucket(struct bch_fs *c, struct bch_dev *ca,
 +			    size_t b, struct bucket_mark *old)
 +{
-+	percpu_rwsem_assert_held(&c->mark_lock);
-+
-+	__bch2_invalidate_bucket(c, ca, b, old, false);
++	do_mark_fn(__bch2_invalidate_bucket, c, gc_phase(GC_PHASE_START), 0,
++		   ca, b, old);
 +
 +	if (!old->owned_by_allocator && old->cached_sectors)
 +		trace_invalidate(ca, bucket_to_sector(ca, b),
 +				 old->cached_sectors);
 +}
 +
-+static void __bch2_mark_alloc_bucket(struct bch_fs *c, struct bch_dev *ca,
-+				     size_t b, bool owned_by_allocator,
-+				     bool gc)
++static int __bch2_mark_alloc_bucket(struct bch_fs *c, struct bch_dev *ca,
++				    size_t b, bool owned_by_allocator,
++				    bool gc)
 +{
 +	struct bch_fs_usage *fs_usage = this_cpu_ptr(c->usage[gc]);
 +	struct bucket *g = __bucket(ca, b, gc);
@@ -22966,20 +24998,16 @@ index 000000000000..b71e2d8ef889
 +
 +	BUG_ON(!gc &&
 +	       !owned_by_allocator && !old.owned_by_allocator);
++
++	return 0;
 +}
 +
 +void bch2_mark_alloc_bucket(struct bch_fs *c, struct bch_dev *ca,
 +			    size_t b, bool owned_by_allocator,
 +			    struct gc_pos pos, unsigned flags)
 +{
-+	percpu_rwsem_assert_held(&c->mark_lock);
-+
-+	if (!(flags & BCH_BUCKET_MARK_GC))
-+		__bch2_mark_alloc_bucket(c, ca, b, owned_by_allocator, false);
-+
-+	if ((flags & BCH_BUCKET_MARK_GC) ||
-+	    gc_visited(c, pos))
-+		__bch2_mark_alloc_bucket(c, ca, b, owned_by_allocator, true);
++	do_mark_fn(__bch2_mark_alloc_bucket, c, pos, flags,
++		   ca, b, owned_by_allocator);
 +}
 +
 +#define checked_add(a, b)					\
@@ -22989,9 +25017,9 @@ index 000000000000..b71e2d8ef889
 +	BUG_ON((a) != _res);					\
 +} while (0)
 +
-+static void __bch2_mark_metadata_bucket(struct bch_fs *c, struct bch_dev *ca,
-+					size_t b, enum bch_data_type type,
-+					unsigned sectors, bool gc)
++static int __bch2_mark_metadata_bucket(struct bch_fs *c, struct bch_dev *ca,
++				       size_t b, enum bch_data_type type,
++				       unsigned sectors, bool gc)
 +{
 +	struct bch_fs_usage *fs_usage = this_cpu_ptr(c->usage[gc]);
 +	struct bucket *g = __bucket(ca, b, gc);
@@ -23005,6 +25033,8 @@ index 000000000000..b71e2d8ef889
 +		new.data_type	= type;
 +		checked_add(new.dirty_sectors, sectors);
 +	}));
++
++	return 0;
 +}
 +
 +void bch2_mark_metadata_bucket(struct bch_fs *c, struct bch_dev *ca,
@@ -23016,15 +25046,8 @@ index 000000000000..b71e2d8ef889
 +	       type != BCH_DATA_JOURNAL);
 +
 +	if (likely(c)) {
-+		percpu_rwsem_assert_held(&c->mark_lock);
-+
-+		if (!(flags & BCH_BUCKET_MARK_GC))
-+			__bch2_mark_metadata_bucket(c, ca, b, type, sectors,
-+						    false);
-+		if ((flags & BCH_BUCKET_MARK_GC) ||
-+		    gc_visited(c, pos))
-+			__bch2_mark_metadata_bucket(c, ca, b, type, sectors,
-+						    true);
++		do_mark_fn(__bch2_mark_metadata_bucket, c, pos, flags,
++			   ca, b, type, sectors);
 +	} else {
 +		struct bucket *g;
 +		struct bucket_mark new;
@@ -23068,7 +25091,7 @@ index 000000000000..b71e2d8ef889
 + * loop, to avoid racing with the start of gc clearing all the marks - GC does
 + * that with the gc pos seqlock held.
 + */
-+static void bch2_mark_pointer(struct bch_fs *c,
++static bool bch2_mark_pointer(struct bch_fs *c,
 +			      struct extent_ptr_decoded p,
 +			      s64 sectors, enum bch_data_type data_type,
 +			      struct bch_fs_usage *fs_usage,
@@ -23096,7 +25119,7 @@ index 000000000000..b71e2d8ef889
 +			BUG_ON(!test_bit(BCH_FS_ALLOC_READ_DONE, &c->flags));
 +			EBUG_ON(!p.ptr.cached &&
 +				test_bit(JOURNAL_REPLAY_DONE, &c->journal.flags));
-+			return;
++			return true;
 +		}
 +
 +		if (!p.ptr.cached)
@@ -23127,6 +25150,8 @@ index 000000000000..b71e2d8ef889
 +	bch2_dev_usage_update(c, ca, fs_usage, old, new, gc);
 +
 +	BUG_ON(!gc && bucket_became_unavailable(old, new));
++
++	return false;
 +}
 +
 +static int bch2_mark_stripe_ptr(struct bch_fs *c,
@@ -23209,13 +25234,13 @@ index 000000000000..b71e2d8ef889
 +		s64 disk_sectors = data_type == BCH_DATA_BTREE
 +			? sectors
 +			: ptr_disk_sectors_delta(p, sectors);
-+
-+		bch2_mark_pointer(c, p, disk_sectors, data_type,
-+				  fs_usage, journal_seq, flags, gc);
++		bool stale = bch2_mark_pointer(c, p, disk_sectors, data_type,
++					fs_usage, journal_seq, flags, gc);
 +
 +		if (p.ptr.cached) {
-+			update_cached_sectors(c, fs_usage, p.ptr.dev,
-+					      disk_sectors);
++			if (disk_sectors && !stale)
++				update_cached_sectors(c, fs_usage, p.ptr.dev,
++						      disk_sectors);
 +		} else if (!p.ec_nr) {
 +			dirty_sectors	       += disk_sectors;
 +			r.e.devs[r.e.nr_devs++]	= p.ptr.dev;
@@ -23341,30 +25366,28 @@ index 000000000000..b71e2d8ef889
 +			   unsigned journal_seq, unsigned flags,
 +			   bool gc)
 +{
-+	int ret = 0;
++	if (!fs_usage || gc)
++		fs_usage = this_cpu_ptr(c->usage[gc]);
 +
 +	switch (k.k->type) {
 +	case KEY_TYPE_btree_ptr:
-+		ret = bch2_mark_extent(c, k, inserting
-+				       ?  c->opts.btree_node_size
-+				       : -c->opts.btree_node_size,
-+				       BCH_DATA_BTREE,
-+				       fs_usage, journal_seq, flags, gc);
-+		break;
++		return bch2_mark_extent(c, k, inserting
++					?  c->opts.btree_node_size
++					: -c->opts.btree_node_size,
++					BCH_DATA_BTREE,
++					fs_usage, journal_seq, flags, gc);
 +	case KEY_TYPE_extent:
-+		ret = bch2_mark_extent(c, k, sectors, BCH_DATA_USER,
-+				       fs_usage, journal_seq, flags, gc);
-+		break;
++		return bch2_mark_extent(c, k, sectors, BCH_DATA_USER,
++					fs_usage, journal_seq, flags, gc);
 +	case KEY_TYPE_stripe:
-+		ret = bch2_mark_stripe(c, k, inserting,
-+				       fs_usage, journal_seq, flags, gc);
-+		break;
++		return bch2_mark_stripe(c, k, inserting,
++					fs_usage, journal_seq, flags, gc);
 +	case KEY_TYPE_inode:
 +		if (inserting)
 +			fs_usage->s.nr_inodes++;
 +		else
 +			fs_usage->s.nr_inodes--;
-+		break;
++		return 0;
 +	case KEY_TYPE_reservation: {
 +		unsigned replicas = bkey_s_c_to_reservation(k).v->nr_replicas;
 +
@@ -23374,13 +25397,11 @@ index 000000000000..b71e2d8ef889
 +
 +		fs_usage->s.reserved				+= sectors;
 +		fs_usage->persistent_reserved[replicas - 1]	+= sectors;
-+		break;
++		return 0;
 +	}
 +	default:
-+		break;
++		return 0;
 +	}
-+
-+	return ret;
 +}
 +
 +int bch2_mark_key_locked(struct bch_fs *c,
@@ -23390,26 +25411,9 @@ index 000000000000..b71e2d8ef889
 +		   struct bch_fs_usage *fs_usage,
 +		   u64 journal_seq, unsigned flags)
 +{
-+	int ret;
-+
-+	if (!(flags & BCH_BUCKET_MARK_GC)) {
-+		ret = __bch2_mark_key(c, k, inserting, sectors,
-+				      fs_usage ?: this_cpu_ptr(c->usage[0]),
-+				      journal_seq, flags, false);
-+		if (ret)
-+			return ret;
-+	}
-+
-+	if ((flags & BCH_BUCKET_MARK_GC) ||
-+	    gc_visited(c, pos)) {
-+		ret = __bch2_mark_key(c, k, inserting, sectors,
-+				      this_cpu_ptr(c->usage[1]),
-+				      journal_seq, flags, true);
-+		if (ret)
-+			return ret;
-+	}
-+
-+	return 0;
++	return do_mark_fn(__bch2_mark_key, c, pos, flags,
++			  k, inserting, sectors, fs_usage,
++			  journal_seq, flags);
 +}
 +
 +int bch2_mark_key(struct bch_fs *c, struct bkey_s_c k,
@@ -23500,7 +25504,7 @@ index 000000000000..b71e2d8ef889
 +		bch2_btree_node_iter_advance(&node_iter, b);
 +	}
 +
-+	if (bch2_fs_usage_apply(c, fs_usage, trans->disk_res, pos) &&
++	if (bch2_fs_usage_apply(c, fs_usage, trans->disk_res) &&
 +	    !warned_disk_usage &&
 +	    !xchg(&warned_disk_usage, 1)) {
 +		char buf[200];
@@ -23539,10 +25543,7 @@ index 000000000000..b71e2d8ef889
 +
 +static u64 bch2_recalc_sectors_available(struct bch_fs *c)
 +{
-+	int cpu;
-+
-+	for_each_possible_cpu(cpu)
-+		per_cpu_ptr(c->pcpu, cpu)->sectors_available = 0;
++	percpu_u64_set(&c->pcpu->sectors_available, 0);
 +
 +	return avail_factor(bch2_fs_sectors_free(c));
 +}
@@ -23596,24 +25597,8 @@ index 000000000000..b71e2d8ef889
 +	return 0;
 +
 +recalculate:
-+	/*
-+	 * GC recalculates sectors_available when it starts, so that hopefully
-+	 * we don't normally end up blocking here:
-+	 */
-+
-+	/*
-+	 * Piss fuck, we can be called from extent_insert_fixup() with btree
-+	 * locks held:
-+	 */
-+
-+	if (!(flags & BCH_DISK_RESERVATION_GC_LOCK_HELD)) {
-+		if (!(flags & BCH_DISK_RESERVATION_BTREE_LOCKS_HELD))
-+			down_read(&c->gc_lock);
-+		else if (!down_read_trylock(&c->gc_lock))
-+			return -EINTR;
-+	}
-+
 +	percpu_down_write(&c->mark_lock);
++
 +	sectors_available = bch2_recalc_sectors_available(c);
 +
 +	if (sectors <= sectors_available ||
@@ -23629,9 +25614,6 @@ index 000000000000..b71e2d8ef889
 +	}
 +
 +	percpu_up_write(&c->mark_lock);
-+
-+	if (!(flags & BCH_DISK_RESERVATION_GC_LOCK_HELD))
-+		up_read(&c->gc_lock);
 +
 +	return ret;
 +}
@@ -23653,7 +25635,6 @@ index 000000000000..b71e2d8ef889
 +	struct bucket_array *buckets = NULL, *old_buckets = NULL;
 +	unsigned long *buckets_nouse = NULL;
 +	unsigned long *buckets_written = NULL;
-+	u8 *oldest_gens = NULL;
 +	alloc_fifo	free[RESERVE_NR];
 +	alloc_fifo	free_inc;
 +	alloc_heap	alloc_heap;
@@ -23678,8 +25659,6 @@ index 000000000000..b71e2d8ef889
 +
 +	if (!(buckets		= kvpmalloc(sizeof(struct bucket_array) +
 +					    nbuckets * sizeof(struct bucket),
-+					    GFP_KERNEL|__GFP_ZERO)) ||
-+	    !(oldest_gens	= kvpmalloc(nbuckets * sizeof(u8),
 +					    GFP_KERNEL|__GFP_ZERO)) ||
 +	    !(buckets_nouse	= kvpmalloc(BITS_TO_LONGS(nbuckets) *
 +					    sizeof(unsigned long),
@@ -23715,9 +25694,6 @@ index 000000000000..b71e2d8ef889
 +		memcpy(buckets->b,
 +		       old_buckets->b,
 +		       n * sizeof(struct bucket));
-+		memcpy(oldest_gens,
-+		       ca->oldest_gens,
-+		       n * sizeof(u8));
 +		memcpy(buckets_nouse,
 +		       ca->buckets_nouse,
 +		       BITS_TO_LONGS(n) * sizeof(unsigned long));
@@ -23729,7 +25705,6 @@ index 000000000000..b71e2d8ef889
 +	rcu_assign_pointer(ca->buckets[0], buckets);
 +	buckets = old_buckets;
 +
-+	swap(ca->oldest_gens, oldest_gens);
 +	swap(ca->buckets_nouse, buckets_nouse);
 +	swap(ca->buckets_written, buckets_written);
 +
@@ -23773,8 +25748,6 @@ index 000000000000..b71e2d8ef889
 +		BITS_TO_LONGS(nbuckets) * sizeof(unsigned long));
 +	kvpfree(buckets_written,
 +		BITS_TO_LONGS(nbuckets) * sizeof(unsigned long));
-+	kvpfree(oldest_gens,
-+		nbuckets * sizeof(u8));
 +	if (buckets)
 +		call_rcu(&old_buckets->rcu, buckets_free_rcu);
 +
@@ -23794,7 +25767,6 @@ index 000000000000..b71e2d8ef889
 +		BITS_TO_LONGS(ca->mi.nbuckets) * sizeof(unsigned long));
 +	kvpfree(ca->buckets_nouse,
 +		BITS_TO_LONGS(ca->mi.nbuckets) * sizeof(unsigned long));
-+	kvpfree(ca->oldest_gens, ca->mi.nbuckets * sizeof(u8));
 +	kvpfree(rcu_dereference_protected(ca->buckets[0], 1),
 +		sizeof(struct bucket_array) +
 +		ca->mi.nbuckets * sizeof(struct bucket));
@@ -23811,10 +25783,10 @@ index 000000000000..b71e2d8ef889
 +}
 diff --git a/fs/bcachefs/buckets.h b/fs/bcachefs/buckets.h
 new file mode 100644
-index 000000000000..6f3681728f0a
+index 000000000000..ffa05951b671
 --- /dev/null
 +++ b/fs/bcachefs/buckets.h
-@@ -0,0 +1,319 @@
+@@ -0,0 +1,309 @@
 +/*
 + * Code for manipulating bucket marks for garbage collection.
 + *
@@ -23873,18 +25845,6 @@ index 000000000000..6f3681728f0a
 +	return __bucket(ca, b, false);
 +}
 +
-+static inline void bucket_set_dirty(struct bch_dev *ca, size_t b)
-+{
-+	struct bucket *g;
-+	struct bucket_mark m;
-+
-+	rcu_read_lock();
-+	g = bucket(ca, b);
-+	bucket_cmpxchg(g, m, m.dirty = true);
-+	rcu_read_unlock();
-+
-+}
-+
 +static inline void bucket_io_clock_reset(struct bch_fs *c, struct bch_dev *ca,
 +					 size_t b, int rw)
 +{
@@ -23903,7 +25863,9 @@ index 000000000000..6f3681728f0a
 +
 +static inline u8 bucket_gc_gen(struct bch_dev *ca, size_t b)
 +{
-+	return bucket(ca, b)->mark.gen - ca->oldest_gens[b];
++	struct bucket *g = bucket(ca, b);
++
++	return g->mark.gen - g->oldest_gen;
 +}
 +
 +static inline size_t PTR_BUCKET_NR(const struct bch_dev *ca,
@@ -23913,7 +25875,8 @@ index 000000000000..6f3681728f0a
 +}
 +
 +static inline struct bucket *PTR_BUCKET(struct bch_dev *ca,
-+					const struct bch_extent_ptr *ptr)
++					const struct bch_extent_ptr *ptr,
++					bool gc)
 +{
 +	return bucket(ca, PTR_BUCKET_NR(ca, ptr));
 +}
@@ -24064,6 +26027,7 @@ index 000000000000..6f3681728f0a
 +/* key/bucket marking: */
 +
 +void bch2_bucket_seq_cleanup(struct bch_fs *);
++void bch2_fs_usage_initialize(struct bch_fs *);
 +
 +void bch2_invalidate_bucket(struct bch_fs *, struct bch_dev *,
 +			    size_t, struct bucket_mark *);
@@ -24073,8 +26037,8 @@ index 000000000000..6f3681728f0a
 +			       size_t, enum bch_data_type, unsigned,
 +			       struct gc_pos, unsigned);
 +
-+#define BCH_BUCKET_MARK_NOATOMIC		(1 << 0)
-+#define BCH_BUCKET_MARK_GC			(1 << 1)
++#define BCH_BUCKET_MARK_GC			(1 << 0)
++#define BCH_BUCKET_MARK_NOATOMIC		(1 << 1)
 +
 +int bch2_mark_key_locked(struct bch_fs *, struct bkey_s_c,
 +		  bool, s64, struct gc_pos,
@@ -24084,7 +26048,7 @@ index 000000000000..6f3681728f0a
 +		  struct bch_fs_usage *, u64, unsigned);
 +void bch2_mark_update(struct btree_insert *, struct btree_insert_entry *);
 +int bch2_fs_usage_apply(struct bch_fs *, struct bch_fs_usage *,
-+			struct disk_reservation *, struct gc_pos);
++			struct disk_reservation *);
 +
 +/* disk reservations: */
 +
@@ -24098,8 +26062,6 @@ index 000000000000..6f3681728f0a
 +}
 +
 +#define BCH_DISK_RESERVATION_NOFAIL		(1 << 0)
-+#define BCH_DISK_RESERVATION_GC_LOCK_HELD	(1 << 1)
-+#define BCH_DISK_RESERVATION_BTREE_LOCKS_HELD	(1 << 2)
 +
 +int bch2_disk_reservation_add(struct bch_fs *,
 +			     struct disk_reservation *,
@@ -24136,10 +26098,10 @@ index 000000000000..6f3681728f0a
 +#endif /* _BUCKETS_H */
 diff --git a/fs/bcachefs/buckets_types.h b/fs/bcachefs/buckets_types.h
 new file mode 100644
-index 000000000000..56863c237126
+index 000000000000..dc0cc774b542
 --- /dev/null
 +++ b/fs/bcachefs/buckets_types.h
-@@ -0,0 +1,114 @@
+@@ -0,0 +1,115 @@
 +#ifndef _BUCKETS_TYPES_H
 +#define _BUCKETS_TYPES_H
 +
@@ -24180,6 +26142,7 @@ index 000000000000..56863c237126
 +	};
 +
 +	u16				io_time[2];
++	u8				oldest_gen;
 +	unsigned			gen_valid:1;
 +};
 +
@@ -30206,10 +32169,10 @@ index 000000000000..588e763f0440
 +#endif /* _BCACHEFS_ERROR_H */
 diff --git a/fs/bcachefs/extents.c b/fs/bcachefs/extents.c
 new file mode 100644
-index 000000000000..0f075fa1d360
+index 000000000000..369b100a0a58
 --- /dev/null
 +++ b/fs/bcachefs/extents.c
-@@ -0,0 +1,1764 @@
+@@ -0,0 +1,1760 @@
 +/*
 + * Copyright (C) 2010 Kent Overstreet <kent.overstreet@gmail.com>
 + *
@@ -31191,10 +33154,8 @@ index 000000000000..0f075fa1d360
 +
 +	if (overlap == BCH_EXTENT_OVERLAP_MIDDLE &&
 +	    (sectors = bch2_extent_is_compressed(k))) {
-+		int flags = BCH_DISK_RESERVATION_BTREE_LOCKS_HELD;
-+
-+		if (trans->flags & BTREE_INSERT_NOFAIL)
-+			flags |= BCH_DISK_RESERVATION_NOFAIL;
++		int flags = trans->flags & BTREE_INSERT_NOFAIL
++			? BCH_DISK_RESERVATION_NOFAIL : 0;
 +
 +		switch (bch2_disk_reservation_add(trans->c,
 +				trans->disk_res,
@@ -31203,8 +33164,6 @@ index 000000000000..0f075fa1d360
 +			break;
 +		case -ENOSPC:
 +			return BTREE_INSERT_ENOSPC;
-+		case -EINTR:
-+			return BTREE_INSERT_NEED_GC_LOCK;
 +		default:
 +			BUG();
 +		}
@@ -38256,10 +40215,10 @@ index 000000000000..9ac6fc87f69a
 +#endif /* _BCACHEFS_FS_H */
 diff --git a/fs/bcachefs/fsck.c b/fs/bcachefs/fsck.c
 new file mode 100644
-index 000000000000..955ab8bec904
+index 000000000000..42bd2f7a271f
 --- /dev/null
 +++ b/fs/bcachefs/fsck.c
-@@ -0,0 +1,1467 @@
+@@ -0,0 +1,1470 @@
 +
 +#include "bcachefs.h"
 +#include "btree_update.h"
@@ -39448,6 +41407,11 @@ index 000000000000..955ab8bec904
 +	}
 +
 +	if (u.bi_flags & BCH_INODE_UNLINKED) {
++		fsck_err_on(c->sb.clean, c,
++			    "filesystem marked clean, "
++			    "but inode %llu unlinked",
++			    u.bi_inum);
++
 +		bch_verbose(c, "deleting inode %llu", u.bi_inum);
 +
 +		ret = bch2_inode_rm(c, u.bi_inum);
@@ -39650,16 +41614,13 @@ index 000000000000..955ab8bec904
 +		    (BCH_INODE_I_SIZE_DIRTY|
 +		     BCH_INODE_I_SECTORS_DIRTY|
 +		     BCH_INODE_UNLINKED)) {
-+			fsck_err_on(c->sb.clean, c,
-+				"filesystem marked clean but found inode %llu with flags %x",
-+				inode.k->p.inode, inode.v->bi_flags);
 +			ret = check_inode(c, NULL, &iter, inode, NULL);
 +			BUG_ON(ret == -EINTR);
 +			if (ret)
 +				break;
 +		}
 +	}
-+fsck_err:
++
 +	return bch2_btree_iter_unlock(&iter) ?: ret;
 +}
 +
@@ -39721,11 +41682,12 @@ index 000000000000..955ab8bec904
 +	if (c->opts.fsck)
 +		return bch2_fsck_full(c);
 +
-+	if (!c->sb.clean &&
-+	    !(c->sb.features & (1 << BCH_FEATURE_ATOMIC_NLINK)))
-+		return bch2_fsck_inode_nlink(c);
++	if (c->sb.clean)
++		return 0;
 +
-+	return bch2_fsck_walk_inodes_only(c);
++	return c->sb.features & (1 << BCH_FEATURE_ATOMIC_NLINK)
++		? bch2_fsck_walk_inodes_only(c)
++		: bch2_fsck_inode_nlink(c);
 +}
 diff --git a/fs/bcachefs/fsck.h b/fs/bcachefs/fsck.h
 new file mode 100644
@@ -44124,10 +46086,10 @@ index 000000000000..50d864a3cae3
 +#endif /* _BCACHEFS_JOURNAL_H */
 diff --git a/fs/bcachefs/journal_io.c b/fs/bcachefs/journal_io.c
 new file mode 100644
-index 000000000000..5cc0651c7449
+index 000000000000..0f1f8e1507c4
 --- /dev/null
 +++ b/fs/bcachefs/journal_io.c
-@@ -0,0 +1,1320 @@
+@@ -0,0 +1,1344 @@
 +#include "bcachefs.h"
 +#include "alloc_background.h"
 +#include "alloc_foreground.h"
@@ -44414,6 +46376,7 @@ index 000000000000..5cc0651c7449
 +	if (journal_entry_err_on(le16_to_cpu(entry->u64s) != 2, c,
 +		"invalid journal seq blacklist entry: bad size")) {
 +		journal_entry_null_range(entry, vstruct_next(entry));
++		goto out;
 +	}
 +
 +	bl_entry = container_of(entry, struct jset_entry_blacklist_v2, entry);
@@ -44422,6 +46385,49 @@ index 000000000000..5cc0651c7449
 +				 le64_to_cpu(bl_entry->end), c,
 +		"invalid journal seq blacklist entry: start > end")) {
 +		journal_entry_null_range(entry, vstruct_next(entry));
++	}
++out:
++fsck_err:
++	return ret;
++}
++
++static int journal_entry_validate_usage(struct bch_fs *c,
++					struct jset *jset,
++					struct jset_entry *entry,
++					int write)
++{
++	struct jset_entry_usage *u =
++		container_of(entry, struct jset_entry_usage, entry);
++	unsigned bytes = jset_u64s(le16_to_cpu(entry->u64s)) * sizeof(u64);
++	int ret = 0;
++
++	if (journal_entry_err_on(bytes < sizeof(*u),
++				 c,
++				 "invalid journal entry usage: bad size")) {
++		journal_entry_null_range(entry, vstruct_next(entry));
++		return ret;
++	}
++
++fsck_err:
++	return ret;
++}
++
++static int journal_entry_validate_data_usage(struct bch_fs *c,
++					struct jset *jset,
++					struct jset_entry *entry,
++					int write)
++{
++	struct jset_entry_data_usage *u =
++		container_of(entry, struct jset_entry_data_usage, entry);
++	unsigned bytes = jset_u64s(le16_to_cpu(entry->u64s)) * sizeof(u64);
++	int ret = 0;
++
++	if (journal_entry_err_on(bytes < sizeof(*u) ||
++				 bytes < sizeof(*u) + u->r.nr_devs,
++				 c,
++				 "invalid journal entry usage: bad size")) {
++		journal_entry_null_range(entry, vstruct_next(entry));
++		return ret;
 +	}
 +
 +fsck_err:
@@ -44445,18 +46451,10 @@ index 000000000000..5cc0651c7449
 +static int journal_entry_validate(struct bch_fs *c, struct jset *jset,
 +				  struct jset_entry *entry, int write)
 +{
-+	int ret = 0;
-+
-+	if (entry->type >= BCH_JSET_ENTRY_NR) {
-+		journal_entry_err(c, "invalid journal entry type %u",
-+				  entry->type);
-+		journal_entry_null_range(entry, vstruct_next(entry));
-+		return 0;
-+	}
-+
-+	ret = bch2_jset_entry_ops[entry->type].validate(c, jset, entry, write);
-+fsck_err:
-+	return ret;
++	return entry->type < BCH_JSET_ENTRY_NR
++		? bch2_jset_entry_ops[entry->type].validate(c, jset,
++							    entry, write)
++		: 0;
 +}
 +
 +static int jset_validate_entries(struct bch_fs *c, struct jset *jset,
@@ -44978,19 +46976,6 @@ index 000000000000..5cc0651c7449
 +
 +/* journal write: */
 +
-+static void bch2_journal_add_btree_root(struct journal_buf *buf,
-+				       enum btree_id id, struct bkey_i *k,
-+				       unsigned level)
-+{
-+	struct jset_entry *entry;
-+
-+	entry = bch2_journal_add_entry_noreservation(buf, k->k.u64s);
-+	entry->type	= BCH_JSET_ENTRY_btree_root;
-+	entry->btree_id = id;
-+	entry->level	= level;
-+	memcpy_u64s(entry->_data, k, k->k.u64s);
-+}
-+
 +static unsigned journal_dev_buckets_available(struct journal *j,
 +					      struct journal_device *ja)
 +{
@@ -45321,25 +47306,26 @@ index 000000000000..5cc0651c7449
 +	struct bch_fs *c = container_of(j, struct bch_fs, journal);
 +	struct bch_dev *ca;
 +	struct journal_buf *w = journal_prev_buf(j);
++	struct jset_entry *start, *end;
 +	struct jset *jset;
 +	struct bio *bio;
 +	struct bch_extent_ptr *ptr;
 +	bool validate_before_checksum = false;
-+	unsigned i, sectors, bytes;
++	unsigned i, sectors, bytes, u64s;
 +
 +	journal_buf_realloc(j, w);
 +	jset = w->data;
 +
 +	j->write_start_time = local_clock();
-+	mutex_lock(&c->btree_root_lock);
-+	for (i = 0; i < BTREE_ID_NR; i++) {
-+		struct btree_root *r = &c->btree_roots[i];
 +
-+		if (r->alive)
-+			bch2_journal_add_btree_root(w, i, &r->key, r->level);
-+	}
-+	c->btree_roots_dirty = false;
-+	mutex_unlock(&c->btree_root_lock);
++	start	= vstruct_last(w->data);
++	end	= bch2_journal_super_entries_add_common(c, start);
++	u64s	= (u64 *) end - (u64 *) start;
++	BUG_ON(u64s > j->entry_u64s_reserved);
++
++	le32_add_cpu(&w->data->u64s, u64s);
++	BUG_ON(vstruct_sectors(jset, c->block_bits) >
++	       w->disk_sectors);
 +
 +	journal_write_compact(jset);
 +
@@ -50698,10 +52684,10 @@ index 000000000000..aaf5b9ca133c
 +#endif /* _BCACHEFS_REBALANCE_TYPES_H */
 diff --git a/fs/bcachefs/recovery.c b/fs/bcachefs/recovery.c
 new file mode 100644
-index 000000000000..f5f3f94ea44a
+index 000000000000..38187cc802f6
 --- /dev/null
 +++ b/fs/bcachefs/recovery.c
-@@ -0,0 +1,402 @@
+@@ -0,0 +1,493 @@
 +
 +#include "bcachefs.h"
 +#include "alloc_background.h"
@@ -50709,6 +52695,7 @@ index 000000000000..f5f3f94ea44a
 +#include "btree_update.h"
 +#include "btree_update_interior.h"
 +#include "btree_io.h"
++#include "buckets.h"
 +#include "dirent.h"
 +#include "ec.h"
 +#include "error.h"
@@ -50716,16 +52703,17 @@ index 000000000000..f5f3f94ea44a
 +#include "journal_io.h"
 +#include "quota.h"
 +#include "recovery.h"
++#include "replicas.h"
 +#include "super-io.h"
 +
 +#include <linux/stat.h>
 +
 +#define QSTR(n) { { { .len = strlen(n) } }, .name = n }
 +
-+struct bkey_i *btree_root_find(struct bch_fs *c,
-+			       struct bch_sb_field_clean *clean,
-+			       struct jset *j,
-+			       enum btree_id id, unsigned *level)
++static struct bkey_i *btree_root_find(struct bch_fs *c,
++				      struct bch_sb_field_clean *clean,
++				      struct jset *j,
++				      enum btree_id id, unsigned *level)
 +{
 +	struct bkey_i *k;
 +	struct jset_entry *entry, *start, *end;
@@ -50751,6 +52739,60 @@ index 000000000000..f5f3f94ea44a
 +	k = entry->start;
 +	*level = entry->level;
 +	return k;
++}
++
++static int journal_replay_entry_early(struct bch_fs *c,
++				      struct jset_entry *entry)
++{
++	int ret = 0;
++
++	switch (entry->type) {
++	case BCH_JSET_ENTRY_btree_root: {
++		struct btree_root *r = &c->btree_roots[entry->btree_id];
++
++		if (entry->u64s) {
++			r->level = entry->level;
++			bkey_copy(&r->key, &entry->start[0]);
++			r->error = 0;
++		} else {
++			r->error = -EIO;
++		}
++		r->alive = true;
++		break;
++	}
++	case BCH_JSET_ENTRY_usage: {
++		struct jset_entry_usage *u =
++			container_of(entry, struct jset_entry_usage, entry);
++
++		switch (entry->btree_id) {
++		case FS_USAGE_RESERVED:
++			if (entry->level < BCH_REPLICAS_MAX)
++				percpu_u64_set(&c->usage[0]->
++					       persistent_reserved[entry->level],
++					       le64_to_cpu(u->v));
++			break;
++		case FS_USAGE_INODES:
++			percpu_u64_set(&c->usage[0]->s.nr_inodes,
++				       le64_to_cpu(u->v));
++			break;
++		case FS_USAGE_KEY_VERSION:
++			atomic64_set(&c->key_version,
++				     le64_to_cpu(u->v));
++			break;
++		}
++
++		break;
++	}
++	case BCH_JSET_ENTRY_data_usage: {
++		struct jset_entry_data_usage *u =
++			container_of(entry, struct jset_entry_data_usage, entry);
++		ret = bch2_replicas_set_usage(c, &u->r,
++					      le64_to_cpu(u->v));
++		break;
++	}
++	}
++
++	return ret;
 +}
 +
 +static int verify_superblock_clean(struct bch_fs *c,
@@ -50811,7 +52853,9 @@ index 000000000000..f5f3f94ea44a
 +
 +	list_for_each_entry(i, journal, list) {
 +		vstruct_for_each(&i->j, entry) {
-+			if (entry->type == BCH_JSET_ENTRY_btree_root)
++			if (entry->type == BCH_JSET_ENTRY_btree_root ||
++			    entry->type == BCH_JSET_ENTRY_usage ||
++			    entry->type == BCH_JSET_ENTRY_data_usage)
 +				continue;
 +
 +			if (entry->type == BCH_JSET_ENTRY_btree_keys &&
@@ -50828,6 +52872,7 @@ index 000000000000..f5f3f94ea44a
 +{
 +	const char *err = "cannot allocate memory";
 +	struct bch_sb_field_clean *clean = NULL, *sb_clean = NULL;
++	struct jset_entry *entry;
 +	LIST_HEAD(journal);
 +	struct jset *j = NULL;
 +	unsigned i;
@@ -50880,28 +52925,46 @@ index 000000000000..f5f3f94ea44a
 +	fsck_err_on(clean && !journal_empty(&journal), c,
 +		    "filesystem marked clean but journal not empty");
 +
++	err = "insufficient memory";
 +	if (clean) {
 +		c->bucket_clock[READ].hand = le16_to_cpu(clean->read_clock);
 +		c->bucket_clock[WRITE].hand = le16_to_cpu(clean->write_clock);
++
++		for (entry = clean->start;
++		     entry != vstruct_end(&clean->field);
++		     entry = vstruct_next(entry)) {
++			ret = journal_replay_entry_early(c, entry);
++			if (ret)
++				goto err;
++		}
 +	} else {
++		struct journal_replay *i;
++
 +		c->bucket_clock[READ].hand = le16_to_cpu(j->read_clock);
 +		c->bucket_clock[WRITE].hand = le16_to_cpu(j->write_clock);
++
++		list_for_each_entry(i, &journal, list)
++			vstruct_for_each(&i->j, entry) {
++				ret = journal_replay_entry_early(c, entry);
++				if (ret)
++					goto err;
++			}
 +	}
 +
-+	for (i = 0; i < BTREE_ID_NR; i++) {
-+		unsigned level;
-+		struct bkey_i *k;
++	bch2_fs_usage_initialize(c);
 +
-+		k = btree_root_find(c, clean, j, i, &level);
-+		if (!k)
++	for (i = 0; i < BTREE_ID_NR; i++) {
++		struct btree_root *r = &c->btree_roots[i];
++
++		if (!r->alive)
 +			continue;
 +
 +		err = "invalid btree root pointer";
-+		if (IS_ERR(k))
++		if (r->error)
 +			goto err;
 +
 +		err = "error reading btree root";
-+		if (bch2_btree_root_read(c, i, k, level)) {
++		if (bch2_btree_root_read(c, i, &r->key, r->level)) {
 +			if (i != BTREE_ID_ALLOC)
 +				goto err;
 +
@@ -50918,21 +52981,33 @@ index 000000000000..f5f3f94ea44a
 +	if (ret)
 +		goto err;
 +
++	bch_verbose(c, "starting stripes_read");
 +	ret = bch2_stripes_read(c, &journal);
 +	if (ret)
 +		goto err;
-+	pr_info("stripes_read done");
++	bch_verbose(c, "stripes_read done");
 +
 +	set_bit(BCH_FS_ALLOC_READ_DONE, &c->flags);
 +
-+	bch_verbose(c, "starting mark and sweep:");
-+	err = "error in recovery";
-+	ret = bch2_initial_gc(c, &journal);
-+	if (ret)
-+		goto err;
-+	bch_verbose(c, "mark and sweep done");
++	if (!(c->sb.compat & (1ULL << BCH_COMPAT_FEAT_ALLOC_INFO)) ||
++	    c->opts.fsck) {
++		bch_verbose(c, "starting mark and sweep:");
++		err = "error in recovery";
++		ret = bch2_gc(c, &journal, true);
++		if (ret)
++			goto err;
++		bch_verbose(c, "mark and sweep done");
++	}
 +
 +	clear_bit(BCH_FS_REBUILD_REPLICAS, &c->flags);
++	set_bit(BCH_FS_INITIAL_GC_DONE, &c->flags);
++
++	/*
++	 * Skip past versions that might have possibly been used (as nonces),
++	 * but hadn't had their pointers written:
++	 */
++	if (c->sb.encryption_type && !c->sb.clean)
++		atomic64_add(1 << 16, &c->key_version);
 +
 +	if (c->opts.noreplay)
 +		goto out;
@@ -51015,14 +53090,16 @@ index 000000000000..f5f3f94ea44a
 +
 +	bch_notice(c, "initializing new filesystem");
 +
++	mutex_lock(&c->sb_lock);
++	for_each_online_member(ca, c, i)
++		bch2_mark_dev_superblock(c, ca, 0);
++	mutex_unlock(&c->sb_lock);
++
 +	set_bit(BCH_FS_ALLOC_READ_DONE, &c->flags);
++	set_bit(BCH_FS_INITIAL_GC_DONE, &c->flags);
 +
 +	for (i = 0; i < BTREE_ID_NR; i++)
 +		bch2_btree_root_alloc(c, i);
-+
-+	ret = bch2_initial_gc(c, &journal);
-+	if (ret)
-+		goto err;
 +
 +	err = "unable to allocate journal buckets";
 +	for_each_online_member(ca, c, i)
@@ -51119,12 +53196,13 @@ index 000000000000..685507e8aa97
 +#endif /* _BCACHEFS_RECOVERY_H */
 diff --git a/fs/bcachefs/replicas.c b/fs/bcachefs/replicas.c
 new file mode 100644
-index 000000000000..230f807bdf10
+index 000000000000..4d0c9718c109
 --- /dev/null
 +++ b/fs/bcachefs/replicas.c
-@@ -0,0 +1,918 @@
+@@ -0,0 +1,978 @@
 +
 +#include "bcachefs.h"
++#include "journal.h"
 +#include "replicas.h"
 +#include "super-io.h"
 +
@@ -51152,11 +53230,6 @@ index 000000000000..230f807bdf10
 +{
 +	bubble_sort(e->devs, e->nr_devs, u8_cmp);
 +}
-+
-+#define for_each_cpu_replicas_entry(_r, _i)				\
-+	for (_i = (_r)->entries;					\
-+	     (void *) (_i) < (void *) (_r)->entries + (_r)->nr * (_r)->entry_size;\
-+	     _i = (void *) (_i) + (_r)->entry_size)
 +
 +static void bch2_cpu_replicas_sort(struct bch_replicas_cpu *r)
 +{
@@ -51426,6 +53499,32 @@ index 000000000000..230f807bdf10
 +	return ret;
 +}
 +
++static unsigned reserve_journal_replicas(struct bch_fs *c,
++				     struct bch_replicas_cpu *r)
++{
++	struct bch_replicas_entry *e;
++	unsigned journal_res_u64s = 0;
++
++	/* nr_inodes: */
++	journal_res_u64s +=
++		DIV_ROUND_UP(sizeof(struct jset_entry_usage), sizeof(u64));
++
++	/* key_version: */
++	journal_res_u64s +=
++		DIV_ROUND_UP(sizeof(struct jset_entry_usage), sizeof(u64));
++
++	/* persistent_reserved: */
++	journal_res_u64s +=
++		DIV_ROUND_UP(sizeof(struct jset_entry_usage), sizeof(u64)) *
++		BCH_REPLICAS_MAX;
++
++	for_each_cpu_replicas_entry(r, e)
++		journal_res_u64s +=
++			DIV_ROUND_UP(sizeof(struct jset_entry_data_usage) +
++				     e->nr_devs, sizeof(u64));
++	return journal_res_u64s;
++}
++
 +noinline
 +static int bch2_mark_replicas_slowpath(struct bch_fs *c,
 +				struct bch_replicas_entry *new_entry)
@@ -51453,6 +53552,10 @@ index 000000000000..230f807bdf10
 +		ret = bch2_cpu_replicas_to_sb_replicas(c, &new_r);
 +		if (ret)
 +			goto err;
++
++		bch2_journal_entry_res_resize(&c->journal,
++				&c->replicas_journal_res,
++				reserve_journal_replicas(c, &new_r));
 +	}
 +
 +	if (!new_r.entries &&
@@ -51550,14 +53653,12 @@ index 000000000000..230f807bdf10
 +		struct bch_replicas_entry *e =
 +			cpu_replicas_entry(&c->replicas, i);
 +		struct bch_replicas_cpu n;
-+		u64 v = 0;
-+		int cpu;
++		u64 v;
 +
 +		if (__replicas_has_entry(&c->replicas_gc, e))
 +			continue;
 +
-+		for_each_possible_cpu(cpu)
-+			v += *per_cpu_ptr(&c->usage[0]->data[i], cpu);
++		v = percpu_u64_get(&c->usage[0]->data[i]);
 +		if (!v)
 +			continue;
 +
@@ -51631,6 +53732,34 @@ index 000000000000..230f807bdf10
 +
 +	bch2_cpu_replicas_sort(&c->replicas_gc);
 +	mutex_unlock(&c->sb_lock);
++
++	return 0;
++}
++
++int bch2_replicas_set_usage(struct bch_fs *c,
++			    struct bch_replicas_entry *r,
++			    u64 sectors)
++{
++	int ret, idx = bch2_replicas_entry_idx(c, r);
++
++	if (idx < 0) {
++		struct bch_replicas_cpu n;
++
++		n = cpu_replicas_add_entry(&c->replicas, r);
++		if (!n.entries)
++			return -ENOMEM;
++
++		ret = replicas_table_update(c, &n);
++		if (ret)
++			return ret;
++
++		kfree(n.entries);
++
++		idx = bch2_replicas_entry_idx(c, r);
++		BUG_ON(ret < 0);
++	}
++
++	percpu_u64_set(&c->usage[0]->data[idx], sectors);
 +
 +	return 0;
 +}
@@ -51721,6 +53850,7 @@ index 000000000000..230f807bdf10
 +	bch2_cpu_replicas_sort(&new_r);
 +
 +	percpu_down_write(&c->mark_lock);
++
 +	ret = replicas_table_update(c, &new_r);
 +	percpu_up_write(&c->mark_lock);
 +
@@ -52041,12 +54171,19 @@ index 000000000000..230f807bdf10
 +
 +	return ret;
 +}
++
++int bch2_fs_replicas_init(struct bch_fs *c)
++{
++	c->journal.entry_u64s_reserved +=
++		reserve_journal_replicas(c, &c->replicas);
++	return 0;
++}
 diff --git a/fs/bcachefs/replicas.h b/fs/bcachefs/replicas.h
 new file mode 100644
-index 000000000000..0ac2b8e082cd
+index 000000000000..1607b7bdfd50
 --- /dev/null
 +++ b/fs/bcachefs/replicas.h
-@@ -0,0 +1,82 @@
+@@ -0,0 +1,93 @@
 +#ifndef _BCACHEFS_REPLICAS_H
 +#define _BCACHEFS_REPLICAS_H
 +
@@ -52105,6 +54242,15 @@ index 000000000000..0ac2b8e082cd
 +int bch2_replicas_gc_end(struct bch_fs *, int);
 +int bch2_replicas_gc_start(struct bch_fs *, unsigned);
 +
++int bch2_replicas_set_usage(struct bch_fs *,
++			    struct bch_replicas_entry *,
++			    u64);
++
++#define for_each_cpu_replicas_entry(_r, _i)				\
++	for (_i = (_r)->entries;					\
++	     (void *) (_i) < (void *) (_r)->entries + (_r)->nr * (_r)->entry_size;\
++	     _i = (void *) (_i) + (_r)->entry_size)
++
 +/* iterate over superblock replicas - used by userspace tools: */
 +
 +#define replicas_entry_bytes(_i)					\
@@ -52127,6 +54273,8 @@ index 000000000000..0ac2b8e082cd
 +
 +extern const struct bch_sb_field_ops bch_sb_field_ops_replicas;
 +extern const struct bch_sb_field_ops bch_sb_field_ops_replicas_v0;
++
++int bch2_fs_replicas_init(struct bch_fs *);
 +
 +#endif /* _BCACHEFS_REPLICAS_H */
 diff --git a/fs/bcachefs/replicas_types.h b/fs/bcachefs/replicas_types.h
@@ -52741,10 +54889,10 @@ index 000000000000..1f343e64ca28
 +#endif /* _BCACHEFS_STR_HASH_H */
 diff --git a/fs/bcachefs/super-io.c b/fs/bcachefs/super-io.c
 new file mode 100644
-index 000000000000..c5eaf155c665
+index 000000000000..c4695396188b
 --- /dev/null
 +++ b/fs/bcachefs/super-io.c
-@@ -0,0 +1,997 @@
+@@ -0,0 +1,1088 @@
 +
 +#include "bcachefs.h"
 +#include "checksum.h"
@@ -52883,7 +55031,7 @@ index 000000000000..c5eaf155c665
 +		sb->bio = bio;
 +	}
 +
-+	new_sb = (void *) __get_free_pages(GFP_KERNEL|__GFP_ZERO, order);
++	new_sb = (void *) __get_free_pages(GFP_NOFS|__GFP_ZERO, order);
 +	if (!new_sb)
 +		return -ENOMEM;
 +
@@ -52928,6 +55076,7 @@ index 000000000000..c5eaf155c665
 +		}
 +	}
 +
++	f = bch2_sb_field_get(sb->sb, type);
 +	f = __bch2_sb_field_resize(sb, f, u64s);
 +	if (f)
 +		f->type = cpu_to_le32(type);
@@ -53109,6 +55258,7 @@ index 000000000000..c5eaf155c665
 +	c->sb.time_base_hi	= le32_to_cpu(src->time_base_hi);
 +	c->sb.time_precision	= le32_to_cpu(src->time_precision);
 +	c->sb.features		= le64_to_cpu(src->features[0]);
++	c->sb.compat		= le64_to_cpu(src->compat[0]);
 +
 +	for_each_member_device(ca, c, i)
 +		ca->mi = bch2_mi_to_cpu(mi->members + i);
@@ -53628,29 +55778,132 @@ index 000000000000..c5eaf155c665
 +		bch2_bkey_renumber(BKEY_TYPE_BTREE, bkey_to_packed(entry->start), write);
 +}
 +
-+void bch2_fs_mark_clean(struct bch_fs *c, bool clean)
++static void bch2_fs_mark_dirty(struct bch_fs *c)
 +{
-+	struct bch_sb_field_clean *sb_clean;
-+	unsigned u64s = sizeof(*sb_clean) / sizeof(u64);
-+	struct jset_entry *entry;
-+	struct btree_root *r;
-+
 +	mutex_lock(&c->sb_lock);
-+	if (clean == BCH_SB_CLEAN(c->disk_sb.sb))
-+		goto out;
++	if (BCH_SB_CLEAN(c->disk_sb.sb) ||
++	    (c->disk_sb.sb->compat[0] & (1ULL << BCH_COMPAT_FEAT_ALLOC_INFO))) {
++		SET_BCH_SB_CLEAN(c->disk_sb.sb, false);
++		c->disk_sb.sb->compat[0] &= ~(1ULL << BCH_COMPAT_FEAT_ALLOC_INFO);
++		bch2_write_super(c);
++	}
++	mutex_unlock(&c->sb_lock);
++}
 +
-+	SET_BCH_SB_CLEAN(c->disk_sb.sb, clean);
-+
-+	if (!clean)
-+		goto write_super;
++struct jset_entry *
++bch2_journal_super_entries_add_common(struct bch_fs *c,
++				      struct jset_entry *entry)
++{
++	struct btree_root *r;
++	unsigned i;
 +
 +	mutex_lock(&c->btree_root_lock);
 +
 +	for (r = c->btree_roots;
 +	     r < c->btree_roots + BTREE_ID_NR;
 +	     r++)
-+		if (r->alive)
-+			u64s += jset_u64s(r->key.u64s);
++		if (r->alive) {
++			entry->u64s	= r->key.u64s;
++			entry->btree_id	= r - c->btree_roots;
++			entry->level	= r->level;
++			entry->type	= BCH_JSET_ENTRY_btree_root;
++			bkey_copy(&entry->start[0], &r->key);
++
++			entry = vstruct_next(entry);
++		}
++	c->btree_roots_dirty = false;
++
++	mutex_unlock(&c->btree_root_lock);
++
++	percpu_down_read_preempt_disable(&c->mark_lock);
++
++	{
++		u64 nr_inodes = percpu_u64_get(&c->usage[0]->s.nr_inodes);
++		struct jset_entry_usage *u =
++			container_of(entry, struct jset_entry_usage, entry);
++
++		memset(u, 0, sizeof(*u));
++		u->entry.u64s	= DIV_ROUND_UP(sizeof(*u), sizeof(u64)) - 1;
++		u->entry.type	= BCH_JSET_ENTRY_usage;
++		u->entry.btree_id = FS_USAGE_INODES;
++		u->v		= cpu_to_le64(nr_inodes);
++
++		entry = vstruct_next(entry);
++	}
++
++	{
++		struct jset_entry_usage *u =
++			container_of(entry, struct jset_entry_usage, entry);
++
++		memset(u, 0, sizeof(*u));
++		u->entry.u64s	= DIV_ROUND_UP(sizeof(*u), sizeof(u64)) - 1;
++		u->entry.type	= BCH_JSET_ENTRY_usage;
++		u->entry.btree_id = FS_USAGE_KEY_VERSION;
++		u->v		= cpu_to_le64(atomic64_read(&c->key_version));
++
++		entry = vstruct_next(entry);
++	}
++
++	for (i = 0; i < BCH_REPLICAS_MAX; i++) {
++		struct jset_entry_usage *u =
++			container_of(entry, struct jset_entry_usage, entry);
++		u64 sectors = percpu_u64_get(&c->usage[0]->persistent_reserved[i]);
++
++		if (!sectors)
++			continue;
++
++		memset(u, 0, sizeof(*u));
++		u->entry.u64s	= DIV_ROUND_UP(sizeof(*u), sizeof(u64)) - 1;
++		u->entry.type	= BCH_JSET_ENTRY_usage;
++		u->entry.btree_id = FS_USAGE_RESERVED;
++		u->entry.level	= i;
++		u->v		= sectors;
++
++		entry = vstruct_next(entry);
++	}
++
++	for (i = 0; i < c->replicas.nr; i++) {
++		struct bch_replicas_entry *e =
++			cpu_replicas_entry(&c->replicas, i);
++		u64 sectors = percpu_u64_get(&c->usage[0]->data[i]);
++		struct jset_entry_data_usage *u =
++			container_of(entry, struct jset_entry_data_usage, entry);
++
++		memset(u, 0, sizeof(*u));
++		u->entry.u64s	= DIV_ROUND_UP(sizeof(*u) + e->nr_devs,
++					       sizeof(u64)) - 1;
++		u->entry.type	= BCH_JSET_ENTRY_data_usage;
++		u->v		= cpu_to_le64(sectors);
++		memcpy(&u->r, e, replicas_entry_bytes(e));
++
++		entry = vstruct_next(entry);
++	}
++
++	percpu_up_read_preempt_enable(&c->mark_lock);
++
++	return entry;
++}
++
++void bch2_fs_mark_clean(struct bch_fs *c, bool clean)
++{
++	struct bch_sb_field_clean *sb_clean;
++	struct jset_entry *entry;
++	unsigned u64s;
++
++	if (!clean) {
++		bch2_fs_mark_dirty(c);
++		return;
++	}
++
++	mutex_lock(&c->sb_lock);
++	if (BCH_SB_CLEAN(c->disk_sb.sb))
++		goto out;
++
++	SET_BCH_SB_CLEAN(c->disk_sb.sb, true);
++
++	c->disk_sb.sb->compat[0] |= 1ULL << BCH_COMPAT_FEAT_ALLOC_INFO;
++
++	u64s = sizeof(*sb_clean) / sizeof(u64) + c->journal.entry_u64s_reserved;
 +
 +	sb_clean = bch2_sb_resize_clean(&c->disk_sb, u64s);
 +	if (!sb_clean) {
@@ -53664,30 +55917,16 @@ index 000000000000..c5eaf155c665
 +	sb_clean->journal_seq	= journal_cur_seq(&c->journal) - 1;
 +
 +	entry = sb_clean->start;
++	entry = bch2_journal_super_entries_add_common(c, entry);
++	BUG_ON((void *) entry > vstruct_end(&sb_clean->field));
++
 +	memset(entry, 0,
 +	       vstruct_end(&sb_clean->field) - (void *) entry);
-+
-+	for (r = c->btree_roots;
-+	     r < c->btree_roots + BTREE_ID_NR;
-+	     r++)
-+		if (r->alive) {
-+			entry->u64s	= r->key.u64s;
-+			entry->btree_id	= r - c->btree_roots;
-+			entry->level	= r->level;
-+			entry->type	= BCH_JSET_ENTRY_btree_root;
-+			bkey_copy(&entry->start[0], &r->key);
-+			entry = vstruct_next(entry);
-+			BUG_ON((void *) entry > vstruct_end(&sb_clean->field));
-+		}
-+
-+	BUG_ON(entry != vstruct_end(&sb_clean->field));
 +
 +	if (le16_to_cpu(c->disk_sb.sb->version) <
 +	    bcachefs_metadata_version_bkey_renumber)
 +		bch2_sb_clean_renumber(sb_clean, WRITE);
 +
-+	mutex_unlock(&c->btree_root_lock);
-+write_super:
 +	bch2_write_super(c);
 +out:
 +	mutex_unlock(&c->sb_lock);
@@ -53744,10 +55983,10 @@ index 000000000000..c5eaf155c665
 +}
 diff --git a/fs/bcachefs/super-io.h b/fs/bcachefs/super-io.h
 new file mode 100644
-index 000000000000..b493d628cef6
+index 000000000000..c48294c8253a
 --- /dev/null
 +++ b/fs/bcachefs/super-io.h
-@@ -0,0 +1,144 @@
+@@ -0,0 +1,148 @@
 +#ifndef _BCACHEFS_SUPER_IO_H
 +#define _BCACHEFS_SUPER_IO_H
 +
@@ -53884,6 +56123,10 @@ index 000000000000..b493d628cef6
 +
 +/* BCH_SB_FIELD_clean: */
 +
++struct jset_entry *
++bch2_journal_super_entries_add_common(struct bch_fs *,
++				      struct jset_entry *);
++
 +void bch2_sb_clean_renumber(struct bch_sb_field_clean *, int);
 +
 +void bch2_fs_mark_clean(struct bch_fs *, bool);
@@ -53894,10 +56137,10 @@ index 000000000000..b493d628cef6
 +#endif /* _BCACHEFS_SUPER_IO_H */
 diff --git a/fs/bcachefs/super.c b/fs/bcachefs/super.c
 new file mode 100644
-index 000000000000..1835b5355c67
+index 000000000000..a8eb161585c1
 --- /dev/null
 +++ b/fs/bcachefs/super.c
-@@ -0,0 +1,1876 @@
+@@ -0,0 +1,1887 @@
 +/*
 + * bcachefs setup/teardown code, and some metadata io - read a superblock and
 + * figure out what to do with it.
@@ -54122,6 +56365,9 @@ index 000000000000..1835b5355c67
 +	 */
 +	bch2_journal_flush_all_pins(&c->journal);
 +
++	if (!test_bit(BCH_FS_ALLOCATOR_RUNNING, &c->flags))
++		goto allocator_not_running;
++
 +	do {
 +		ret = bch2_alloc_write(c, false, &wrote);
 +		if (ret) {
@@ -54150,9 +56396,11 @@ index 000000000000..1835b5355c67
 +		closure_wait_event(&c->btree_interior_update_wait,
 +				   !bch2_btree_interior_updates_nr_pending(c));
 +	} while (wrote);
-+
++allocator_not_running:
 +	for_each_member_device(ca, c, i)
 +		bch2_dev_allocator_stop(ca);
++
++	clear_bit(BCH_FS_ALLOCATOR_RUNNING, &c->flags);
 +
 +	bch2_fs_journal_stop(&c->journal);
 +
@@ -54279,6 +56527,8 @@ index 000000000000..1835b5355c67
 +			percpu_ref_put(&ca->io_ref);
 +			goto err;
 +		}
++
++	set_bit(BCH_FS_ALLOCATOR_RUNNING, &c->flags);
 +
 +	err = "error starting btree GC thread";
 +	if (bch2_gc_thread_start(c))
@@ -54583,6 +56833,7 @@ index 000000000000..1835b5355c67
 +	    bch2_io_clock_init(&c->io_clock[READ]) ||
 +	    bch2_io_clock_init(&c->io_clock[WRITE]) ||
 +	    bch2_fs_journal_init(&c->journal) ||
++	    bch2_fs_replicas_init(c) ||
 +	    bch2_fs_btree_cache_init(c) ||
 +	    bch2_fs_io_init(c) ||
 +	    bch2_fs_encryption_init(c) ||
@@ -55001,9 +57252,12 @@ index 000000000000..1835b5355c67
 +	if (ret)
 +		return ret;
 +
-+	mutex_lock(&c->sb_lock);
-+	bch2_mark_dev_superblock(ca->fs, ca, 0);
-+	mutex_unlock(&c->sb_lock);
++	if (test_bit(BCH_FS_ALLOC_READ_DONE, &c->flags) &&
++	    !percpu_u64_get(&ca->usage[0]->buckets[BCH_DATA_SB])) {
++		mutex_lock(&c->sb_lock);
++		bch2_mark_dev_superblock(ca->fs, ca, 0);
++		mutex_unlock(&c->sb_lock);
++	}
 +
 +	bch2_dev_sysfs_online(c, ca);
 +
@@ -56065,10 +58319,10 @@ index 000000000000..ebb238aa5472
 +#endif /* _BCACHEFS_SUPER_TYPES_H */
 diff --git a/fs/bcachefs/sysfs.c b/fs/bcachefs/sysfs.c
 new file mode 100644
-index 000000000000..e63db410e8f3
+index 000000000000..7e3aebed2c18
 --- /dev/null
 +++ b/fs/bcachefs/sysfs.c
-@@ -0,0 +1,1096 @@
+@@ -0,0 +1,1091 @@
 +/*
 + * bcache sysfs interfaces
 + *
@@ -56963,20 +59217,15 @@ index 000000000000..e63db410e8f3
 +static ssize_t show_dev_iodone(struct bch_dev *ca, char *buf)
 +{
 +	struct printbuf out = _PBUF(buf, PAGE_SIZE);
-+	int rw, i, cpu;
++	int rw, i;
 +
 +	for (rw = 0; rw < 2; rw++) {
 +		pr_buf(&out, "%s:\n", bch2_rw[rw]);
 +
-+		for (i = 1; i < BCH_DATA_NR; i++) {
-+			u64 n = 0;
-+
-+			for_each_possible_cpu(cpu)
-+				n += per_cpu_ptr(ca->io_done, cpu)->sectors[rw][i];
-+
++		for (i = 1; i < BCH_DATA_NR; i++)
 +			pr_buf(&out, "%-12s:%12llu\n",
-+			       bch2_data_types[i], n << 9);
-+		}
++			       bch2_data_types[i],
++			       percpu_u64_get(&ca->io_done->sectors[rw][i]) << 9);
 +	}
 +
 +	return out.pos - buf;
@@ -58820,10 +61069,10 @@ index 000000000000..fea80e248667
 +}
 diff --git a/fs/bcachefs/util.h b/fs/bcachefs/util.h
 new file mode 100644
-index 000000000000..fbfb2085801c
+index 000000000000..7e1729a4b125
 --- /dev/null
 +++ b/fs/bcachefs/util.h
-@@ -0,0 +1,720 @@
+@@ -0,0 +1,743 @@
 +#ifndef _BCACHEFS_UTIL_H
 +#define _BCACHEFS_UTIL_H
 +
@@ -58837,6 +61086,7 @@ index 000000000000..fbfb2085801c
 +#include <linux/llist.h>
 +#include <linux/log2.h>
 +#include <linux/percpu.h>
++#include <linux/preempt.h>
 +#include <linux/ratelimit.h>
 +#include <linux/slab.h>
 +#include <linux/vmalloc.h>
@@ -59523,6 +61773,28 @@ index 000000000000..fbfb2085801c
 +			}						\
 +	}								\
 +} while (0)
++
++static inline u64 percpu_u64_get(u64 __percpu *src)
++{
++	u64 ret = 0;
++	int cpu;
++
++	for_each_possible_cpu(cpu)
++		ret += *per_cpu_ptr(src, cpu);
++	return ret;
++}
++
++static inline void percpu_u64_set(u64 __percpu *dst, u64 src)
++{
++	int cpu;
++
++	for_each_possible_cpu(cpu)
++		*per_cpu_ptr(dst, cpu) = 0;
++
++	preempt_disable();
++	*this_cpu_ptr(dst) = src;
++	preempt_enable();
++}
 +
 +static inline void acc_u64s(u64 *acc, const u64 *src, unsigned nr)
 +{
@@ -60385,6 +62657,94 @@ index 35d2108d567c..b3ca3f45f393 100644
  int insert_inode_locked4(struct inode *inode, unsigned long hashval,
  		int (*test)(struct inode *, void *), void *data)
  {
+diff --git a/include/asm-generic/4level-fixup.h b/include/asm-generic/4level-fixup.h
+index e3667c9a33a5..652b68f47555 100644
+--- a/include/asm-generic/4level-fixup.h
++++ b/include/asm-generic/4level-fixup.h
+@@ -12,9 +12,9 @@
+ 
+ #define pud_t				pgd_t
+ 
+-#define pmd_alloc(mm, pud, address) \
+-	((unlikely(pgd_none(*(pud))) && __pmd_alloc(mm, pud, address))? \
+- 		NULL: pmd_offset(pud, address))
++#define pmd_alloc(mm, pud, address, gfp) \
++	((unlikely(pgd_none(*(pud))) && __pmd_alloc(mm, pud, address, gfp)) \
++		? NULL : pmd_offset(pud, address))
+ 
+ #define pud_offset(pgd, start)		(pgd)
+ #define pud_none(pud)			0
+diff --git a/include/asm-generic/5level-fixup.h b/include/asm-generic/5level-fixup.h
+index 73474bb52344..e381f143c38d 100644
+--- a/include/asm-generic/5level-fixup.h
++++ b/include/asm-generic/5level-fixup.h
+@@ -13,11 +13,11 @@
+ 
+ #define p4d_t				pgd_t
+ 
+-#define pud_alloc(mm, p4d, address) \
+-	((unlikely(pgd_none(*(p4d))) && __pud_alloc(mm, p4d, address)) ? \
++#define pud_alloc(mm, p4d, address, gfp) \
++	((unlikely(pgd_none(*(p4d))) && __pud_alloc(mm, p4d, address, gfp)) ? \
+ 		NULL : pud_offset(p4d, address))
+ 
+-#define p4d_alloc(mm, pgd, address)	(pgd)
++#define p4d_alloc(mm, pgd, address, gfp) (pgd)
+ #define p4d_offset(pgd, start)		(pgd)
+ #define p4d_none(p4d)			0
+ #define p4d_bad(p4d)			0
+diff --git a/include/asm-generic/pgtable-nop4d-hack.h b/include/asm-generic/pgtable-nop4d-hack.h
+index 1d6dd38c0e5e..977e8d36c970 100644
+--- a/include/asm-generic/pgtable-nop4d-hack.h
++++ b/include/asm-generic/pgtable-nop4d-hack.h
+@@ -52,7 +52,7 @@ static inline pud_t *pud_offset(pgd_t *pgd, unsigned long address)
+  * allocating and freeing a pud is trivial: the 1-entry pud is
+  * inside the pgd, so has no extra memory associated with it.
+  */
+-#define pud_alloc_one(mm, address)		NULL
++#define pud_alloc_one(mm, address, gfp)		NULL
+ #define pud_free(mm, x)				do { } while (0)
+ #define __pud_free_tlb(tlb, x, a)		do { } while (0)
+ 
+diff --git a/include/asm-generic/pgtable-nop4d.h b/include/asm-generic/pgtable-nop4d.h
+index 04cb913797bc..e98f76f0f3ee 100644
+--- a/include/asm-generic/pgtable-nop4d.h
++++ b/include/asm-generic/pgtable-nop4d.h
+@@ -47,7 +47,7 @@ static inline p4d_t *p4d_offset(pgd_t *pgd, unsigned long address)
+  * allocating and freeing a p4d is trivial: the 1-entry p4d is
+  * inside the pgd, so has no extra memory associated with it.
+  */
+-#define p4d_alloc_one(mm, address)		NULL
++#define p4d_alloc_one(mm, address, gfp)		NULL
+ #define p4d_free(mm, x)				do { } while (0)
+ #define __p4d_free_tlb(tlb, x, a)		do { } while (0)
+ 
+diff --git a/include/asm-generic/pgtable-nopmd.h b/include/asm-generic/pgtable-nopmd.h
+index b85b8271a73d..e4a51cbdefbb 100644
+--- a/include/asm-generic/pgtable-nopmd.h
++++ b/include/asm-generic/pgtable-nopmd.h
+@@ -56,7 +56,7 @@ static inline pmd_t * pmd_offset(pud_t * pud, unsigned long address)
+  * allocating and freeing a pmd is trivial: the 1-entry pmd is
+  * inside the pud, so has no extra memory associated with it.
+  */
+-#define pmd_alloc_one(mm, address)		NULL
++#define pmd_alloc_one(mm, address, gfp)		NULL
+ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
+ {
+ }
+diff --git a/include/asm-generic/pgtable-nopud.h b/include/asm-generic/pgtable-nopud.h
+index 9bef475db6fe..1c442e9bc2e9 100644
+--- a/include/asm-generic/pgtable-nopud.h
++++ b/include/asm-generic/pgtable-nopud.h
+@@ -56,7 +56,7 @@ static inline pud_t *pud_offset(p4d_t *p4d, unsigned long address)
+  * allocating and freeing a pud is trivial: the 1-entry pud is
+  * inside the p4d, so has no extra memory associated with it.
+  */
+-#define pud_alloc_one(mm, address)		NULL
++#define pud_alloc_one(mm, address, gfp)		NULL
+ #define pud_free(mm, x)				do { } while (0)
+ #define __pud_free_tlb(tlb, x, a)		do { } while (0)
+ 
 diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
 index 3d7a6a9c2370..bf2dc24de6c8 100644
 --- a/include/asm-generic/vmlinux.lds.h
@@ -61017,6 +63377,118 @@ index 000000000000..3a91130a4fbd
 +
 +
 +#endif /* _LINUX_GENERIC_RADIX_TREE_H */
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 5411de93a363..e1e28f3e366f 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -1722,17 +1722,18 @@ static inline pte_t *get_locked_pte(struct mm_struct *mm, unsigned long addr,
+ 
+ #ifdef __PAGETABLE_P4D_FOLDED
+ static inline int __p4d_alloc(struct mm_struct *mm, pgd_t *pgd,
+-						unsigned long address)
++			      unsigned long address, gfp_t gfp)
+ {
+ 	return 0;
+ }
+ #else
+-int __p4d_alloc(struct mm_struct *mm, pgd_t *pgd, unsigned long address);
++int __p4d_alloc(struct mm_struct *mm, pgd_t *pgd,
++		unsigned long address, gfp_t gfp);
+ #endif
+ 
+ #if defined(__PAGETABLE_PUD_FOLDED) || !defined(CONFIG_MMU)
+ static inline int __pud_alloc(struct mm_struct *mm, p4d_t *p4d,
+-						unsigned long address)
++			      unsigned long address, gfp_t gfp)
+ {
+ 	return 0;
+ }
+@@ -1740,7 +1741,8 @@ static inline void mm_inc_nr_puds(struct mm_struct *mm) {}
+ static inline void mm_dec_nr_puds(struct mm_struct *mm) {}
+ 
+ #else
+-int __pud_alloc(struct mm_struct *mm, p4d_t *p4d, unsigned long address);
++int __pud_alloc(struct mm_struct *mm, p4d_t *p4d,
++		unsigned long address, gfp_t gfp);
+ 
+ static inline void mm_inc_nr_puds(struct mm_struct *mm)
+ {
+@@ -1759,7 +1761,7 @@ static inline void mm_dec_nr_puds(struct mm_struct *mm)
+ 
+ #if defined(__PAGETABLE_PMD_FOLDED) || !defined(CONFIG_MMU)
+ static inline int __pmd_alloc(struct mm_struct *mm, pud_t *pud,
+-						unsigned long address)
++			      unsigned long address, gfp_t gfp)
+ {
+ 	return 0;
+ }
+@@ -1768,7 +1770,8 @@ static inline void mm_inc_nr_pmds(struct mm_struct *mm) {}
+ static inline void mm_dec_nr_pmds(struct mm_struct *mm) {}
+ 
+ #else
+-int __pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address);
++int __pmd_alloc(struct mm_struct *mm, pud_t *pud,
++		unsigned long address, gfp_t gfp);
+ 
+ static inline void mm_inc_nr_pmds(struct mm_struct *mm)
+ {
+@@ -1818,7 +1821,7 @@ static inline void mm_dec_nr_ptes(struct mm_struct *mm) {}
+ #endif
+ 
+ int __pte_alloc(struct mm_struct *mm, pmd_t *pmd, unsigned long address);
+-int __pte_alloc_kernel(pmd_t *pmd, unsigned long address);
++int __pte_alloc_kernel(pmd_t *pmd, unsigned long address, gfp_t gfp);
+ 
+ /*
+  * The following ifdef needed to get the 4level-fixup.h header to work.
+@@ -1828,24 +1831,25 @@ int __pte_alloc_kernel(pmd_t *pmd, unsigned long address);
+ 
+ #ifndef __ARCH_HAS_5LEVEL_HACK
+ static inline p4d_t *p4d_alloc(struct mm_struct *mm, pgd_t *pgd,
+-		unsigned long address)
++		unsigned long address, gfp_t gfp)
+ {
+-	return (unlikely(pgd_none(*pgd)) && __p4d_alloc(mm, pgd, address)) ?
+-		NULL : p4d_offset(pgd, address);
++	return (unlikely(pgd_none(*pgd)) && __p4d_alloc(mm, pgd, address, gfp))
++	    ? NULL : p4d_offset(pgd, address);
+ }
+ 
+ static inline pud_t *pud_alloc(struct mm_struct *mm, p4d_t *p4d,
+-		unsigned long address)
++		unsigned long address, gfp_t gfp)
+ {
+-	return (unlikely(p4d_none(*p4d)) && __pud_alloc(mm, p4d, address)) ?
+-		NULL : pud_offset(p4d, address);
++	return (unlikely(p4d_none(*p4d)) && __pud_alloc(mm, p4d, address, gfp))
++	    ? NULL : pud_offset(p4d, address);
+ }
+ #endif /* !__ARCH_HAS_5LEVEL_HACK */
+ 
+-static inline pmd_t *pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address)
++static inline pmd_t *pmd_alloc(struct mm_struct *mm, pud_t *pud,
++		unsigned long address, gfp_t gfp)
+ {
+-	return (unlikely(pud_none(*pud)) && __pmd_alloc(mm, pud, address))?
+-		NULL: pmd_offset(pud, address);
++	return (unlikely(pud_none(*pud)) && __pmd_alloc(mm, pud, address, gfp))
++	    ? NULL : pmd_offset(pud, address);
+ }
+ #endif /* CONFIG_MMU && !__ARCH_HAS_4LEVEL_HACK */
+ 
+@@ -1966,9 +1970,9 @@ static inline void pgtable_page_dtor(struct page *page)
+ 	(pte_alloc(mm, pmd, address) ?			\
+ 		 NULL : pte_offset_map_lock(mm, pmd, address, ptlp))
+ 
+-#define pte_alloc_kernel(pmd, address)			\
+-	((unlikely(pmd_none(*(pmd))) && __pte_alloc_kernel(pmd, address))? \
+-		NULL: pte_offset_kernel(pmd, address))
++#define pte_alloc_kernel(pmd, address, gfp)			\
++	((unlikely(pmd_none(*(pmd))) && __pte_alloc_kernel(pmd, address, gfp)) \
++		? NULL : pte_offset_kernel(pmd, address))
+ 
+ #if USE_SPLIT_PMD_PTLOCKS
+ 
 diff --git a/include/linux/pagemap.h b/include/linux/pagemap.h
 index 226f96f0dee0..aa117d982828 100644
 --- a/include/linux/pagemap.h
@@ -61319,6 +63791,19 @@ index 000000000000..40e213f2fb40
 +void six_lock_increment(struct six_lock *, enum six_lock_type);
 +
 +#endif /* _LINUX_SIX_H */
+diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
+index 398e9c95cd61..11788d5ba379 100644
+--- a/include/linux/vmalloc.h
++++ b/include/linux/vmalloc.h
+@@ -135,7 +135,7 @@ extern struct vm_struct *__get_vm_area_caller(unsigned long size,
+ extern struct vm_struct *remove_vm_area(const void *addr);
+ extern struct vm_struct *find_vm_area(const void *addr);
+ 
+-extern int map_vm_area(struct vm_struct *area, pgprot_t prot,
++extern int map_vm_area(struct vm_struct *area, gfp_t gfp, pgprot_t prot,
+ 			struct page **pages);
+ #ifdef CONFIG_MMU
+ extern int map_kernel_range_noflush(unsigned long start, unsigned long size,
 diff --git a/include/trace/events/bcachefs.h b/include/trace/events/bcachefs.h
 new file mode 100644
 index 000000000000..6781a5b58953
@@ -61852,6 +64337,19 @@ index 84d882f3e299..4df8df0c227b 100644
 +
 +config SIXLOCKS
 +	bool
+diff --git a/kernel/dma/mapping.c b/kernel/dma/mapping.c
+index 58dec7a92b7b..9e8125002903 100644
+--- a/kernel/dma/mapping.c
++++ b/kernel/dma/mapping.c
+@@ -274,7 +274,7 @@ static struct vm_struct *__dma_common_pages_remap(struct page **pages,
+ 	if (!area)
+ 		return NULL;
+ 
+-	if (map_vm_area(area, prot, pages)) {
++	if (map_vm_area(area, GFP_KERNEL, prot, pages)) {
+ 		vunmap(area->addr);
+ 		return NULL;
+ 	}
 diff --git a/kernel/locking/Makefile b/kernel/locking/Makefile
 index 392c7f23af76..9a73c8564ea8 100644
 --- a/kernel/locking/Makefile
@@ -63543,6 +66041,46 @@ index 000000000000..a7bafc413730
 +			      genradix_root_to_depth(r));
 +}
 +EXPORT_SYMBOL(__genradix_free);
+diff --git a/lib/ioremap.c b/lib/ioremap.c
+index 517f5853ffed..21298235fbca 100644
+--- a/lib/ioremap.c
++++ b/lib/ioremap.c
+@@ -65,7 +65,7 @@ static int ioremap_pte_range(pmd_t *pmd, unsigned long addr,
+ 	u64 pfn;
+ 
+ 	pfn = phys_addr >> PAGE_SHIFT;
+-	pte = pte_alloc_kernel(pmd, addr);
++	pte = pte_alloc_kernel(pmd, addr, GFP_KERNEL);
+ 	if (!pte)
+ 		return -ENOMEM;
+ 	do {
+@@ -83,7 +83,7 @@ static inline int ioremap_pmd_range(pud_t *pud, unsigned long addr,
+ 	unsigned long next;
+ 
+ 	phys_addr -= addr;
+-	pmd = pmd_alloc(&init_mm, pud, addr);
++	pmd = pmd_alloc(&init_mm, pud, addr, GFP_KERNEL);
+ 	if (!pmd)
+ 		return -ENOMEM;
+ 	do {
+@@ -110,7 +110,7 @@ static inline int ioremap_pud_range(p4d_t *p4d, unsigned long addr,
+ 	unsigned long next;
+ 
+ 	phys_addr -= addr;
+-	pud = pud_alloc(&init_mm, p4d, addr);
++	pud = pud_alloc(&init_mm, p4d, addr, GFP_KERNEL);
+ 	if (!pud)
+ 		return -ENOMEM;
+ 	do {
+@@ -137,7 +137,7 @@ static inline int ioremap_p4d_range(pgd_t *pgd, unsigned long addr,
+ 	unsigned long next;
+ 
+ 	phys_addr -= addr;
+-	p4d = p4d_alloc(&init_mm, pgd, addr);
++	p4d = p4d_alloc(&init_mm, pgd, addr, GFP_KERNEL);
+ 	if (!p4d)
+ 		return -ENOMEM;
+ 	do {
 diff --git a/mm/filemap.c b/mm/filemap.c
 index 81adec8ee02c..2b7448769a04 100644
 --- a/mm/filemap.c
@@ -64474,6 +67012,321 @@ index 81adec8ee02c..2b7448769a04 100644
  		/*
  		 * We found the page, so try async readahead before
  		 * waiting for the lock.
+diff --git a/mm/hugetlb.c b/mm/hugetlb.c
+index a80832487981..dce41e3f449b 100644
+--- a/mm/hugetlb.c
++++ b/mm/hugetlb.c
+@@ -4658,7 +4658,7 @@ pte_t *huge_pmd_share(struct mm_struct *mm, unsigned long addr, pud_t *pud)
+ 	spinlock_t *ptl;
+ 
+ 	if (!vma_shareable(vma, addr))
+-		return (pte_t *)pmd_alloc(mm, pud, addr);
++		return (pte_t *)pmd_alloc(mm, pud, addr, GFP_KERNEL);
+ 
+ 	i_mmap_lock_write(mapping);
+ 	vma_interval_tree_foreach(svma, &mapping->i_mmap, idx, idx) {
+@@ -4689,7 +4689,7 @@ pte_t *huge_pmd_share(struct mm_struct *mm, unsigned long addr, pud_t *pud)
+ 	}
+ 	spin_unlock(ptl);
+ out:
+-	pte = (pte_t *)pmd_alloc(mm, pud, addr);
++	pte = (pte_t *)pmd_alloc(mm, pud, addr, GFP_KERNEL);
+ 	i_mmap_unlock_write(mapping);
+ 	return pte;
+ }
+@@ -4751,10 +4751,10 @@ pte_t *huge_pte_alloc(struct mm_struct *mm,
+ 	pte_t *pte = NULL;
+ 
+ 	pgd = pgd_offset(mm, addr);
+-	p4d = p4d_alloc(mm, pgd, addr);
++	p4d = p4d_alloc(mm, pgd, addr, GFP_KERNEL);
+ 	if (!p4d)
+ 		return NULL;
+-	pud = pud_alloc(mm, p4d, addr);
++	pud = pud_alloc(mm, p4d, addr, GFP_KERNEL);
+ 	if (pud) {
+ 		if (sz == PUD_SIZE) {
+ 			pte = (pte_t *)pud;
+@@ -4763,7 +4763,8 @@ pte_t *huge_pte_alloc(struct mm_struct *mm,
+ 			if (want_pmd_share() && pud_none(*pud))
+ 				pte = huge_pmd_share(mm, addr, pud);
+ 			else
+-				pte = (pte_t *)pmd_alloc(mm, pud, addr);
++				pte = (pte_t *)pmd_alloc(mm, pud, addr,
++							 GFP_KERNEL);
+ 		}
+ 	}
+ 	BUG_ON(pte && pte_present(*pte) && !pte_huge(*pte));
+diff --git a/mm/kasan/kasan_init.c b/mm/kasan/kasan_init.c
+index c7550eb65922..5579bba63ead 100644
+--- a/mm/kasan/kasan_init.c
++++ b/mm/kasan/kasan_init.c
+@@ -120,7 +120,8 @@ static int __ref zero_pmd_populate(pud_t *pud, unsigned long addr,
+ 			pte_t *p;
+ 
+ 			if (slab_is_available())
+-				p = pte_alloc_one_kernel(&init_mm, addr);
++				p = pte_alloc_one_kernel(&init_mm, addr,
++							 GFP_KERNEL);
+ 			else
+ 				p = early_alloc(PAGE_SIZE, NUMA_NO_NODE);
+ 			if (!p)
+@@ -155,7 +156,7 @@ static int __ref zero_pud_populate(p4d_t *p4d, unsigned long addr,
+ 			pmd_t *p;
+ 
+ 			if (slab_is_available()) {
+-				p = pmd_alloc(&init_mm, pud, addr);
++				p = pmd_alloc(&init_mm, pud, addr, GFP_KERNEL);
+ 				if (!p)
+ 					return -ENOMEM;
+ 			} else {
+@@ -194,7 +195,7 @@ static int __ref zero_p4d_populate(pgd_t *pgd, unsigned long addr,
+ 			pud_t *p;
+ 
+ 			if (slab_is_available()) {
+-				p = pud_alloc(&init_mm, p4d, addr);
++				p = pud_alloc(&init_mm, p4d, addr, GFP_KERNEL);
+ 				if (!p)
+ 					return -ENOMEM;
+ 			} else {
+@@ -263,7 +264,7 @@ int __ref kasan_populate_zero_shadow(const void *shadow_start,
+ 			p4d_t *p;
+ 
+ 			if (slab_is_available()) {
+-				p = p4d_alloc(&init_mm, pgd, addr);
++				p = p4d_alloc(&init_mm, pgd, addr, GFP_KERNEL);
+ 				if (!p)
+ 					return -ENOMEM;
+ 			} else {
+diff --git a/mm/memory.c b/mm/memory.c
+index 4ad2d293ddc2..3be7c7c0379f 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -434,9 +434,9 @@ int __pte_alloc(struct mm_struct *mm, pmd_t *pmd, unsigned long address)
+ 	return 0;
+ }
+ 
+-int __pte_alloc_kernel(pmd_t *pmd, unsigned long address)
++int __pte_alloc_kernel(pmd_t *pmd, unsigned long address, gfp_t gfp)
+ {
+-	pte_t *new = pte_alloc_one_kernel(&init_mm, address);
++	pte_t *new = pte_alloc_one_kernel(&init_mm, address, gfp);
+ 	if (!new)
+ 		return -ENOMEM;
+ 
+@@ -883,7 +883,7 @@ static inline int copy_pmd_range(struct mm_struct *dst_mm, struct mm_struct *src
+ 	pmd_t *src_pmd, *dst_pmd;
+ 	unsigned long next;
+ 
+-	dst_pmd = pmd_alloc(dst_mm, dst_pud, addr);
++	dst_pmd = pmd_alloc(dst_mm, dst_pud, addr, GFP_KERNEL);
+ 	if (!dst_pmd)
+ 		return -ENOMEM;
+ 	src_pmd = pmd_offset(src_pud, addr);
+@@ -917,7 +917,7 @@ static inline int copy_pud_range(struct mm_struct *dst_mm, struct mm_struct *src
+ 	pud_t *src_pud, *dst_pud;
+ 	unsigned long next;
+ 
+-	dst_pud = pud_alloc(dst_mm, dst_p4d, addr);
++	dst_pud = pud_alloc(dst_mm, dst_p4d, addr, GFP_KERNEL);
+ 	if (!dst_pud)
+ 		return -ENOMEM;
+ 	src_pud = pud_offset(src_p4d, addr);
+@@ -951,7 +951,7 @@ static inline int copy_p4d_range(struct mm_struct *dst_mm, struct mm_struct *src
+ 	p4d_t *src_p4d, *dst_p4d;
+ 	unsigned long next;
+ 
+-	dst_p4d = p4d_alloc(dst_mm, dst_pgd, addr);
++	dst_p4d = p4d_alloc(dst_mm, dst_pgd, addr, GFP_KERNEL);
+ 	if (!dst_p4d)
+ 		return -ENOMEM;
+ 	src_p4d = p4d_offset(src_pgd, addr);
+@@ -1421,13 +1421,13 @@ pte_t *__get_locked_pte(struct mm_struct *mm, unsigned long addr,
+ 	pmd_t *pmd;
+ 
+ 	pgd = pgd_offset(mm, addr);
+-	p4d = p4d_alloc(mm, pgd, addr);
++	p4d = p4d_alloc(mm, pgd, addr, GFP_KERNEL);
+ 	if (!p4d)
+ 		return NULL;
+-	pud = pud_alloc(mm, p4d, addr);
++	pud = pud_alloc(mm, p4d, addr, GFP_KERNEL);
+ 	if (!pud)
+ 		return NULL;
+-	pmd = pmd_alloc(mm, pud, addr);
++	pmd = pmd_alloc(mm, pud, addr, GFP_KERNEL);
+ 	if (!pmd)
+ 		return NULL;
+ 
+@@ -1764,7 +1764,7 @@ static inline int remap_pmd_range(struct mm_struct *mm, pud_t *pud,
+ 	int err;
+ 
+ 	pfn -= addr >> PAGE_SHIFT;
+-	pmd = pmd_alloc(mm, pud, addr);
++	pmd = pmd_alloc(mm, pud, addr, GFP_KERNEL);
+ 	if (!pmd)
+ 		return -ENOMEM;
+ 	VM_BUG_ON(pmd_trans_huge(*pmd));
+@@ -1787,7 +1787,7 @@ static inline int remap_pud_range(struct mm_struct *mm, p4d_t *p4d,
+ 	int err;
+ 
+ 	pfn -= addr >> PAGE_SHIFT;
+-	pud = pud_alloc(mm, p4d, addr);
++	pud = pud_alloc(mm, p4d, addr, GFP_KERNEL);
+ 	if (!pud)
+ 		return -ENOMEM;
+ 	do {
+@@ -1809,7 +1809,7 @@ static inline int remap_p4d_range(struct mm_struct *mm, pgd_t *pgd,
+ 	int err;
+ 
+ 	pfn -= addr >> PAGE_SHIFT;
+-	p4d = p4d_alloc(mm, pgd, addr);
++	p4d = p4d_alloc(mm, pgd, addr, GFP_KERNEL);
+ 	if (!p4d)
+ 		return -ENOMEM;
+ 	do {
+@@ -1948,7 +1948,7 @@ static int apply_to_pte_range(struct mm_struct *mm, pmd_t *pmd,
+ 	spinlock_t *uninitialized_var(ptl);
+ 
+ 	pte = (mm == &init_mm) ?
+-		pte_alloc_kernel(pmd, addr) :
++		pte_alloc_kernel(pmd, addr, GFP_KERNEL) :
+ 		pte_alloc_map_lock(mm, pmd, addr, &ptl);
+ 	if (!pte)
+ 		return -ENOMEM;
+@@ -1982,7 +1982,7 @@ static int apply_to_pmd_range(struct mm_struct *mm, pud_t *pud,
+ 
+ 	BUG_ON(pud_huge(*pud));
+ 
+-	pmd = pmd_alloc(mm, pud, addr);
++	pmd = pmd_alloc(mm, pud, addr, GFP_KERNEL);
+ 	if (!pmd)
+ 		return -ENOMEM;
+ 	do {
+@@ -2002,7 +2002,7 @@ static int apply_to_pud_range(struct mm_struct *mm, p4d_t *p4d,
+ 	unsigned long next;
+ 	int err;
+ 
+-	pud = pud_alloc(mm, p4d, addr);
++	pud = pud_alloc(mm, p4d, addr, GFP_KERNEL);
+ 	if (!pud)
+ 		return -ENOMEM;
+ 	do {
+@@ -2022,7 +2022,7 @@ static int apply_to_p4d_range(struct mm_struct *mm, pgd_t *pgd,
+ 	unsigned long next;
+ 	int err;
+ 
+-	p4d = p4d_alloc(mm, pgd, addr);
++	p4d = p4d_alloc(mm, pgd, addr, GFP_KERNEL);
+ 	if (!p4d)
+ 		return -ENOMEM;
+ 	do {
+@@ -3823,11 +3823,11 @@ static vm_fault_t __handle_mm_fault(struct vm_area_struct *vma,
+ 	vm_fault_t ret;
+ 
+ 	pgd = pgd_offset(mm, address);
+-	p4d = p4d_alloc(mm, pgd, address);
++	p4d = p4d_alloc(mm, pgd, address, GFP_KERNEL);
+ 	if (!p4d)
+ 		return VM_FAULT_OOM;
+ 
+-	vmf.pud = pud_alloc(mm, p4d, address);
++	vmf.pud = pud_alloc(mm, p4d, address, GFP_KERNEL);
+ 	if (!vmf.pud)
+ 		return VM_FAULT_OOM;
+ 	if (pud_none(*vmf.pud) && transparent_hugepage_enabled(vma)) {
+@@ -3853,7 +3853,7 @@ static vm_fault_t __handle_mm_fault(struct vm_area_struct *vma,
+ 		}
+ 	}
+ 
+-	vmf.pmd = pmd_alloc(mm, vmf.pud, address);
++	vmf.pmd = pmd_alloc(mm, vmf.pud, address, GFP_KERNEL);
+ 	if (!vmf.pmd)
+ 		return VM_FAULT_OOM;
+ 	if (pmd_none(*vmf.pmd) && transparent_hugepage_enabled(vma)) {
+@@ -3946,9 +3946,10 @@ EXPORT_SYMBOL_GPL(handle_mm_fault);
+  * Allocate p4d page table.
+  * We've already handled the fast-path in-line.
+  */
+-int __p4d_alloc(struct mm_struct *mm, pgd_t *pgd, unsigned long address)
++int __p4d_alloc(struct mm_struct *mm, pgd_t *pgd, unsigned long address,
++		gfp_t gfp)
+ {
+-	p4d_t *new = p4d_alloc_one(mm, address);
++	p4d_t *new = p4d_alloc_one(mm, address, gfp);
+ 	if (!new)
+ 		return -ENOMEM;
+ 
+@@ -3969,9 +3970,10 @@ int __p4d_alloc(struct mm_struct *mm, pgd_t *pgd, unsigned long address)
+  * Allocate page upper directory.
+  * We've already handled the fast-path in-line.
+  */
+-int __pud_alloc(struct mm_struct *mm, p4d_t *p4d, unsigned long address)
++int __pud_alloc(struct mm_struct *mm, p4d_t *p4d, unsigned long address,
++		gfp_t gfp)
+ {
+-	pud_t *new = pud_alloc_one(mm, address);
++	pud_t *new = pud_alloc_one(mm, address, gfp);
+ 	if (!new)
+ 		return -ENOMEM;
+ 
+@@ -4001,10 +4003,11 @@ int __pud_alloc(struct mm_struct *mm, p4d_t *p4d, unsigned long address)
+  * Allocate page middle directory.
+  * We've already handled the fast-path in-line.
+  */
+-int __pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address)
++int __pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address,
++		gfp_t gfp)
+ {
+ 	spinlock_t *ptl;
+-	pmd_t *new = pmd_alloc_one(mm, address);
++	pmd_t *new = pmd_alloc_one(mm, address, gfp);
+ 	if (!new)
+ 		return -ENOMEM;
+ 
+diff --git a/mm/migrate.c b/mm/migrate.c
+index f7e4bfdc13b7..3ad160ebf948 100644
+--- a/mm/migrate.c
++++ b/mm/migrate.c
+@@ -2576,13 +2576,13 @@ static void migrate_vma_insert_page(struct migrate_vma *migrate,
+ 		goto abort;
+ 
+ 	pgdp = pgd_offset(mm, addr);
+-	p4dp = p4d_alloc(mm, pgdp, addr);
++	p4dp = p4d_alloc(mm, pgdp, addr, GFP_KERNEL);
+ 	if (!p4dp)
+ 		goto abort;
+-	pudp = pud_alloc(mm, p4dp, addr);
++	pudp = pud_alloc(mm, p4dp, addr, GFP_KERNEL);
+ 	if (!pudp)
+ 		goto abort;
+-	pmdp = pmd_alloc(mm, pudp, addr);
++	pmdp = pmd_alloc(mm, pudp, addr, GFP_KERNEL);
+ 	if (!pmdp)
+ 		goto abort;
+ 
+diff --git a/mm/mremap.c b/mm/mremap.c
+index 7f9f9180e401..50dbd76874aa 100644
+--- a/mm/mremap.c
++++ b/mm/mremap.c
+@@ -65,14 +65,14 @@ static pmd_t *alloc_new_pmd(struct mm_struct *mm, struct vm_area_struct *vma,
+ 	pmd_t *pmd;
+ 
+ 	pgd = pgd_offset(mm, addr);
+-	p4d = p4d_alloc(mm, pgd, addr);
++	p4d = p4d_alloc(mm, pgd, addr, GFP_KERNEL);
+ 	if (!p4d)
+ 		return NULL;
+-	pud = pud_alloc(mm, p4d, addr);
++	pud = pud_alloc(mm, p4d, addr, GFP_KERNEL);
+ 	if (!pud)
+ 		return NULL;
+ 
+-	pmd = pmd_alloc(mm, pud, addr);
++	pmd = pmd_alloc(mm, pud, addr, GFP_KERNEL);
+ 	if (!pmd)
+ 		return NULL;
+ 
 diff --git a/mm/page-writeback.c b/mm/page-writeback.c
 index 3f690bae6b78..f0b5c1281bed 100644
 --- a/mm/page-writeback.c
@@ -64631,3 +67484,247 @@ index f3d6f9656a3c..53572550c767 100644
  	return nr_pages;
  }
  
+diff --git a/mm/userfaultfd.c b/mm/userfaultfd.c
+index 458acda96f20..8279df1ca178 100644
+--- a/mm/userfaultfd.c
++++ b/mm/userfaultfd.c
+@@ -153,10 +153,10 @@ static pmd_t *mm_alloc_pmd(struct mm_struct *mm, unsigned long address)
+ 	pud_t *pud;
+ 
+ 	pgd = pgd_offset(mm, address);
+-	p4d = p4d_alloc(mm, pgd, address);
++	p4d = p4d_alloc(mm, pgd, address, GFP_KERNEL);
+ 	if (!p4d)
+ 		return NULL;
+-	pud = pud_alloc(mm, p4d, address);
++	pud = pud_alloc(mm, p4d, address, GFP_KERNEL);
+ 	if (!pud)
+ 		return NULL;
+ 	/*
+@@ -164,7 +164,7 @@ static pmd_t *mm_alloc_pmd(struct mm_struct *mm, unsigned long address)
+ 	 * missing, the *pmd may be already established and in
+ 	 * turn it may also be a trans_huge_pmd.
+ 	 */
+-	return pmd_alloc(mm, pud, address);
++	return pmd_alloc(mm, pud, address, GFP_KERNEL);
+ }
+ 
+ #ifdef CONFIG_HUGETLB_PAGE
+diff --git a/mm/vmalloc.c b/mm/vmalloc.c
+index 97d4b25d0373..3b8777ae1901 100644
+--- a/mm/vmalloc.c
++++ b/mm/vmalloc.c
+@@ -132,7 +132,8 @@ static void vunmap_page_range(unsigned long addr, unsigned long end)
+ }
+ 
+ static int vmap_pte_range(pmd_t *pmd, unsigned long addr,
+-		unsigned long end, pgprot_t prot, struct page **pages, int *nr)
++		unsigned long end, gfp_t gfp, pgprot_t prot,
++		struct page **pages, int *nr)
+ {
+ 	pte_t *pte;
+ 
+@@ -141,7 +142,7 @@ static int vmap_pte_range(pmd_t *pmd, unsigned long addr,
+ 	 * callers keep track of where we're up to.
+ 	 */
+ 
+-	pte = pte_alloc_kernel(pmd, addr);
++	pte = pte_alloc_kernel(pmd, addr, gfp);
+ 	if (!pte)
+ 		return -ENOMEM;
+ 	do {
+@@ -158,51 +159,54 @@ static int vmap_pte_range(pmd_t *pmd, unsigned long addr,
+ }
+ 
+ static int vmap_pmd_range(pud_t *pud, unsigned long addr,
+-		unsigned long end, pgprot_t prot, struct page **pages, int *nr)
++		unsigned long end, gfp_t gfp, pgprot_t prot,
++		struct page **pages, int *nr)
+ {
+ 	pmd_t *pmd;
+ 	unsigned long next;
+ 
+-	pmd = pmd_alloc(&init_mm, pud, addr);
++	pmd = pmd_alloc(&init_mm, pud, addr, gfp);
+ 	if (!pmd)
+ 		return -ENOMEM;
+ 	do {
+ 		next = pmd_addr_end(addr, end);
+-		if (vmap_pte_range(pmd, addr, next, prot, pages, nr))
++		if (vmap_pte_range(pmd, addr, next, gfp, prot, pages, nr))
+ 			return -ENOMEM;
+ 	} while (pmd++, addr = next, addr != end);
+ 	return 0;
+ }
+ 
+ static int vmap_pud_range(p4d_t *p4d, unsigned long addr,
+-		unsigned long end, pgprot_t prot, struct page **pages, int *nr)
++		unsigned long end, gfp_t gfp, pgprot_t prot,
++		struct page **pages, int *nr)
+ {
+ 	pud_t *pud;
+ 	unsigned long next;
+ 
+-	pud = pud_alloc(&init_mm, p4d, addr);
++	pud = pud_alloc(&init_mm, p4d, addr, gfp);
+ 	if (!pud)
+ 		return -ENOMEM;
+ 	do {
+ 		next = pud_addr_end(addr, end);
+-		if (vmap_pmd_range(pud, addr, next, prot, pages, nr))
++		if (vmap_pmd_range(pud, addr, next, gfp, prot, pages, nr))
+ 			return -ENOMEM;
+ 	} while (pud++, addr = next, addr != end);
+ 	return 0;
+ }
+ 
+ static int vmap_p4d_range(pgd_t *pgd, unsigned long addr,
+-		unsigned long end, pgprot_t prot, struct page **pages, int *nr)
++		unsigned long end, gfp_t gfp, pgprot_t prot,
++		struct page **pages, int *nr)
+ {
+ 	p4d_t *p4d;
+ 	unsigned long next;
+ 
+-	p4d = p4d_alloc(&init_mm, pgd, addr);
++	p4d = p4d_alloc(&init_mm, pgd, addr, gfp);
+ 	if (!p4d)
+ 		return -ENOMEM;
+ 	do {
+ 		next = p4d_addr_end(addr, end);
+-		if (vmap_pud_range(p4d, addr, next, prot, pages, nr))
++		if (vmap_pud_range(p4d, addr, next, gfp, prot, pages, nr))
+ 			return -ENOMEM;
+ 	} while (p4d++, addr = next, addr != end);
+ 	return 0;
+@@ -215,7 +219,8 @@ static int vmap_p4d_range(pgd_t *pgd, unsigned long addr,
+  * Ie. pte at addr+N*PAGE_SIZE shall point to pfn corresponding to pages[N]
+  */
+ static int vmap_page_range_noflush(unsigned long start, unsigned long end,
+-				   pgprot_t prot, struct page **pages)
++				   gfp_t gfp, pgprot_t prot,
++				   struct page **pages)
+ {
+ 	pgd_t *pgd;
+ 	unsigned long next;
+@@ -227,7 +232,7 @@ static int vmap_page_range_noflush(unsigned long start, unsigned long end,
+ 	pgd = pgd_offset_k(addr);
+ 	do {
+ 		next = pgd_addr_end(addr, end);
+-		err = vmap_p4d_range(pgd, addr, next, prot, pages, &nr);
++		err = vmap_p4d_range(pgd, addr, next, gfp, prot, pages, &nr);
+ 		if (err)
+ 			return err;
+ 	} while (pgd++, addr = next, addr != end);
+@@ -236,11 +241,11 @@ static int vmap_page_range_noflush(unsigned long start, unsigned long end,
+ }
+ 
+ static int vmap_page_range(unsigned long start, unsigned long end,
+-			   pgprot_t prot, struct page **pages)
++			   gfp_t gfp, pgprot_t prot, struct page **pages)
+ {
+ 	int ret;
+ 
+-	ret = vmap_page_range_noflush(start, end, prot, pages);
++	ret = vmap_page_range_noflush(start, end, gfp, prot, pages);
+ 	flush_cache_vmap(start, end);
+ 	return ret;
+ }
+@@ -1178,7 +1183,7 @@ void *vm_map_ram(struct page **pages, unsigned int count, int node, pgprot_t pro
+ 		addr = va->va_start;
+ 		mem = (void *)addr;
+ 	}
+-	if (vmap_page_range(addr, addr + size, prot, pages) < 0) {
++	if (vmap_page_range(addr, addr + size, GFP_KERNEL, prot, pages) < 0) {
+ 		vm_unmap_ram(mem, count);
+ 		return NULL;
+ 	}
+@@ -1293,7 +1298,8 @@ void __init vmalloc_init(void)
+ int map_kernel_range_noflush(unsigned long addr, unsigned long size,
+ 			     pgprot_t prot, struct page **pages)
+ {
+-	return vmap_page_range_noflush(addr, addr + size, prot, pages);
++	return vmap_page_range_noflush(addr, addr + size, GFP_KERNEL, prot,
++				       pages);
+ }
+ 
+ /**
+@@ -1334,13 +1340,14 @@ void unmap_kernel_range(unsigned long addr, unsigned long size)
+ }
+ EXPORT_SYMBOL_GPL(unmap_kernel_range);
+ 
+-int map_vm_area(struct vm_struct *area, pgprot_t prot, struct page **pages)
++int map_vm_area(struct vm_struct *area, gfp_t gfp,
++		pgprot_t prot, struct page **pages)
+ {
+ 	unsigned long addr = (unsigned long)area->addr;
+ 	unsigned long end = addr + get_vm_area_size(area);
+ 	int err;
+ 
+-	err = vmap_page_range(addr, end, prot, pages);
++	err = vmap_page_range(addr, end, gfp, prot, pages);
+ 
+ 	return err > 0 ? 0 : err;
+ }
+@@ -1642,7 +1649,7 @@ void *vmap(struct page **pages, unsigned int count,
+ 	if (!area)
+ 		return NULL;
+ 
+-	if (map_vm_area(area, prot, pages)) {
++	if (map_vm_area(area, GFP_KERNEL, prot, pages)) {
+ 		vunmap(area->addr);
+ 		return NULL;
+ 	}
+@@ -1701,7 +1708,7 @@ static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_mask,
+ 			cond_resched();
+ 	}
+ 
+-	if (map_vm_area(area, prot, pages))
++	if (map_vm_area(area, gfp_mask, prot, pages))
+ 		goto fail;
+ 	return area->addr;
+ 
+diff --git a/mm/zsmalloc.c b/mm/zsmalloc.c
+index 0787d33b80d8..d369e5bf2711 100644
+--- a/mm/zsmalloc.c
++++ b/mm/zsmalloc.c
+@@ -1151,7 +1151,7 @@ static inline void __zs_cpu_down(struct mapping_area *area)
+ static inline void *__zs_map_object(struct mapping_area *area,
+ 				struct page *pages[2], int off, int size)
+ {
+-	BUG_ON(map_vm_area(area->vm, PAGE_KERNEL, pages));
++	BUG_ON(map_vm_area(area->vm, GFP_KERNEL, PAGE_KERNEL, pages));
+ 	area->vm_addr = area->vm->addr;
+ 	return area->vm_addr + off;
+ }
+diff --git a/virt/kvm/arm/mmu.c b/virt/kvm/arm/mmu.c
+index 5eca48bdb1a6..7a163132ae0b 100644
+--- a/virt/kvm/arm/mmu.c
++++ b/virt/kvm/arm/mmu.c
+@@ -628,7 +628,7 @@ static int create_hyp_pmd_mappings(pud_t *pud, unsigned long start,
+ 		BUG_ON(pmd_sect(*pmd));
+ 
+ 		if (pmd_none(*pmd)) {
+-			pte = pte_alloc_one_kernel(NULL, addr);
++			pte = pte_alloc_one_kernel(NULL, addr, GFP_KERNEL);
+ 			if (!pte) {
+ 				kvm_err("Cannot allocate Hyp pte\n");
+ 				return -ENOMEM;
+@@ -660,7 +660,7 @@ static int create_hyp_pud_mappings(pgd_t *pgd, unsigned long start,
+ 		pud = pud_offset(pgd, addr);
+ 
+ 		if (pud_none_or_clear_bad(pud)) {
+-			pmd = pmd_alloc_one(NULL, addr);
++			pmd = pmd_alloc_one(NULL, addr, GFP_KERNEL);
+ 			if (!pmd) {
+ 				kvm_err("Cannot allocate Hyp pmd\n");
+ 				return -ENOMEM;
+@@ -695,7 +695,7 @@ static int __create_hyp_mappings(pgd_t *pgdp, unsigned long ptrs_per_pgd,
+ 		pgd = pgdp + kvm_pgd_index(addr, ptrs_per_pgd);
+ 
+ 		if (pgd_none(*pgd)) {
+-			pud = pud_alloc_one(NULL, addr);
++			pud = pud_alloc_one(NULL, addr, GFP_KERNEL);
+ 			if (!pud) {
+ 				kvm_err("Cannot allocate Hyp pud\n");
+ 				err = -ENOMEM;
