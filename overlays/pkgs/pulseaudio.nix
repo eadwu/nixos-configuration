@@ -21,11 +21,11 @@ with self.pkgs; {
   pulseaudio-modules-bt = super.pulseaudio-modules-bt.overrideAttrs (oldAttrs: rec {
     name = "${pname}-${version}";
     pname = stdenv.lib.removeSuffix "-${oldAttrs.version}" oldAttrs.name;
-    version = "unstable-2019-02-15";
+    version = "unstable-2019-02-17";
 
     src = builtins.fetchGit {
       url = "https://github.com/EHfive/pulseaudio-modules-bt";
-      rev = "35283a796dd4a932cab6ca8e1eef79bf10935544";
+      rev = "8a58314e73e88116ac868a2063d1c02d3a36c03d";
     };
 
     buildInputs = oldAttrs.buildInputs ++ [
