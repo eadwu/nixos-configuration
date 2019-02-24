@@ -9,10 +9,6 @@ with config.nixos; {
   networking = {
     hostName = settings.machine.hostname;
     firewall.checkReversePath = false;
-
-    wireless = {
-      enable = true;
-      iwd.enable = false;
-    };
+    wireless.iwd.enable = true;
   };
 }

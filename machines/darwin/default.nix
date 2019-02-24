@@ -19,11 +19,7 @@
 
   networking = {
     networkmanager.enable = true;
-
-    wireless = {
-      enable = lib.mkForce false;
-      iwd.enable = lib.mkForce false;
-    };
+    wireless.iwd.enable = lib.mkForce false;
   };
 
   nix.nixPath = lib.singleton "nixos-config=${builtins.toString ./.}";
