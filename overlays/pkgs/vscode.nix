@@ -25,6 +25,11 @@ self: super:
         version = "2.7.0";
         sha256 = "1rs4ygsqh3hv2lg4kqj8vfkkvins2zfdqniyap3m1xr5kxfa96pn"; }
 
+      { name = "vsc-material-theme-icons";
+        publisher = "equinusocio";
+        version = "0.9.8";
+        sha256 = "1dhy50sdfapcpl81ky9bghz5m5jm7fhx7dmzyrg4z8xzsmgiwxmf"; }
+
       { name = "Ionide-FAKE";
         publisher = "Ionide";
         version = "1.2.3";
@@ -57,8 +62,8 @@ self: super:
 
       { name = "vscode-sqlite";
         publisher = "alexcvzz";
-        version = "0.5.0";
-        sha256 = "182j6q4m30j780z28mn7bw6hbhigvhp05whgaa98vql9anx6xch7"; }
+        version = "0.5.1";
+        sha256 = "0lmy327fy541smd7d0qlq1vfcf39mn6x0r9plpqcc3qgfxgv5bif"; }
 
       { name = "Nix";
         publisher = "bbenoist";
@@ -87,8 +92,8 @@ self: super:
 
       { name = "jupyter";
         publisher = "donjayamanne";
-        version = "1.1.4";
-        sha256 = "02ldh8p6sd9x83j7xvs1lp4caxnrnxkrsixig9gadqfxh12p24cy"; }
+        version = "1.1.5";
+        sha256 = "1hg8hl515bsrfg54v1y8j62gnzq0fp4wgb3ga563fy4bn888llyf"; }
 
       { name = "gitlens";
         publisher = "eamodio";
@@ -107,8 +112,8 @@ self: super:
 
       { name = "horizon-theme-vscode";
         publisher = "jolaleye";
-        version = "1.7.0";
-        sha256 = "1zp227ianqgsjsqzyh06f4bb19nr8fmw6vbfpf2krqqsp0ij40fi"; }
+        version = "1.7.1";
+        sha256 = "18pw4vrxi2mrr21vf62g6h1fcakn8my8c011j8dbfygbin068z22"; }
 
       { name = "language-haskell";
         publisher = "justusadam";
@@ -142,8 +147,8 @@ self: super:
 
       { name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "0.3.1182";
-        sha256 = "13l05lb2ljxd6y1az3d8v2arfg7l182ny8w06nyspgvqddlsi26b"; }
+        version = "0.3.1225";
+        sha256 = "0anmsmjjw5s0s1ybyh4p01jy5ix7a2sy1rh7fnlxlm9w3zqhnvrs"; }
 
       { name = "debugger-for-chrome";
         publisher = "msjsdiag";
@@ -157,13 +162,13 @@ self: super:
 
       { name = "ruby";
         publisher = "rebornix";
-        version = "0.21.1";
-        sha256 = "1xd14sr7rmv2w12z6jsj8bf8wcqcxva1798555iyv4pcslq0fp9r"; }
+        version = "0.22.2";
+        sha256 = "0n42i39mpnj1fshxbjfchkplm95pfl5p4clsv5kx9jfr4qzniw84"; }
 
       { name = "java";
         publisher = "redhat";
-        version = "0.38.0";
-        sha256 = "1dhprs62vg4r75yv67ad2c78plqhnlsah1d0cavrdr4vcjkvcqw9"; }
+        version = "0.39.0";
+        sha256 = "1l39jraabgmxl6vf9ly0b5pqx7yfgj077d2kf5g6djl31rvx32cy"; }
 
       { name = "rust";
         publisher = "rust-lang";
@@ -192,8 +197,8 @@ self: super:
 
       { name = "vscode-java-pack";
         publisher = "vscjava";
-        version = "0.5.0";
-        sha256 = "0nfjj3zm0xbsz6v0qcy8kc47arg12svn4bw6p6lz5dd2hq9wmg90"; }
+        version = "0.6.0";
+        sha256 = "0f2zi72aaywib0mjwx3m8420iys0kyn1xl5rapsi4zkjrh94ryxf"; }
 
       { name = "vscode-java-test";
         publisher = "vscjava";
