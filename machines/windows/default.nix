@@ -71,7 +71,7 @@ with config.nixos; {
     '';
 
     undervolt = rec {
-      enable = true;
+      enable = !config.hardware.nvidia.modesetting.enable;
       temp = "90";
       coreOffset = "-100";
       gpuOffset = "-75";
