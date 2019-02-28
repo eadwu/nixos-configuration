@@ -22,7 +22,7 @@
 
   hardware.enableRedistributableFirmware = true;
 
-  i18n.consoleFont = "latarcyrheb-sun32";
+  i18n.consoleFont = "${pkgs.terminus_font}/share/consolefonts/ter-u28n.psf.gz";
 
   isoImage = {
     includeSystemBuildDependencies = true;

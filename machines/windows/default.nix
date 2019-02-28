@@ -33,7 +33,7 @@ with config.nixos; {
     dpi = 240;
   };
 
-  i18n.consoleFont = "latarcyrheb-sun32";
+  i18n.consoleFont = "${pkgs.terminus_font}/share/consolefonts/ter-u28n.psf.gz";
 
   nixos.settings = {
     xserver.dpiScale = 2;
