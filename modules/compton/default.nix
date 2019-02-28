@@ -1,8 +1,10 @@
-{ lib, ... }:
+{ pkgs, lib, ... }:
 
 {
   services.compton = {
     enable = true;
+    package = pkgs.compton-git;
+
     fade = true;
     fadeDelta = 5;
     fadeSteps = [
@@ -25,7 +27,6 @@
     ];
     activeOpacity = "0.95";
     inactiveOpacity = "0.85";
-    menuOpacity = "0.95";
     opacityRules = [
       "99:name *?= 'EVE'"
       "99:class_g = 'Vivaldi-stable'"
