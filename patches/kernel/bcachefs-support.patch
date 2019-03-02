@@ -2757,10 +2757,10 @@ index 000000000000..e06724309ff8
 +#endif /* _BCACHEFS_ACL_H */
 diff --git a/fs/bcachefs/alloc_background.c b/fs/bcachefs/alloc_background.c
 new file mode 100644
-index 000000000000..88f01f57beb6
+index 000000000000..b080f30ea46c
 --- /dev/null
 +++ b/fs/bcachefs/alloc_background.c
-@@ -0,0 +1,1554 @@
+@@ -0,0 +1,1707 @@
 +#include "bcachefs.h"
 +#include "alloc_background.h"
 +#include "alloc_foreground.h"
@@ -2891,6 +2891,34 @@ index 000000000000..88f01f57beb6
 +	*p += bytes;
 +}
 +
++struct bkey_alloc_unpacked bch2_alloc_unpack(const struct bch_alloc *a)
++{
++	struct bkey_alloc_unpacked ret = { .gen = a->gen };
++	const void *d = a->data;
++	unsigned idx = 0;
++
++#define x(_name, _bits)	ret._name = get_alloc_field(a, &d, idx++);
++	BCH_ALLOC_FIELDS()
++#undef  x
++	return ret;
++}
++
++static void bch2_alloc_pack(struct bkey_i_alloc *dst,
++			    const struct bkey_alloc_unpacked src)
++{
++	unsigned idx = 0;
++	void *d = dst->v.data;
++
++	dst->v.fields	= 0;
++	dst->v.gen	= src.gen;
++
++#define x(_name, _bits)	put_alloc_field(dst, &d, idx++, src._name);
++	BCH_ALLOC_FIELDS()
++#undef  x
++
++	set_bkey_val_bytes(&dst->k, (void *) d - (void *) &dst->v);
++}
++
 +static unsigned bch_alloc_val_u64s(const struct bch_alloc *a)
 +{
 +	unsigned i, bytes = offsetof(struct bch_alloc, data);
@@ -2936,16 +2964,24 @@ index 000000000000..88f01f57beb6
 +static void __alloc_read_key(struct bucket *g, const struct bch_alloc *a)
 +{
 +	const void *d = a->data;
-+	unsigned idx = 0;
++	unsigned idx = 0, data_type, dirty_sectors, cached_sectors;
++	struct bucket_mark m;
 +
-+	g->_mark.gen		= a->gen;
-+	g->gen_valid		= 1;
 +	g->io_time[READ]	= get_alloc_field(a, &d, idx++);
 +	g->io_time[WRITE]	= get_alloc_field(a, &d, idx++);
-+	g->_mark.data_type	= get_alloc_field(a, &d, idx++);
-+	g->_mark.dirty_sectors	= get_alloc_field(a, &d, idx++);
-+	g->_mark.cached_sectors	= get_alloc_field(a, &d, idx++);
++	data_type		= get_alloc_field(a, &d, idx++);
++	dirty_sectors		= get_alloc_field(a, &d, idx++);
++	cached_sectors		= get_alloc_field(a, &d, idx++);
 +	g->oldest_gen		= get_alloc_field(a, &d, idx++);
++
++	bucket_cmpxchg(g, m, ({
++		m.gen			= a->gen;
++		m.data_type		= data_type;
++		m.dirty_sectors		= dirty_sectors;
++		m.cached_sectors	= cached_sectors;
++	}));
++
++	g->gen_valid		= 1;
 +}
 +
 +static void __alloc_write_key(struct bkey_i_alloc *a, struct bucket *g,
@@ -3080,6 +3116,7 @@ index 000000000000..88f01f57beb6
 +				   BTREE_INSERT_NOFAIL|
 +				   BTREE_INSERT_USE_RESERVE|
 +				   BTREE_INSERT_USE_ALLOC_RESERVE|
++				   BTREE_INSERT_NOMARK|
 +				   flags,
 +				   BTREE_INSERT_ENTRY(iter, &a->k_i));
 +	if (ret)
@@ -3123,7 +3160,8 @@ index 000000000000..88f01f57beb6
 +		? 0
 +		: bch2_btree_insert_at(c, NULL, NULL,
 +				       BTREE_INSERT_NOFAIL|
-+				       BTREE_INSERT_JOURNAL_REPLAY,
++				       BTREE_INSERT_JOURNAL_REPLAY|
++				       BTREE_INSERT_NOMARK,
 +				       BTREE_INSERT_ENTRY(&iter, k));
 +err:
 +	bch2_btree_iter_unlock(&iter);
@@ -3589,6 +3627,142 @@ index 000000000000..88f01f57beb6
 +	return -1;
 +}
 +
++/*
++ * returns sequence number of most recent journal entry that updated this
++ * bucket:
++ */
++static u64 bucket_journal_seq(struct bch_fs *c, struct bucket_mark m)
++{
++	if (m.journal_seq_valid) {
++		u64 journal_seq = atomic64_read(&c->journal.seq);
++		u64 bucket_seq	= journal_seq;
++
++		bucket_seq &= ~((u64) U16_MAX);
++		bucket_seq |= m.journal_seq;
++
++		if (bucket_seq > journal_seq)
++			bucket_seq -= 1 << 16;
++
++		return bucket_seq;
++	} else {
++		return 0;
++	}
++}
++
++static int bch2_invalidate_one_bucket2(struct bch_fs *c, struct bch_dev *ca,
++				       struct btree_iter *iter,
++				       u64 *journal_seq, unsigned flags)
++{
++#if 0
++	__BKEY_PADDED(k, BKEY_ALLOC_VAL_U64s_MAX) alloc_key;
++#else
++	/* hack: */
++	__BKEY_PADDED(k, 8) alloc_key;
++#endif
++	struct bkey_i_alloc *a;
++	struct bkey_alloc_unpacked u;
++	struct bucket_mark m;
++	struct bkey_s_c k;
++	bool invalidating_cached_data;
++	size_t b;
++	int ret;
++
++	BUG_ON(!ca->alloc_heap.used ||
++	       !ca->alloc_heap.data[0].nr);
++	b = ca->alloc_heap.data[0].bucket;
++
++	/* first, put on free_inc and mark as owned by allocator: */
++	percpu_down_read_preempt_disable(&c->mark_lock);
++	spin_lock(&c->freelist_lock);
++
++	verify_not_on_freelist(c, ca, b);
++
++	BUG_ON(!fifo_push(&ca->free_inc, b));
++
++	bch2_mark_alloc_bucket(c, ca, b, true, gc_pos_alloc(c, NULL), 0);
++	m = bucket(ca, b)->mark;
++
++	spin_unlock(&c->freelist_lock);
++	percpu_up_read_preempt_enable(&c->mark_lock);
++
++	bch2_btree_iter_cond_resched(iter);
++
++	BUG_ON(BKEY_ALLOC_VAL_U64s_MAX > 8);
++
++	bch2_btree_iter_set_pos(iter, POS(ca->dev_idx, b));
++retry:
++	k = bch2_btree_iter_peek_slot(iter);
++	ret = btree_iter_err(k);
++	if (ret)
++		return ret;
++
++	if (k.k && k.k->type == KEY_TYPE_alloc)
++		u = bch2_alloc_unpack(bkey_s_c_to_alloc(k).v);
++	else
++		memset(&u, 0, sizeof(u));
++
++	invalidating_cached_data = u.cached_sectors != 0;
++
++	//BUG_ON(u.dirty_sectors);
++	u.data_type	= 0;
++	u.dirty_sectors	= 0;
++	u.cached_sectors = 0;
++	u.read_time	= c->bucket_clock[READ].hand;
++	u.write_time	= c->bucket_clock[WRITE].hand;
++	u.gen++;
++
++	a = bkey_alloc_init(&alloc_key.k);
++	a->k.p = iter->pos;
++	bch2_alloc_pack(a, u);
++
++	ret = bch2_btree_insert_at(c, NULL,
++			invalidating_cached_data ? journal_seq : NULL,
++			BTREE_INSERT_ATOMIC|
++			BTREE_INSERT_NOCHECK_RW|
++			BTREE_INSERT_NOFAIL|
++			BTREE_INSERT_USE_RESERVE|
++			BTREE_INSERT_USE_ALLOC_RESERVE|
++			flags,
++			BTREE_INSERT_ENTRY(iter, &a->k_i));
++	if (ret == -EINTR)
++		goto retry;
++
++	if (!ret) {
++		/* remove from alloc_heap: */
++		struct alloc_heap_entry e, *top = ca->alloc_heap.data;
++
++		top->bucket++;
++		top->nr--;
++
++		if (!top->nr)
++			heap_pop(&ca->alloc_heap, e, bucket_alloc_cmp, NULL);
++
++		/*
++		 * Make sure we flush the last journal entry that updated this
++		 * bucket (i.e. deleting the last reference) before writing to
++		 * this bucket again:
++		 */
++		*journal_seq = max(*journal_seq, bucket_journal_seq(c, m));
++	} else {
++		size_t b2;
++
++		/* remove from free_inc: */
++		percpu_down_read_preempt_disable(&c->mark_lock);
++		spin_lock(&c->freelist_lock);
++
++		bch2_mark_alloc_bucket(c, ca, b, false,
++				       gc_pos_alloc(c, NULL), 0);
++
++		BUG_ON(!fifo_pop_back(&ca->free_inc, b2));
++		BUG_ON(b != b2);
++
++		spin_unlock(&c->freelist_lock);
++		percpu_up_read_preempt_enable(&c->mark_lock);
++	}
++
++	return ret;
++}
++
 +static bool bch2_invalidate_one_bucket(struct bch_fs *c, struct bch_dev *ca,
 +				       size_t bucket, u64 *flush_seq)
 +{
@@ -3609,18 +3783,7 @@ index 000000000000..88f01f57beb6
 +
 +	percpu_up_read_preempt_enable(&c->mark_lock);
 +
-+	if (m.journal_seq_valid) {
-+		u64 journal_seq = atomic64_read(&c->journal.seq);
-+		u64 bucket_seq	= journal_seq;
-+
-+		bucket_seq &= ~((u64) U16_MAX);
-+		bucket_seq |= m.journal_seq;
-+
-+		if (bucket_seq > journal_seq)
-+			bucket_seq -= 1 << 16;
-+
-+		*flush_seq = max(*flush_seq, bucket_seq);
-+	}
++	*flush_seq = max(*flush_seq, bucket_journal_seq(c, m));
 +
 +	return m.cached_sectors != 0;
 +}
@@ -3633,7 +3796,6 @@ index 000000000000..88f01f57beb6
 +	struct btree_iter iter;
 +	u64 journal_seq = 0;
 +	int ret = 0;
-+	long b;
 +
 +	bch2_btree_iter_init(&iter, c, BTREE_ID_ALLOC, POS(ca->dev_idx, 0),
 +			     BTREE_ITER_SLOTS|BTREE_ITER_INTENT);
@@ -3641,16 +3803,11 @@ index 000000000000..88f01f57beb6
 +	/* Only use nowait if we've already invalidated at least one bucket: */
 +	while (!ret &&
 +	       !fifo_full(&ca->free_inc) &&
-+	       (b = next_alloc_bucket(ca)) >= 0) {
-+		bool must_flush =
-+			bch2_invalidate_one_bucket(c, ca, b, &journal_seq);
-+
-+		ret = __bch2_alloc_write_key(c, ca, b, &iter,
-+				must_flush ? &journal_seq : NULL,
++	       ca->alloc_heap.used)
++		ret = bch2_invalidate_one_bucket2(c, ca, &iter, &journal_seq,
 +				BTREE_INSERT_GC_LOCK_HELD|
 +				(!fifo_empty(&ca->free_inc)
 +				 ? BTREE_INSERT_NOWAIT : 0));
-+	}
 +
 +	bch2_btree_iter_unlock(&iter);
 +
@@ -4072,24 +4229,16 @@ index 000000000000..88f01f57beb6
 +	return 0;
 +}
 +
-+static void flush_held_btree_writes(struct bch_fs *c)
++static bool flush_held_btree_writes(struct bch_fs *c)
 +{
 +	struct bucket_table *tbl;
 +	struct rhash_head *pos;
 +	struct btree *b;
-+	bool nodes_blocked;
++	bool nodes_unwritten;
 +	size_t i;
-+	struct closure cl;
-+
-+	closure_init_stack(&cl);
-+
-+	clear_bit(BCH_FS_HOLD_BTREE_WRITES, &c->flags);
 +again:
-+	pr_debug("flushing dirty btree nodes");
 +	cond_resched();
-+	closure_wait(&c->btree_interior_update_wait, &cl);
-+
-+	nodes_blocked = false;
++	nodes_unwritten = false;
 +
 +	rcu_read_lock();
 +	for_each_cached_btree(b, c, tbl, i, pos)
@@ -4101,24 +4250,18 @@ index 000000000000..88f01f57beb6
 +				six_unlock_read(&b->lock);
 +				goto again;
 +			} else {
-+				nodes_blocked = true;
++				nodes_unwritten = true;
 +			}
 +		}
 +	rcu_read_unlock();
 +
-+	if (c->btree_roots_dirty)
++	if (c->btree_roots_dirty) {
 +		bch2_journal_meta(&c->journal);
-+
-+	if (nodes_blocked) {
-+		closure_sync(&cl);
 +		goto again;
 +	}
 +
-+	closure_wake_up(&c->btree_interior_update_wait);
-+	closure_sync(&cl);
-+
-+	closure_wait_event(&c->btree_interior_update_wait,
-+			   !bch2_btree_interior_updates_nr_pending(c));
++	return !nodes_unwritten &&
++		!bch2_btree_interior_updates_nr_pending(c);
 +}
 +
 +static void allocator_start_issue_discards(struct bch_fs *c)
@@ -4152,25 +4295,24 @@ index 000000000000..88f01f57beb6
 +	return 0;
 +}
 +
-+static int __bch2_fs_allocator_start(struct bch_fs *c)
++static bool bch2_fs_allocator_start_fast(struct bch_fs *c)
 +{
 +	struct bch_dev *ca;
 +	unsigned dev_iter;
-+	u64 journal_seq = 0;
-+	long bu;
-+	int ret = 0;
++	bool ret = true;
 +
 +	if (test_alloc_startup(c))
-+		goto not_enough;
++		return false;
++
++	down_read(&c->gc_lock);
 +
 +	/* Scan for buckets that are already invalidated: */
 +	for_each_rw_member(ca, c, dev_iter) {
 +		struct bucket_array *buckets;
 +		struct bucket_mark m;
++		long bu;
 +
 +		down_read(&ca->bucket_lock);
-+		percpu_down_read_preempt_disable(&c->mark_lock);
-+
 +		buckets = bucket_array(ca);
 +
 +		for (bu = buckets->first_bucket;
@@ -4178,13 +4320,16 @@ index 000000000000..88f01f57beb6
 +			m = READ_ONCE(buckets->b[bu].mark);
 +
 +			if (!buckets->b[bu].gen_valid ||
-+			    !test_bit(bu, ca->buckets_nouse) ||
 +			    !is_available_bucket(m) ||
-+			    m.cached_sectors)
++			    m.cached_sectors ||
++			    (ca->buckets_nouse &&
++			     test_bit(bu, ca->buckets_nouse)))
 +				continue;
 +
++			percpu_down_read_preempt_disable(&c->mark_lock);
 +			bch2_mark_alloc_bucket(c, ca, bu, true,
 +					gc_pos_alloc(c, NULL), 0);
++			percpu_up_read_preempt_enable(&c->mark_lock);
 +
 +			fifo_push(&ca->free_inc, bu);
 +
@@ -4193,19 +4338,28 @@ index 000000000000..88f01f57beb6
 +			if (fifo_full(&ca->free[RESERVE_BTREE]))
 +				break;
 +		}
-+		percpu_up_read_preempt_enable(&c->mark_lock);
 +		up_read(&ca->bucket_lock);
 +	}
 +
++	up_read(&c->gc_lock);
++
 +	/* did we find enough buckets? */
 +	for_each_rw_member(ca, c, dev_iter)
-+		if (!fifo_full(&ca->free[RESERVE_BTREE])) {
-+			percpu_ref_put(&ca->io_ref);
-+			goto not_enough;
-+		}
++		if (!fifo_full(&ca->free[RESERVE_BTREE]))
++			ret = false;
 +
-+	return 0;
-+not_enough:
++	return ret;
++}
++
++static int __bch2_fs_allocator_start(struct bch_fs *c)
++{
++	struct bch_dev *ca;
++	unsigned dev_iter;
++	u64 journal_seq = 0;
++	bool wrote;
++	long bu;
++	int ret = 0;
++
 +	pr_debug("not enough empty buckets; scanning for reclaimable buckets");
 +
 +	/*
@@ -4219,8 +4373,9 @@ index 000000000000..88f01f57beb6
 +	 */
 +	set_bit(BCH_FS_HOLD_BTREE_WRITES, &c->flags);
 +
-+	while (1) {
-+		bool wrote = false;
++	down_read(&c->gc_lock);
++	do {
++		wrote = false;
 +
 +		for_each_rw_member(ca, c, dev_iter) {
 +			find_reclaimable_buckets(c, ca);
@@ -4230,7 +4385,8 @@ index 000000000000..88f01f57beb6
 +				ret = resize_free_inc(ca);
 +				if (ret) {
 +					percpu_ref_put(&ca->io_ref);
-+					return ret;
++					up_read(&c->gc_lock);
++					goto err;
 +				}
 +
 +				bch2_invalidate_one_bucket(c, ca, bu,
@@ -4256,42 +4412,40 @@ index 000000000000..88f01f57beb6
 +		 * enough buckets, so just scan and loop again as long as it
 +		 * made some progress:
 +		 */
-+		if (!wrote && ret)
-+			return ret;
-+		if (!wrote && !ret)
-+			break;
-+	}
++	} while (wrote);
++	up_read(&c->gc_lock);
++
++	if (ret)
++		goto err;
 +
 +	pr_debug("flushing journal");
 +
 +	ret = bch2_journal_flush(&c->journal);
 +	if (ret)
-+		return ret;
++		goto err;
 +
 +	pr_debug("issuing discards");
 +	allocator_start_issue_discards(c);
++err:
++	clear_bit(BCH_FS_HOLD_BTREE_WRITES, &c->flags);
++	closure_wait_event(&c->btree_interior_update_wait,
++			   flush_held_btree_writes(c));
 +
-+	set_bit(BCH_FS_ALLOCATOR_STARTED, &c->flags);
-+
-+	/* now flush dirty btree nodes: */
-+	flush_held_btree_writes(c);
-+
-+	return 0;
++	return ret;
 +}
 +
 +int bch2_fs_allocator_start(struct bch_fs *c)
 +{
 +	struct bch_dev *ca;
 +	unsigned i;
-+	bool wrote;
 +	int ret;
 +
-+	down_read(&c->gc_lock);
-+	ret = __bch2_fs_allocator_start(c);
-+	up_read(&c->gc_lock);
-+
++	ret = bch2_fs_allocator_start_fast(c) ? 0 :
++		__bch2_fs_allocator_start(c);
 +	if (ret)
 +		return ret;
++
++	set_bit(BCH_FS_ALLOCATOR_STARTED, &c->flags);
 +
 +	for_each_rw_member(ca, c, i) {
 +		ret = bch2_dev_allocator_start(ca);
@@ -4302,8 +4456,7 @@ index 000000000000..88f01f57beb6
 +	}
 +
 +	set_bit(BCH_FS_ALLOCATOR_RUNNING, &c->flags);
-+
-+	return bch2_alloc_write(c, false, &wrote);
++	return 0;
 +}
 +
 +void bch2_fs_allocator_background_init(struct bch_fs *c)
@@ -4317,16 +4470,25 @@ index 000000000000..88f01f57beb6
 +}
 diff --git a/fs/bcachefs/alloc_background.h b/fs/bcachefs/alloc_background.h
 new file mode 100644
-index 000000000000..26561b3bafb8
+index 000000000000..65e9b373a350
 --- /dev/null
 +++ b/fs/bcachefs/alloc_background.h
-@@ -0,0 +1,62 @@
+@@ -0,0 +1,71 @@
 +#ifndef _BCACHEFS_ALLOC_BACKGROUND_H
 +#define _BCACHEFS_ALLOC_BACKGROUND_H
 +
 +#include "bcachefs.h"
 +#include "alloc_types.h"
 +#include "debug.h"
++
++struct bkey_alloc_unpacked {
++	u8		gen;
++#define x(_name, _bits)	u##_bits _name;
++	BCH_ALLOC_FIELDS()
++#undef  x
++};
++
++struct bkey_alloc_unpacked bch2_alloc_unpack(const struct bch_alloc *);
 +
 +#define ALLOC_SCAN_BATCH(ca)		max_t(size_t, 1, (ca)->mi.nbuckets >> 9)
 +
@@ -4385,7 +4547,7 @@ index 000000000000..26561b3bafb8
 +#endif /* _BCACHEFS_ALLOC_BACKGROUND_H */
 diff --git a/fs/bcachefs/alloc_foreground.c b/fs/bcachefs/alloc_foreground.c
 new file mode 100644
-index 000000000000..f2f9015dbb00
+index 000000000000..6568e8ac2003
 --- /dev/null
 +++ b/fs/bcachefs/alloc_foreground.c
 @@ -0,0 +1,1005 @@
@@ -5114,7 +5276,7 @@ index 000000000000..f2f9015dbb00
 +static inline bool too_many_writepoints(struct bch_fs *c, unsigned factor)
 +{
 +	u64 stranded	= c->write_points_nr * c->bucket_size_max;
-+	u64 free	= bch2_fs_sectors_free(c);
++	u64 free	= bch2_fs_usage_read_short(c).free;
 +
 +	return stranded * factor > free;
 +}
@@ -6454,7 +6616,7 @@ index 000000000000..052ec263618e
 +#endif /* _BCACHEFS_H */
 diff --git a/fs/bcachefs/bcachefs_format.h b/fs/bcachefs/bcachefs_format.h
 new file mode 100644
-index 000000000000..5f430720098f
+index 000000000000..56bf69eb66d4
 --- /dev/null
 +++ b/fs/bcachefs/bcachefs_format.h
 @@ -0,0 +1,1551 @@
@@ -7281,12 +7443,12 @@ index 000000000000..5f430720098f
 +} __attribute__((packed, aligned(8)));
 +
 +#define BCH_ALLOC_FIELDS()			\
-+	x(read_time, 2)				\
-+	x(write_time, 2)			\
-+	x(data_type, 1)				\
-+	x(dirty_sectors, 2)			\
-+	x(cached_sectors, 2)			\
-+	x(oldest_gen, 1)
++	x(read_time,		16)		\
++	x(write_time,		16)		\
++	x(data_type,		8)		\
++	x(dirty_sectors,	16)		\
++	x(cached_sectors,	16)		\
++	x(oldest_gen,		8)
 +
 +enum {
 +#define x(name, bytes) BCH_ALLOC_FIELD_##name,
@@ -7296,12 +7458,12 @@ index 000000000000..5f430720098f
 +};
 +
 +static const unsigned BCH_ALLOC_FIELD_BYTES[] = {
-+#define x(name, bytes) [BCH_ALLOC_FIELD_##name] = bytes,
++#define x(name, bits) [BCH_ALLOC_FIELD_##name] = bits / 8,
 +	BCH_ALLOC_FIELDS()
 +#undef x
 +};
 +
-+#define x(name, bytes) + bytes
++#define x(name, bits) + (bits / 8)
 +static const unsigned BKEY_ALLOC_VAL_U64s_MAX =
 +	DIV_ROUND_UP(offsetof(struct bch_alloc, data)
 +		     BCH_ALLOC_FIELDS(), sizeof(u64));
@@ -14686,10 +14848,10 @@ index 000000000000..08e6f2a68ecb
 +#endif /* _BCACHEFS_BTREE_CACHE_H */
 diff --git a/fs/bcachefs/btree_gc.c b/fs/bcachefs/btree_gc.c
 new file mode 100644
-index 000000000000..91153cb17c0a
+index 000000000000..5d6f63646d9f
 --- /dev/null
 +++ b/fs/bcachefs/btree_gc.c
-@@ -0,0 +1,1199 @@
+@@ -0,0 +1,1201 @@
 +/*
 + * Copyright (C) 2010 Kent Overstreet <kent.overstreet@gmail.com>
 + * Copyright (C) 2014 Datera Inc.
@@ -14831,22 +14993,23 @@ index 000000000000..91153cb17c0a
 +		bkey_for_each_ptr(ptrs, ptr) {
 +			struct bch_dev *ca = bch_dev_bkey_exists(c, ptr->dev);
 +			struct bucket *g = PTR_BUCKET(ca, ptr, true);
++			struct bucket *g2 = PTR_BUCKET(ca, ptr, false);
 +
 +			if (mustfix_fsck_err_on(!g->gen_valid, c,
 +					"found ptr with missing gen in alloc btree,\n"
 +					"type %u gen %u",
 +					k.k->type, ptr->gen)) {
-+				g->_mark.gen	= ptr->gen;
-+				g->_mark.dirty	= true;
-+				g->gen_valid	= 1;
++				g2->_mark.gen	= g->_mark.gen		= ptr->gen;
++				g2->_mark.dirty	= g->_mark.dirty	= true;
++				g2->gen_valid	= g->gen_valid		= true;
 +			}
 +
 +			if (mustfix_fsck_err_on(gen_cmp(ptr->gen, g->mark.gen) > 0, c,
 +					"%u ptr gen in the future: %u > %u",
 +					k.k->type, ptr->gen, g->mark.gen)) {
-+				g->_mark.gen	= ptr->gen;
-+				g->_mark.dirty	= true;
-+				g->gen_valid	= 1;
++				g2->_mark.gen	= g->_mark.gen		= ptr->gen;
++				g2->_mark.dirty	= g->_mark.dirty	= true;
++				g2->gen_valid	= g->gen_valid		= true;
 +				set_bit(BCH_FS_FIXED_GENS, &c->flags);
 +			}
 +		}
@@ -15294,18 +15457,17 @@ index 000000000000..91153cb17c0a
 +	}
 +
 +	{
-+		unsigned nr = sizeof(struct bch_fs_usage) / sizeof(u64) +
-+			c->replicas.nr;
++		unsigned nr = fs_usage_u64s(c);
 +		struct bch_fs_usage *dst = (void *)
 +			bch2_acc_percpu_u64s((void *) c->usage[0], nr);
 +		struct bch_fs_usage *src = (void *)
 +			bch2_acc_percpu_u64s((void *) c->usage[1], nr);
 +
-+		copy_fs_field(s.hidden,		"hidden");
-+		copy_fs_field(s.data,		"data");
-+		copy_fs_field(s.cached,		"cached");
-+		copy_fs_field(s.reserved,	"reserved");
-+		copy_fs_field(s.nr_inodes,	"nr_inodes");
++		copy_fs_field(hidden,		"hidden");
++		copy_fs_field(data,		"data");
++		copy_fs_field(cached,		"cached");
++		copy_fs_field(reserved,		"reserved");
++		copy_fs_field(nr_inodes,	"nr_inodes");
 +
 +		for (i = 0; i < BCH_REPLICAS_MAX; i++)
 +			copy_fs_field(persistent_reserved[i],
@@ -15318,7 +15480,7 @@ index 000000000000..91153cb17c0a
 +
 +			bch2_replicas_entry_to_text(&PBUF(buf), e);
 +
-+			copy_fs_field(data[i], "%s", buf);
++			copy_fs_field(replicas[i], "%s", buf);
 +		}
 +	}
 +
@@ -15346,10 +15508,8 @@ index 000000000000..91153cb17c0a
 +
 +	BUG_ON(c->usage[1]);
 +
-+	c->usage[1] = __alloc_percpu_gfp(sizeof(struct bch_fs_usage) +
-+					 sizeof(u64) * c->replicas.nr,
-+					 sizeof(u64),
-+					 GFP_KERNEL);
++	c->usage[1] = __alloc_percpu_gfp(fs_usage_u64s(c) * sizeof(u64),
++					 sizeof(u64), GFP_KERNEL);
 +	percpu_up_write(&c->mark_lock);
 +
 +	if (!c->usage[1])
@@ -15384,10 +15544,12 @@ index 000000000000..91153cb17c0a
 +		dst->first_bucket	= src->first_bucket;
 +		dst->nbuckets		= src->nbuckets;
 +
-+		for (b = 0; b < src->nbuckets; b++)
++		for (b = 0; b < src->nbuckets; b++) {
 +			dst->b[b]._mark.gen =
 +				dst->b[b].oldest_gen =
 +				src->b[b].mark.gen;
++			dst->b[b].gen_valid = src->b[b].gen_valid;
++		}
 +	};
 +
 +	percpu_up_write(&c->mark_lock);
@@ -15446,6 +15608,8 @@ index 000000000000..91153cb17c0a
 +		if (iter++ <= 2) {
 +			bch_info(c, "Fixed gens, restarting mark and sweep:");
 +			clear_bit(BCH_FS_FIXED_GENS, &c->flags);
++			__gc_pos_set(c, gc_phase(GC_PHASE_NOT_RUNNING));
++			bch2_gc_free(c);
 +			goto again;
 +		}
 +
@@ -20384,10 +20548,10 @@ index 000000000000..9054de0dbd2e
 +
 diff --git a/fs/bcachefs/btree_types.h b/fs/bcachefs/btree_types.h
 new file mode 100644
-index 000000000000..fe6b1eea35a9
+index 000000000000..b38722da18eb
 --- /dev/null
 +++ b/fs/bcachefs/btree_types.h
-@@ -0,0 +1,510 @@
+@@ -0,0 +1,511 @@
 +#ifndef _BCACHEFS_BTREE_TYPES_H
 +#define _BCACHEFS_BTREE_TYPES_H
 +
@@ -20845,6 +21009,7 @@ index 000000000000..fe6b1eea35a9
 +static inline bool btree_node_type_needs_gc(enum btree_node_type type)
 +{
 +	switch (type) {
++	case BKEY_TYPE_ALLOC:
 +	case BKEY_TYPE_BTREE:
 +	case BKEY_TYPE_EXTENTS:
 +	case BKEY_TYPE_INODES:
@@ -20900,10 +21065,10 @@ index 000000000000..fe6b1eea35a9
 +#endif /* _BCACHEFS_BTREE_TYPES_H */
 diff --git a/fs/bcachefs/btree_update.h b/fs/bcachefs/btree_update.h
 new file mode 100644
-index 000000000000..4bd0725846d0
+index 000000000000..faacde9ae4bb
 --- /dev/null
 +++ b/fs/bcachefs/btree_update.h
-@@ -0,0 +1,172 @@
+@@ -0,0 +1,173 @@
 +#ifndef _BCACHEFS_BTREE_UPDATE_H
 +#define _BCACHEFS_BTREE_UPDATE_H
 +
@@ -20987,6 +21152,7 @@ index 000000000000..4bd0725846d0
 +	__BTREE_INSERT_USE_RESERVE,
 +	__BTREE_INSERT_USE_ALLOC_RESERVE,
 +	__BTREE_INSERT_JOURNAL_REPLAY,
++	__BTREE_INSERT_NOMARK,
 +	__BTREE_INSERT_NOWAIT,
 +	__BTREE_INSERT_GC_LOCK_HELD,
 +	__BCH_HASH_SET_MUST_CREATE,
@@ -21013,11 +21179,11 @@ index 000000000000..4bd0725846d0
 +#define BTREE_INSERT_USE_RESERVE	(1 << __BTREE_INSERT_USE_RESERVE)
 +#define BTREE_INSERT_USE_ALLOC_RESERVE	(1 << __BTREE_INSERT_USE_ALLOC_RESERVE)
 +
-+/*
-+ * Insert is for journal replay: don't get journal reservations, or mark extents
-+ * (bch_mark_key)
-+ */
++/* Insert is for journal replay - don't get journal reservations: */
 +#define BTREE_INSERT_JOURNAL_REPLAY	(1 << __BTREE_INSERT_JOURNAL_REPLAY)
++
++/* Don't call bch2_mark_key: */
++#define BTREE_INSERT_NOMARK		(1 << __BTREE_INSERT_NOMARK)
 +
 +/* Don't block on allocation failure (for new btree nodes: */
 +#define BTREE_INSERT_NOWAIT		(1 << __BTREE_INSERT_NOWAIT)
@@ -23623,10 +23789,10 @@ index 000000000000..6ae17ffa4101
 +#endif /* _BCACHEFS_BTREE_UPDATE_INTERIOR_H */
 diff --git a/fs/bcachefs/btree_update_leaf.c b/fs/bcachefs/btree_update_leaf.c
 new file mode 100644
-index 000000000000..9d457d6c7c67
+index 000000000000..da8c69871c76
 --- /dev/null
 +++ b/fs/bcachefs/btree_update_leaf.c
-@@ -0,0 +1,904 @@
+@@ -0,0 +1,916 @@
 +
 +#include "bcachefs.h"
 +#include "btree_update.h"
@@ -24044,6 +24210,25 @@ index 000000000000..9d457d6c7c67
 +		btree_iter_cmp(l.iter, r.iter);
 +}
 +
++static bool btree_trans_relock(struct btree_insert *trans)
++{
++	struct btree_insert_entry *i;
++
++	trans_for_each_iter(trans, i)
++		return bch2_btree_iter_relock(i->iter);
++	return true;
++}
++
++static void btree_trans_unlock(struct btree_insert *trans)
++{
++	struct btree_insert_entry *i;
++
++	trans_for_each_iter(trans, i) {
++		bch2_btree_iter_unlock(i->iter);
++		break;
++	}
++}
++
 +/* Normal update interface: */
 +
 +static enum btree_insert_ret
@@ -24095,48 +24280,11 @@ index 000000000000..9d457d6c7c67
 +	struct btree_iter *linked;
 +	unsigned u64s;
 +	int ret;
-+
++retry:
 +	trans_for_each_iter(trans, i)
 +		BUG_ON(i->iter->uptodate >= BTREE_ITER_NEED_RELOCK);
 +
-+	/* reserve space for deferred updates */
-+	__trans_for_each_entry(trans, i, i->deferred) {
-+
-+	}
-+
 +	memset(&trans->journal_res, 0, sizeof(trans->journal_res));
-+
-+	if (likely(!(trans->flags & BTREE_INSERT_JOURNAL_REPLAY))) {
-+		u64s = 0;
-+		trans_for_each_entry(trans, i)
-+			u64s += jset_u64s(i->k->k.u64s);
-+
-+		while ((ret = bch2_journal_res_get(&c->journal,
-+					&trans->journal_res, u64s,
-+					JOURNAL_RES_GET_NONBLOCK)) == -EAGAIN) {
-+			struct btree_iter *iter = NULL;
-+
-+			trans_for_each_iter(trans, i)
-+				iter = i->iter;
-+
-+			if (iter)
-+				bch2_btree_iter_unlock(iter);
-+
-+			ret = bch2_journal_res_get(&c->journal,
-+					&trans->journal_res, u64s,
-+					JOURNAL_RES_GET_CHECK);
-+			if (ret)
-+				return ret;
-+
-+			if (iter && !bch2_btree_iter_relock(iter)) {
-+				trans_restart(" (iter relock after journal res get blocked)");
-+				return -EINTR;
-+			}
-+		}
-+
-+		if (ret)
-+			return ret;
-+	}
 +
 +	multi_lock_write(c, trans);
 +
@@ -24165,6 +24313,36 @@ index 000000000000..9d457d6c7c67
 +		}
 +	}
 +
++	if (likely(!(trans->flags & BTREE_INSERT_JOURNAL_REPLAY))) {
++		u64s = 0;
++		trans_for_each_entry(trans, i)
++			u64s += jset_u64s(i->k->k.u64s);
++
++		ret = bch2_journal_res_get(&c->journal,
++				&trans->journal_res, u64s,
++				JOURNAL_RES_GET_NONBLOCK);
++		if (likely(!ret))
++			goto got_journal_res;
++		if (ret != -EAGAIN)
++			goto out;
++
++		multi_unlock_write(trans);
++		btree_trans_unlock(trans);
++
++		ret = bch2_journal_res_get(&c->journal,
++				&trans->journal_res, u64s,
++				JOURNAL_RES_GET_CHECK);
++		if (ret)
++			return ret;
++
++		if (!btree_trans_relock(trans)) {
++			trans_restart(" (iter relock after journal res get blocked)");
++			return -EINTR;
++		}
++
++		goto retry;
++	}
++got_journal_res:
 +	if (!(trans->flags & BTREE_INSERT_JOURNAL_REPLAY)) {
 +		if (journal_seq_verify(c))
 +			trans_for_each_entry(trans, i)
@@ -24533,10 +24711,10 @@ index 000000000000..9d457d6c7c67
 +}
 diff --git a/fs/bcachefs/buckets.c b/fs/bcachefs/buckets.c
 new file mode 100644
-index 000000000000..ba426be953f3
+index 000000000000..377a8b0f7f7d
 --- /dev/null
 +++ b/fs/bcachefs/buckets.c
-@@ -0,0 +1,1244 @@
+@@ -0,0 +1,1311 @@
 +/*
 + * Code for manipulating bucket marks for garbage collection.
 + *
@@ -24655,14 +24833,14 @@ index 000000000000..ba426be953f3
 +void bch2_fs_usage_initialize(struct bch_fs *c)
 +{
 +	struct bch_fs_usage *usage;
-+	unsigned i, nr;
++	unsigned i;
 +
 +	percpu_down_write(&c->mark_lock);
-+	nr = sizeof(struct bch_fs_usage) / sizeof(u64) + c->replicas.nr;
-+	usage = (void *) bch2_acc_percpu_u64s((void *) c->usage[0], nr);
++	usage = (void *) bch2_acc_percpu_u64s((void *) c->usage[0],
++					      fs_usage_u64s(c));
 +
 +	for (i = 0; i < BCH_REPLICAS_MAX; i++)
-+		usage->s.reserved += usage->persistent_reserved[i];
++		usage->reserved += usage->persistent_reserved[i];
 +
 +	for (i = 0; i < c->replicas.nr; i++) {
 +		struct bch_replicas_entry *e =
@@ -24671,10 +24849,10 @@ index 000000000000..ba426be953f3
 +		switch (e->data_type) {
 +		case BCH_DATA_BTREE:
 +		case BCH_DATA_USER:
-+			usage->s.data	+= usage->data[i];
++			usage->data	+= usage->replicas[i];
 +			break;
 +		case BCH_DATA_CACHED:
-+			usage->s.cached	+= usage->data[i];
++			usage->cached	+= usage->replicas[i];
 +			break;
 +		}
 +	}
@@ -24682,44 +24860,38 @@ index 000000000000..ba426be953f3
 +	percpu_up_write(&c->mark_lock);
 +}
 +
-+#define bch2_usage_read_raw(_stats)					\
-+({									\
-+	typeof(*this_cpu_ptr(_stats)) _acc;				\
-+									\
-+	memset(&_acc, 0, sizeof(_acc));					\
-+	acc_u64s_percpu((u64 *) &_acc,					\
-+			(u64 __percpu *) _stats,			\
-+			sizeof(_acc) / sizeof(u64));			\
-+									\
-+	_acc;								\
-+})
-+
 +struct bch_dev_usage bch2_dev_usage_read(struct bch_fs *c, struct bch_dev *ca)
 +{
-+	return bch2_usage_read_raw(ca->usage[0]);
++	struct bch_dev_usage ret;
++
++	memset(&ret, 0, sizeof(ret));
++	acc_u64s_percpu((u64 *) &ret,
++			(u64 __percpu *) ca->usage[0],
++			sizeof(ret) / sizeof(u64));
++
++	return ret;
 +}
 +
 +struct bch_fs_usage *bch2_fs_usage_read(struct bch_fs *c)
 +{
 +	struct bch_fs_usage *ret;
-+	unsigned nr = READ_ONCE(c->replicas.nr);
++	unsigned v, u64s = fs_usage_u64s(c);
 +retry:
-+	ret = kzalloc(sizeof(*ret) + nr * sizeof(u64), GFP_NOFS);
++	ret = kzalloc(u64s * sizeof(u64), GFP_NOFS);
 +	if (unlikely(!ret))
 +		return NULL;
 +
 +	percpu_down_read_preempt_disable(&c->mark_lock);
 +
-+	if (unlikely(nr < c->replicas.nr)) {
-+		nr = c->replicas.nr;
++	v = fs_usage_u64s(c);
++	if (unlikely(u64s != v)) {
++		u64s = v;
 +		percpu_up_read_preempt_enable(&c->mark_lock);
 +		kfree(ret);
 +		goto retry;
 +	}
 +
-+	acc_u64s_percpu((u64 *) ret,
-+			(u64 __percpu *) c->usage[0],
-+			sizeof(*ret) / sizeof(u64) + nr);
++	acc_u64s_percpu((u64 *) ret, (u64 __percpu *) c->usage[0], u64s);
 +
 +	return ret;
 +}
@@ -24736,27 +24908,44 @@ index 000000000000..ba426be953f3
 +	return (r << RESERVE_FACTOR) / ((1 << RESERVE_FACTOR) + 1);
 +}
 +
-+u64 bch2_fs_sectors_used(struct bch_fs *c, struct bch_fs_usage fs_usage)
++u64 bch2_fs_sectors_used(struct bch_fs *c, struct bch_fs_usage *fs_usage)
 +{
-+	return min(fs_usage.s.hidden +
-+		   fs_usage.s.data +
-+		   reserve_factor(fs_usage.s.reserved +
-+				  fs_usage.s.online_reserved),
++	return min(fs_usage->hidden +
++		   fs_usage->data +
++		   reserve_factor(fs_usage->reserved +
++				  fs_usage->online_reserved),
 +		   c->capacity);
++}
++
++static struct bch_fs_usage_short
++__bch2_fs_usage_read_short(struct bch_fs *c)
++{
++	struct bch_fs_usage_short ret;
++	u64 data, reserved;
++
++	ret.capacity = c->capacity -
++		percpu_u64_get(&c->usage[0]->hidden);
++
++	data		= percpu_u64_get(&c->usage[0]->data);
++	reserved	= percpu_u64_get(&c->usage[0]->reserved) +
++		percpu_u64_get(&c->usage[0]->online_reserved);
++
++	ret.used	= min(ret.capacity, data + reserve_factor(reserved));
++	ret.free	= ret.capacity - ret.used;
++
++	ret.nr_inodes	= percpu_u64_get(&c->usage[0]->nr_inodes);
++
++	return ret;
 +}
 +
 +struct bch_fs_usage_short
 +bch2_fs_usage_read_short(struct bch_fs *c)
 +{
-+	struct bch_fs_usage_summarized usage =
-+		bch2_usage_read_raw(&c->usage[0]->s);
 +	struct bch_fs_usage_short ret;
 +
-+	ret.capacity	= READ_ONCE(c->capacity) - usage.hidden;
-+	ret.used	= min(ret.capacity, usage.data +
-+			      reserve_factor(usage.reserved +
-+					     usage.online_reserved));
-+	ret.nr_inodes	= usage.nr_inodes;
++	percpu_down_read_preempt_disable(&c->mark_lock);
++	ret = __bch2_fs_usage_read_short(c);
++	percpu_up_read_preempt_enable(&c->mark_lock);
 +
 +	return ret;
 +}
@@ -24795,7 +24984,7 @@ index 000000000000..ba426be953f3
 +			struct bch_fs_usage *fs_usage,
 +			struct disk_reservation *disk_res)
 +{
-+	s64 added = fs_usage->s.data + fs_usage->s.reserved;
++	s64 added = fs_usage->data + fs_usage->reserved;
 +	s64 should_not_have_added;
 +	int ret = 0;
 +
@@ -24815,12 +25004,11 @@ index 000000000000..ba426be953f3
 +
 +	if (added > 0) {
 +		disk_res->sectors		-= added;
-+		fs_usage->s.online_reserved	-= added;
++		fs_usage->online_reserved	-= added;
 +	}
 +
 +	acc_u64s((u64 *) this_cpu_ptr(c->usage[0]),
-+		 (u64 *) fs_usage,
-+		 sizeof(*fs_usage) / sizeof(u64) + c->replicas.nr);
++		 (u64 *) fs_usage, fs_usage_u64s(c));
 +
 +	return ret;
 +}
@@ -24831,7 +25019,7 @@ index 000000000000..ba426be953f3
 +				  int nr, s64 size)
 +{
 +	if (type == BCH_DATA_SB || type == BCH_DATA_JOURNAL)
-+		fs_usage->s.hidden	+= size;
++		fs_usage->hidden	+= size;
 +
 +	dev_usage->buckets[type]	+= nr;
 +}
@@ -24915,10 +25103,10 @@ index 000000000000..ba426be953f3
 +	BUG_ON(!sectors);
 +
 +	if (r->data_type == BCH_DATA_CACHED)
-+		fs_usage->s.cached	+= sectors;
++		fs_usage->cached	+= sectors;
 +	else
-+		fs_usage->s.data	+= sectors;
-+	fs_usage->data[idx]		+= sectors;
++		fs_usage->data		+= sectors;
++	fs_usage->replicas[idx]		+= sectors;
 +}
 +
 +static inline void update_cached_sectors(struct bch_fs *c,
@@ -25008,6 +25196,60 @@ index 000000000000..ba426be953f3
 +{
 +	do_mark_fn(__bch2_mark_alloc_bucket, c, pos, flags,
 +		   ca, b, owned_by_allocator);
++}
++
++static int bch2_mark_alloc(struct bch_fs *c, struct bkey_s_c k,
++			   bool inserting,
++			   struct bch_fs_usage *fs_usage,
++			   unsigned journal_seq, unsigned flags,
++			   bool gc)
++{
++	struct bkey_alloc_unpacked u;
++	struct bch_dev *ca;
++	struct bucket *g;
++	struct bucket_mark old, m;
++
++	if (!inserting)
++		return 0;
++
++	/*
++	 * alloc btree is read in by bch2_alloc_read, not gc:
++	 */
++	if (flags & BCH_BUCKET_MARK_GC)
++		return 0;
++
++	u = bch2_alloc_unpack(bkey_s_c_to_alloc(k).v);
++	ca = bch_dev_bkey_exists(c, k.k->p.inode);
++	g = __bucket(ca, k.k->p.offset, gc);
++
++	/*
++	 * this should currently only be getting called from the bucket
++	 * invalidate path:
++	 */
++	BUG_ON(u.dirty_sectors);
++	BUG_ON(u.cached_sectors);
++	BUG_ON(!g->mark.owned_by_allocator);
++
++	old = bucket_data_cmpxchg(c, ca, fs_usage, g, m, ({
++		m.gen			= u.gen;
++		m.data_type		= u.data_type;
++		m.dirty_sectors		= u.dirty_sectors;
++		m.cached_sectors	= u.cached_sectors;
++	}));
++
++	g->io_time[READ]	= u.read_time;
++	g->io_time[WRITE]	= u.write_time;
++	g->oldest_gen		= u.oldest_gen;
++	g->gen_valid		= 1;
++
++	if (old.cached_sectors) {
++		update_cached_sectors(c, fs_usage, ca->dev_idx,
++				      -old.cached_sectors);
++		trace_invalidate(ca, bucket_to_sector(ca, k.k->p.offset),
++				 old.cached_sectors);
++	}
++
++	return 0;
 +}
 +
 +#define checked_add(a, b)					\
@@ -25370,23 +25612,26 @@ index 000000000000..ba426be953f3
 +		fs_usage = this_cpu_ptr(c->usage[gc]);
 +
 +	switch (k.k->type) {
++	case KEY_TYPE_alloc:
++		return bch2_mark_alloc(c, k, inserting,
++				fs_usage, journal_seq, flags, gc);
 +	case KEY_TYPE_btree_ptr:
 +		return bch2_mark_extent(c, k, inserting
-+					?  c->opts.btree_node_size
-+					: -c->opts.btree_node_size,
-+					BCH_DATA_BTREE,
-+					fs_usage, journal_seq, flags, gc);
++				?  c->opts.btree_node_size
++				: -c->opts.btree_node_size,
++				BCH_DATA_BTREE,
++				fs_usage, journal_seq, flags, gc);
 +	case KEY_TYPE_extent:
 +		return bch2_mark_extent(c, k, sectors, BCH_DATA_USER,
-+					fs_usage, journal_seq, flags, gc);
++				fs_usage, journal_seq, flags, gc);
 +	case KEY_TYPE_stripe:
 +		return bch2_mark_stripe(c, k, inserting,
-+					fs_usage, journal_seq, flags, gc);
++				fs_usage, journal_seq, flags, gc);
 +	case KEY_TYPE_inode:
 +		if (inserting)
-+			fs_usage->s.nr_inodes++;
++			fs_usage->nr_inodes++;
 +		else
-+			fs_usage->s.nr_inodes--;
++			fs_usage->nr_inodes--;
 +		return 0;
 +	case KEY_TYPE_reservation: {
 +		unsigned replicas = bkey_s_c_to_reservation(k).v->nr_replicas;
@@ -25395,7 +25640,7 @@ index 000000000000..ba426be953f3
 +		replicas = clamp_t(unsigned, replicas, 1,
 +				   ARRAY_SIZE(fs_usage->persistent_reserved));
 +
-+		fs_usage->s.reserved				+= sectors;
++		fs_usage->reserved				+= sectors;
 +		fs_usage->persistent_reserved[replicas - 1]	+= sectors;
 +		return 0;
 +	}
@@ -25451,7 +25696,7 @@ index 000000000000..ba426be953f3
 +	percpu_down_read_preempt_disable(&c->mark_lock);
 +	fs_usage = bch2_fs_usage_get_scratch(c);
 +
-+	if (!(trans->flags & BTREE_INSERT_JOURNAL_REPLAY))
++	if (!(trans->flags & BTREE_INSERT_NOMARK))
 +		bch2_mark_key_locked(c, bkey_i_to_s_c(insert->k), true,
 +			bpos_min(insert->k->k.p, b->key.k.p).offset -
 +			bkey_start_offset(&insert->k->k),
@@ -25545,13 +25790,13 @@ index 000000000000..ba426be953f3
 +{
 +	percpu_u64_set(&c->pcpu->sectors_available, 0);
 +
-+	return avail_factor(bch2_fs_sectors_free(c));
++	return avail_factor(__bch2_fs_usage_read_short(c).free);
 +}
 +
 +void __bch2_disk_reservation_put(struct bch_fs *c, struct disk_reservation *res)
 +{
 +	percpu_down_read_preempt_disable(&c->mark_lock);
-+	this_cpu_sub(c->usage[0]->s.online_reserved,
++	this_cpu_sub(c->usage[0]->online_reserved,
 +		     res->sectors);
 +	percpu_up_read_preempt_enable(&c->mark_lock);
 +
@@ -25590,7 +25835,7 @@ index 000000000000..ba426be953f3
 +
 +out:
 +	pcpu->sectors_available		-= sectors;
-+	this_cpu_add(c->usage[0]->s.online_reserved, sectors);
++	this_cpu_add(c->usage[0]->online_reserved, sectors);
 +	res->sectors			+= sectors;
 +
 +	percpu_up_read_preempt_enable(&c->mark_lock);
@@ -25605,7 +25850,7 @@ index 000000000000..ba426be953f3
 +	    (flags & BCH_DISK_RESERVATION_NOFAIL)) {
 +		atomic64_set(&c->sectors_available,
 +			     max_t(s64, 0, sectors_available - sectors));
-+		this_cpu_add(c->usage[0]->s.online_reserved, sectors);
++		this_cpu_add(c->usage[0]->online_reserved, sectors);
 +		res->sectors			+= sectors;
 +		ret = 0;
 +	} else {
@@ -25783,10 +26028,10 @@ index 000000000000..ba426be953f3
 +}
 diff --git a/fs/bcachefs/buckets.h b/fs/bcachefs/buckets.h
 new file mode 100644
-index 000000000000..ffa05951b671
+index 000000000000..0725aa94428b
 --- /dev/null
 +++ b/fs/bcachefs/buckets.h
-@@ -0,0 +1,309 @@
+@@ -0,0 +1,307 @@
 +/*
 + * Code for manipulating bucket marks for garbage collection.
 + *
@@ -25805,13 +26050,14 @@ index 000000000000..ffa05951b671
 +
 +#define bucket_cmpxchg(g, new, expr)				\
 +({								\
++	struct bucket *_g = g;					\
 +	u64 _v = atomic64_read(&(g)->_mark.v);			\
 +	struct bucket_mark _old;				\
 +								\
 +	do {							\
 +		(new).v.counter = _old.v.counter = _v;		\
 +		expr;						\
-+	} while ((_v = atomic64_cmpxchg(&(g)->_mark.v,		\
++	} while ((_v = atomic64_cmpxchg(&(_g)->_mark.v,		\
 +			       _old.v.counter,			\
 +			       (new).v.counter)) != _old.v.counter);\
 +	_old;							\
@@ -25878,7 +26124,7 @@ index 000000000000..ffa05951b671
 +					const struct bch_extent_ptr *ptr,
 +					bool gc)
 +{
-+	return bucket(ca, PTR_BUCKET_NR(ca, ptr));
++	return __bucket(ca, PTR_BUCKET_NR(ca, ptr), gc);
 +}
 +
 +static inline struct bucket_mark ptr_bucket_mark(struct bch_dev *ca,
@@ -25999,30 +26245,27 @@ index 000000000000..ffa05951b671
 +
 +/* Filesystem usage: */
 +
++static inline unsigned fs_usage_u64s(struct bch_fs *c)
++{
++
++	return sizeof(struct bch_fs_usage) / sizeof(u64) +
++		READ_ONCE(c->replicas.nr);
++}
++
 +static inline struct bch_fs_usage *bch2_fs_usage_get_scratch(struct bch_fs *c)
 +{
-+	struct bch_fs_usage *ret;
++	struct bch_fs_usage *ret = this_cpu_ptr(c->usage_scratch);
 +
-+	ret = this_cpu_ptr(c->usage_scratch);
-+
-+	memset(ret, 0, sizeof(*ret) + c->replicas.nr * sizeof(u64));
-+
++	memset(ret, 0, fs_usage_u64s(c) * sizeof(u64));
 +	return ret;
 +}
 +
 +struct bch_fs_usage *bch2_fs_usage_read(struct bch_fs *);
 +
-+u64 bch2_fs_sectors_used(struct bch_fs *, struct bch_fs_usage);
++u64 bch2_fs_sectors_used(struct bch_fs *, struct bch_fs_usage *);
 +
 +struct bch_fs_usage_short
 +bch2_fs_usage_read_short(struct bch_fs *);
-+
-+static inline u64 bch2_fs_sectors_free(struct bch_fs *c)
-+{
-+	struct bch_fs_usage_short usage = bch2_fs_usage_read_short(c);
-+
-+	return usage.capacity - usage.used;
-+}
 +
 +/* key/bucket marking: */
 +
@@ -26098,10 +26341,10 @@ index 000000000000..ffa05951b671
 +#endif /* _BUCKETS_H */
 diff --git a/fs/bcachefs/buckets_types.h b/fs/bcachefs/buckets_types.h
 new file mode 100644
-index 000000000000..dc0cc774b542
+index 000000000000..869a13146c29
 --- /dev/null
 +++ b/fs/bcachefs/buckets_types.h
-@@ -0,0 +1,115 @@
+@@ -0,0 +1,113 @@
 +#ifndef _BUCKETS_TYPES_H
 +#define _BUCKETS_TYPES_H
 +
@@ -26167,35 +26410,33 @@ index 000000000000..dc0cc774b542
 +struct bch_fs_usage {
 +	/* all fields are in units of 512 byte sectors: */
 +
-+	/* summarized: */
-+	struct bch_fs_usage_summarized {
-+		u64		online_reserved;
++	u64			online_reserved;
 +
-+		/* fields after online_reserved are cleared/recalculated by gc: */
-+		u64		gc_start[0];
++	/* fields after online_reserved are cleared/recalculated by gc: */
++	u64			gc_start[0];
 +
-+		u64		hidden;
-+		u64		data;
-+		u64		cached;
-+		u64		reserved;
-+		u64		nr_inodes;
++	u64			hidden;
++	u64			data;
++	u64			cached;
++	u64			reserved;
++	u64			nr_inodes;
 +
-+		/* XXX: add stats for compression ratio */
++	/* XXX: add stats for compression ratio */
 +#if 0
-+		u64		uncompressed;
-+		u64		compressed;
++	u64			uncompressed;
++	u64			compressed;
 +#endif
-+	} s;
 +
 +	/* broken out: */
 +
 +	u64			persistent_reserved[BCH_REPLICAS_MAX];
-+	u64			data[];
++	u64			replicas[];
 +};
 +
 +struct bch_fs_usage_short {
 +	u64			capacity;
 +	u64			used;
++	u64			free;
 +	u64			nr_inodes;
 +};
 +
@@ -26219,7 +26460,7 @@ index 000000000000..dc0cc774b542
 +#endif /* _BUCKETS_TYPES_H */
 diff --git a/fs/bcachefs/chardev.c b/fs/bcachefs/chardev.c
 new file mode 100644
-index 000000000000..b84ae5c937e5
+index 000000000000..4e33e7b81872
 --- /dev/null
 +++ b/fs/bcachefs/chardev.c
 @@ -0,0 +1,670 @@
@@ -26627,10 +26868,10 @@ index 000000000000..b84ae5c937e5
 +		if (!src)
 +			return -ENOMEM;
 +
-+		percpu_up_read_preempt_enable(&c->mark_lock);
++		dst.used		= bch2_fs_sectors_used(c, src);
++		dst.online_reserved	= src->online_reserved;
 +
-+		dst.used		= bch2_fs_sectors_used(c, *src);
-+		dst.online_reserved	= src->s.online_reserved;
++		percpu_up_read_preempt_enable(&c->mark_lock);
 +
 +		for (i = 0; i < BCH_REPLICAS_MAX; i++) {
 +			dst.persistent_reserved[i] =
@@ -34853,7 +35094,7 @@ index 000000000000..d19d809c7580
 +#endif /* _EYTZINGER_H */
 diff --git a/fs/bcachefs/fifo.h b/fs/bcachefs/fifo.h
 new file mode 100644
-index 000000000000..9715ddbdae56
+index 000000000000..0982af022ff9
 --- /dev/null
 +++ b/fs/bcachefs/fifo.h
 @@ -0,0 +1,126 @@
@@ -34959,7 +35200,7 @@ index 000000000000..9715ddbdae56
 +({									\
 +	bool _r = !fifo_empty((fifo));					\
 +	if (_r)								\
-+		(i) = (fifo)->data[--(fifo)->back & (fifo)->mask]	\
++		(i) = (fifo)->data[--(fifo)->back & (fifo)->mask];	\
 +	_r;								\
 +})
 +
@@ -44528,10 +44769,10 @@ index 000000000000..8ec846cc996f
 +#endif /* _BCACHEFS_IO_TYPES_H */
 diff --git a/fs/bcachefs/journal.c b/fs/bcachefs/journal.c
 new file mode 100644
-index 000000000000..8ff8cfa8bf76
+index 000000000000..f108a28233c7
 --- /dev/null
 +++ b/fs/bcachefs/journal.c
-@@ -0,0 +1,1161 @@
+@@ -0,0 +1,1179 @@
 +/*
 + * bcachefs journalling code, for btree insertions
 + *
@@ -44551,23 +44792,14 @@ index 000000000000..8ff8cfa8bf76
 +
 +#include <trace/events/bcachefs.h>
 +
-+static bool journal_entry_is_open(struct journal *j)
++static bool __journal_entry_is_open(union journal_res_state state)
 +{
-+	return j->reservations.cur_entry_offset < JOURNAL_ENTRY_CLOSED_VAL;
++	return state.cur_entry_offset < JOURNAL_ENTRY_CLOSED_VAL;
 +}
 +
-+void bch2_journal_buf_put_slowpath(struct journal *j, bool need_write_just_set)
++static bool journal_entry_is_open(struct journal *j)
 +{
-+	struct journal_buf *w = journal_prev_buf(j);
-+
-+	atomic_dec_bug(&journal_seq_pin(j, le64_to_cpu(w->data->seq))->count);
-+
-+	if (!need_write_just_set &&
-+	    test_bit(JOURNAL_NEED_WRITE, &j->flags))
-+		bch2_time_stats_update(j->delay_time,
-+				       j->need_write_time);
-+
-+	closure_call(&j->io, bch2_journal_write, system_highpri_wq, NULL);
++	return __journal_entry_is_open(j->reservations);
 +}
 +
 +static void journal_pin_new_entry(struct journal *j, int count)
@@ -44611,39 +44843,71 @@ index 000000000000..8ff8cfa8bf76
 +	return true;
 +}
 +
-+static enum {
-+	JOURNAL_ENTRY_ERROR,
-+	JOURNAL_ENTRY_INUSE,
-+	JOURNAL_ENTRY_CLOSED,
-+	JOURNAL_UNLOCKED,
-+} journal_buf_switch(struct journal *j, bool need_write_just_set)
++void bch2_journal_halt(struct journal *j)
++{
++	union journal_res_state old, new;
++	u64 v = atomic64_read(&j->reservations.counter);
++
++	do {
++		old.v = new.v = v;
++		if (old.cur_entry_offset == JOURNAL_ENTRY_ERROR_VAL)
++			return;
++
++		new.cur_entry_offset = JOURNAL_ENTRY_ERROR_VAL;
++	} while ((v = atomic64_cmpxchg(&j->reservations.counter,
++				       old.v, new.v)) != old.v);
++
++	journal_wake(j);
++	closure_wake_up(&journal_cur_buf(j)->wait);
++}
++
++/* journal entry close/open: */
++
++void __bch2_journal_buf_put(struct journal *j, bool need_write_just_set)
++{
++	if (!need_write_just_set &&
++	    test_bit(JOURNAL_NEED_WRITE, &j->flags))
++		bch2_time_stats_update(j->delay_time,
++				       j->need_write_time);
++
++	clear_bit(JOURNAL_NEED_WRITE, &j->flags);
++
++	closure_call(&j->io, bch2_journal_write, system_highpri_wq, NULL);
++}
++
++/*
++ * Returns true if journal entry is now closed:
++ */
++static bool __journal_entry_close(struct journal *j)
 +{
 +	struct bch_fs *c = container_of(j, struct bch_fs, journal);
 +	struct journal_buf *buf = journal_cur_buf(j);
 +	union journal_res_state old, new;
 +	u64 v = atomic64_read(&j->reservations.counter);
++	bool set_need_write = false;
++	unsigned sectors;
 +
 +	lockdep_assert_held(&j->lock);
 +
 +	do {
 +		old.v = new.v = v;
 +		if (old.cur_entry_offset == JOURNAL_ENTRY_CLOSED_VAL)
-+			return JOURNAL_ENTRY_CLOSED;
++			return true;
 +
 +		if (old.cur_entry_offset == JOURNAL_ENTRY_ERROR_VAL) {
 +			/* this entry will never be written: */
 +			closure_wake_up(&buf->wait);
-+			return JOURNAL_ENTRY_ERROR;
++			return true;
++		}
++
++		if (!test_bit(JOURNAL_NEED_WRITE, &j->flags)) {
++			set_bit(JOURNAL_NEED_WRITE, &j->flags);
++			j->need_write_time = local_clock();
++			set_need_write = true;
 +		}
 +
 +		if (new.prev_buf_unwritten)
-+			return JOURNAL_ENTRY_INUSE;
-+
-+		/*
-+		 * avoid race between setting buf->data->u64s and
-+		 * journal_res_put starting write:
-+		 */
-+		journal_state_inc(&new);
++			return false;
 +
 +		new.cur_entry_offset = JOURNAL_ENTRY_CLOSED_VAL;
 +		new.idx++;
@@ -44653,15 +44917,12 @@ index 000000000000..8ff8cfa8bf76
 +	} while ((v = atomic64_cmpxchg(&j->reservations.counter,
 +				       old.v, new.v)) != old.v);
 +
-+	clear_bit(JOURNAL_NEED_WRITE, &j->flags);
-+
 +	buf->data->u64s		= cpu_to_le32(old.cur_entry_offset);
 +
-+	j->prev_buf_sectors =
-+		vstruct_blocks_plus(buf->data, c->block_bits,
-+				    buf->u64s_reserved) *
-+		c->opts.block_size;
-+	BUG_ON(j->prev_buf_sectors > j->cur_buf_sectors);
++	sectors = vstruct_blocks_plus(buf->data, c->block_bits,
++				      buf->u64s_reserved) << c->block_bits;
++	BUG_ON(sectors > buf->sectors);
++	buf->sectors = sectors;
 +
 +	bkey_extent_init(&buf->key);
 +
@@ -44684,7 +44945,6 @@ index 000000000000..8ff8cfa8bf76
 +	 * Hence, we want update/set last_seq on the current journal entry right
 +	 * before we open a new one:
 +	 */
-+	bch2_journal_reclaim_fast(j);
 +	buf->data->last_seq	= cpu_to_le64(journal_last_seq(j));
 +
 +	if (journal_entry_empty(buf->data))
@@ -44697,32 +44957,22 @@ index 000000000000..8ff8cfa8bf76
 +	bch2_journal_buf_init(j);
 +
 +	cancel_delayed_work(&j->write_work);
-+	spin_unlock(&j->lock);
 +
-+	/* ugh - might be called from __journal_res_get() under wait_event() */
-+	__set_current_state(TASK_RUNNING);
-+	bch2_journal_buf_put(j, old.idx, need_write_just_set);
++	bch2_journal_space_available(j);
 +
-+	return JOURNAL_UNLOCKED;
++	bch2_journal_buf_put(j, old.idx, set_need_write);
++	return true;
 +}
 +
-+void bch2_journal_halt(struct journal *j)
++static bool journal_entry_close(struct journal *j)
 +{
-+	union journal_res_state old, new;
-+	u64 v = atomic64_read(&j->reservations.counter);
++	bool ret;
 +
-+	do {
-+		old.v = new.v = v;
-+		if (old.cur_entry_offset == JOURNAL_ENTRY_ERROR_VAL)
-+			return;
++	spin_lock(&j->lock);
++	ret = __journal_entry_close(j);
++	spin_unlock(&j->lock);
 +
-+		new.cur_entry_offset = JOURNAL_ENTRY_ERROR_VAL;
-+	} while ((v = atomic64_cmpxchg(&j->reservations.counter,
-+				       old.v, new.v)) != old.v);
-+
-+	journal_wake(j);
-+	closure_wake_up(&journal_cur_buf(j)->wait);
-+	closure_wake_up(&journal_prev_buf(j)->wait);
++	return ret;
 +}
 +
 +/*
@@ -44730,46 +44980,39 @@ index 000000000000..8ff8cfa8bf76
 + * journal reservation - journal entry is open means journal is dirty:
 + *
 + * returns:
-+ * 1:		success
-+ * 0:		journal currently full (must wait)
-+ * -EROFS:	insufficient rw devices
-+ * -EIO:	journal error
++ * 0:		success
++ * -ENOSPC:	journal currently full, must invoke reclaim
++ * -EAGAIN:	journal blocked, must wait
++ * -EROFS:	insufficient rw devices or journal error
 + */
 +static int journal_entry_open(struct journal *j)
 +{
 +	struct journal_buf *buf = journal_cur_buf(j);
 +	union journal_res_state old, new;
-+	ssize_t u64s;
-+	int sectors;
++	int u64s;
 +	u64 v;
 +
 +	lockdep_assert_held(&j->lock);
 +	BUG_ON(journal_entry_is_open(j));
 +
-+	if (!fifo_free(&j->pin))
-+		return 0;
++	if (j->blocked)
++		return -EAGAIN;
 +
-+	sectors = bch2_journal_entry_sectors(j);
-+	if (sectors <= 0)
-+		return sectors;
++	if (j->cur_entry_error)
++		return j->cur_entry_error;
 +
-+	buf->disk_sectors	= sectors;
++	BUG_ON(!j->cur_entry_sectors);
++
 +	buf->u64s_reserved	= j->entry_u64s_reserved;
++	buf->disk_sectors	= j->cur_entry_sectors;
++	buf->sectors		= min(buf->disk_sectors, buf->buf_size >> 9);
 +
-+	sectors = min_t(unsigned, sectors, buf->size >> 9);
-+	j->cur_buf_sectors	= sectors;
-+
-+	u64s = (sectors << 9) / sizeof(u64);
-+
-+	/* Subtract the journal header */
-+	u64s -= sizeof(struct jset) / sizeof(u64);
-+	u64s -= buf->u64s_reserved;
-+	u64s  = max_t(ssize_t, 0L, u64s);
-+
-+	BUG_ON(u64s >= JOURNAL_ENTRY_CLOSED_VAL);
++	u64s = (int) (buf->sectors << 9) / sizeof(u64) -
++		journal_entry_overhead(j);
++	u64s  = clamp_t(int, u64s, 0, JOURNAL_ENTRY_CLOSED_VAL - 1);
 +
 +	if (u64s <= le32_to_cpu(buf->data->u64s))
-+		return 0;
++		return -ENOSPC;
 +
 +	/*
 +	 * Must be set before marking the journal entry as open:
@@ -44780,11 +45023,14 @@ index 000000000000..8ff8cfa8bf76
 +	do {
 +		old.v = new.v = v;
 +
++		EBUG_ON(journal_state_count(new, new.idx));
++
 +		if (old.cur_entry_offset == JOURNAL_ENTRY_ERROR_VAL)
-+			return -EIO;
++			return -EROFS;
 +
 +		/* Handle any already added entries */
 +		new.cur_entry_offset = le32_to_cpu(buf->data->u64s);
++		journal_state_inc(&new);
 +	} while ((v = atomic64_cmpxchg(&j->reservations.counter,
 +				       old.v, new.v)) != old.v);
 +
@@ -44797,37 +45043,22 @@ index 000000000000..8ff8cfa8bf76
 +			 &j->write_work,
 +			 msecs_to_jiffies(j->write_delay_ms));
 +	journal_wake(j);
-+	return 1;
++	return 0;
 +}
 +
-+static bool __journal_entry_close(struct journal *j)
++static bool journal_quiesced(struct journal *j)
 +{
-+	bool set_need_write;
++	union journal_res_state state = READ_ONCE(j->reservations);
++	bool ret = !state.prev_buf_unwritten && !__journal_entry_is_open(state);
 +
-+	if (!journal_entry_is_open(j)) {
-+		spin_unlock(&j->lock);
-+		return true;
-+	}
-+
-+	set_need_write = !test_and_set_bit(JOURNAL_NEED_WRITE, &j->flags);
-+	if (set_need_write)
-+		j->need_write_time = local_clock();
-+
-+	switch (journal_buf_switch(j, set_need_write)) {
-+	case JOURNAL_ENTRY_INUSE:
-+		spin_unlock(&j->lock);
-+		return false;
-+	default:
-+		spin_unlock(&j->lock);
-+	case JOURNAL_UNLOCKED:
-+		return true;
-+	}
++	if (!ret)
++		journal_entry_close(j);
++	return ret;
 +}
 +
-+static bool journal_entry_close(struct journal *j)
++static void journal_quiesce(struct journal *j)
 +{
-+	spin_lock(&j->lock);
-+	return __journal_entry_close(j);
++	wait_event(j->wait, journal_quiesced(j));
 +}
 +
 +static void journal_write_work(struct work_struct *work)
@@ -44871,7 +45102,11 @@ index 000000000000..8ff8cfa8bf76
 +	if (journal_res_get_fast(j, res, flags))
 +		return 0;
 +
++	if (bch2_journal_error(j))
++		return -EROFS;
++
 +	spin_lock(&j->lock);
++
 +	/*
 +	 * Recheck after taking the lock, so we don't race with another thread
 +	 * that just did journal_entry_open() and call journal_entry_close()
@@ -44889,56 +45124,43 @@ index 000000000000..8ff8cfa8bf76
 +	 */
 +	buf = journal_cur_buf(j);
 +	if (journal_entry_is_open(j) &&
-+	    buf->size >> 9 < buf->disk_sectors &&
-+	    buf->size < JOURNAL_ENTRY_SIZE_MAX)
-+		j->buf_size_want = max(j->buf_size_want, buf->size << 1);
++	    buf->buf_size >> 9 < buf->disk_sectors &&
++	    buf->buf_size < JOURNAL_ENTRY_SIZE_MAX)
++		j->buf_size_want = max(j->buf_size_want, buf->buf_size << 1);
 +
-+	/*
-+	 * Close the current journal entry if necessary, then try to start a new
-+	 * one:
-+	 */
-+	switch (journal_buf_switch(j, false)) {
-+	case JOURNAL_ENTRY_ERROR:
-+		spin_unlock(&j->lock);
-+		return -EROFS;
-+	case JOURNAL_ENTRY_INUSE:
++	if (journal_entry_is_open(j) &&
++	    !__journal_entry_close(j)) {
 +		/*
-+		 * The current journal entry is still open, but we failed to get
-+		 * a journal reservation because there's not enough space in it,
-+		 * and we can't close it and start another because we haven't
-+		 * finished writing out the previous entry:
++		 * We failed to get a reservation on the current open journal
++		 * entry because it's full, and we can't close it because
++		 * there's still a previous one in flight:
 +		 */
-+		spin_unlock(&j->lock);
 +		trace_journal_entry_full(c);
-+		goto blocked;
-+	case JOURNAL_ENTRY_CLOSED:
-+		break;
-+	case JOURNAL_UNLOCKED:
-+		goto retry;
++		ret = -EAGAIN;
++	} else {
++		ret = journal_entry_open(j);
 +	}
 +
-+	/* We now have a new, closed journal buf - see if we can open it: */
-+	ret = journal_entry_open(j);
++	if ((ret == -EAGAIN || ret == -ENOSPC) &&
++	    !j->res_get_blocked_start)
++		j->res_get_blocked_start = local_clock() ?: 1;
++
 +	spin_unlock(&j->lock);
 +
-+	if (ret < 0)
-+		return ret;
-+	if (ret)
++	if (!ret)
 +		goto retry;
++	if (ret == -ENOSPC) {
++		/*
++		 * Journal is full - can't rely on reclaim from work item due to
++		 * freezing:
++		 */
++		trace_journal_full(c);
++		if (!(flags & JOURNAL_RES_GET_NONBLOCK))
++			bch2_journal_reclaim_work(&j->reclaim_work.work);
++		ret = -EAGAIN;
++	}
 +
-+	/* Journal's full, we have to wait */
-+
-+	/*
-+	 * Direct reclaim - can't rely on reclaim from work item
-+	 * due to freezing..
-+	 */
-+	bch2_journal_reclaim_work(&j->reclaim_work.work);
-+
-+	trace_journal_full(c);
-+blocked:
-+	if (!j->res_get_blocked_start)
-+		j->res_get_blocked_start = local_clock() ?: 1;
-+	return -EAGAIN;
++	return ret;
 +}
 +
 +/*
@@ -44956,7 +45178,7 @@ index 000000000000..8ff8cfa8bf76
 +{
 +	int ret;
 +
-+	wait_event(j->wait,
++	closure_wait_event(&j->async_wait,
 +		   (ret = __journal_res_get(j, res, flags)) != -EAGAIN ||
 +		   (flags & JOURNAL_RES_GET_NONBLOCK));
 +	return ret;
@@ -44975,9 +45197,9 @@ index 000000000000..8ff8cfa8bf76
 +
 +	j->entry_u64s_reserved += d;
 +	if (d <= 0)
-+		goto out_unlock;
++		goto out;
 +
-+	j->cur_entry_u64s -= d;
++	j->cur_entry_u64s = max_t(int, 0, j->cur_entry_u64s - d);
 +	smp_mb();
 +	state = READ_ONCE(j->reservations);
 +
@@ -44988,15 +45210,12 @@ index 000000000000..8ff8cfa8bf76
 +		 * Not enough room in current journal entry, have to flush it:
 +		 */
 +		__journal_entry_close(j);
-+		goto out;
++	} else {
++		journal_cur_buf(j)->u64s_reserved += d;
 +	}
-+
-+	journal_cur_buf(j)->u64s_reserved += d;
-+out_unlock:
-+	spin_unlock(&j->lock);
 +out:
++	spin_unlock(&j->lock);
 +	res->u64s += d;
-+	return;
 +}
 +
 +/* journal flushing: */
@@ -45026,47 +45245,47 @@ index 000000000000..8ff8cfa8bf76
 +{
 +	struct bch_fs *c = container_of(j, struct bch_fs, journal);
 +	int ret;
-+retry:
++
 +	spin_lock(&j->lock);
 +
-+	if (seq < journal_cur_seq(j) ||
++	/*
++	 * Can't try to open more than one sequence number ahead:
++	 */
++	BUG_ON(journal_cur_seq(j) < seq && !journal_entry_is_open(j));
++
++	if (journal_cur_seq(j) > seq ||
 +	    journal_entry_is_open(j)) {
 +		spin_unlock(&j->lock);
 +		return 0;
 +	}
 +
-+	if (journal_cur_seq(j) < seq) {
-+		switch (journal_buf_switch(j, false)) {
-+		case JOURNAL_ENTRY_ERROR:
-+			spin_unlock(&j->lock);
-+			return -EROFS;
-+		case JOURNAL_ENTRY_INUSE:
-+			/* haven't finished writing out the previous one: */
-+			trace_journal_entry_full(c);
-+			goto blocked;
-+		case JOURNAL_ENTRY_CLOSED:
-+			break;
-+		case JOURNAL_UNLOCKED:
-+			goto retry;
-+		}
++	if (journal_cur_seq(j) < seq &&
++	    !__journal_entry_close(j)) {
++		/* haven't finished writing out the previous one: */
++		trace_journal_entry_full(c);
++		ret = -EAGAIN;
++	} else {
++		BUG_ON(journal_cur_seq(j) != seq);
++
++		ret = journal_entry_open(j);
 +	}
 +
-+	BUG_ON(journal_cur_seq(j) < seq);
-+
-+	ret = journal_entry_open(j);
-+	if (ret) {
-+		spin_unlock(&j->lock);
-+		return ret < 0 ? ret : 0;
-+	}
-+blocked:
-+	if (!j->res_get_blocked_start)
++	if ((ret == -EAGAIN || ret == -ENOSPC) &&
++	    !j->res_get_blocked_start)
 +		j->res_get_blocked_start = local_clock() ?: 1;
 +
-+	closure_wait(&j->async_wait, cl);
++	if (ret == -EAGAIN || ret == -ENOSPC)
++		closure_wait(&j->async_wait, cl);
++
 +	spin_unlock(&j->lock);
 +
-+	bch2_journal_reclaim_work(&j->reclaim_work.work);
-+	return -EAGAIN;
++	if (ret == -ENOSPC) {
++		trace_journal_full(c);
++		bch2_journal_reclaim_work(&j->reclaim_work.work);
++		ret = -EAGAIN;
++	}
++
++	return ret;
 +}
 +
 +static int journal_seq_error(struct journal *j, u64 seq)
@@ -45149,8 +45368,7 @@ index 000000000000..8ff8cfa8bf76
 +
 +	if (seq == journal_cur_seq(j))
 +		__journal_entry_close(j);
-+	else
-+		spin_unlock(&j->lock);
++	spin_unlock(&j->lock);
 +}
 +
 +static int journal_seq_flushed(struct journal *j, u64 seq)
@@ -45162,8 +45380,7 @@ index 000000000000..8ff8cfa8bf76
 +
 +	if (seq == journal_cur_seq(j))
 +		__journal_entry_close(j);
-+	else
-+		spin_unlock(&j->lock);
++	spin_unlock(&j->lock);
 +
 +	return ret;
 +}
@@ -45255,6 +45472,26 @@ index 000000000000..8ff8cfa8bf76
 +	return bch2_journal_flush_seq(j, seq);
 +}
 +
++/* block/unlock the journal: */
++
++void bch2_journal_unblock(struct journal *j)
++{
++	spin_lock(&j->lock);
++	j->blocked--;
++	spin_unlock(&j->lock);
++
++	journal_wake(j);
++}
++
++void bch2_journal_block(struct journal *j)
++{
++	spin_lock(&j->lock);
++	j->blocked++;
++	spin_unlock(&j->lock);
++
++	journal_quiesce(j);
++}
++
 +/* allocate journal on a device: */
 +
 +static int __bch2_set_nr_journal_buckets(struct bch_dev *ca, unsigned nr,
@@ -45277,7 +45514,7 @@ index 000000000000..8ff8cfa8bf76
 +		goto err;
 +
 +	journal_buckets = bch2_sb_resize_journal(&ca->disk_sb,
-+				nr + sizeof(*journal_buckets) / sizeof(u64));
++						 nr + sizeof(*journal_buckets) / sizeof(u64));
 +	if (!journal_buckets)
 +		goto err;
 +
@@ -45340,9 +45577,9 @@ index 000000000000..8ff8cfa8bf76
 +		ja->nr++;
 +
 +		bch2_mark_metadata_bucket(c, ca, bucket, BCH_DATA_JOURNAL,
-+				ca->mi.bucket_size,
-+				gc_phase(GC_PHASE_SB),
-+				0);
++					  ca->mi.bucket_size,
++					  gc_phase(GC_PHASE_SB),
++					  0);
 +
 +		if (c) {
 +			spin_unlock(&c->journal.lock);
@@ -45393,7 +45630,7 @@ index 000000000000..8ff8cfa8bf76
 +		 */
 +
 +		if (bch2_disk_reservation_get(c, &disk_res,
-+				bucket_to_sector(ca, nr - ja->nr), 1, 0)) {
++					      bucket_to_sector(ca, nr - ja->nr), 1, 0)) {
 +			mutex_unlock(&c->sb_lock);
 +			return -ENOSPC;
 +		}
@@ -45464,8 +45701,7 @@ index 000000000000..8ff8cfa8bf76
 +	    c->btree_roots_dirty)
 +		bch2_journal_meta(j);
 +
-+	BUG_ON(journal_entry_is_open(j) ||
-+	       j->reservations.prev_buf_unwritten);
++	journal_quiesce(j);
 +
 +	BUG_ON(!bch2_journal_error(j) &&
 +	       test_bit(JOURNAL_NOT_EMPTY, &j->flags));
@@ -45491,7 +45727,7 @@ index 000000000000..8ff8cfa8bf76
 +		journal_pin_new_entry(j, 0);
 +
 +	/*
-+	 * journal_buf_switch() only inits the next journal entry when it
++	 * __journal_entry_close() only inits the next journal entry when it
 +	 * closes an open journal entry - the very first journal entry gets
 +	 * initialized here:
 +	 */
@@ -45500,6 +45736,7 @@ index 000000000000..8ff8cfa8bf76
 +
 +	c->last_bucket_seq_cleanup = journal_cur_seq(j);
 +
++	bch2_journal_space_available(j);
 +	spin_unlock(&j->lock);
 +
 +	/*
@@ -45509,7 +45746,7 @@ index 000000000000..8ff8cfa8bf76
 +	 */
 +	bch2_journal_seq_blacklist_write(j);
 +
-+	queue_delayed_work(system_freezable_wq, &j->reclaim_work, 0);
++	queue_delayed_work(c->journal_reclaim_wq, &j->reclaim_work, 0);
 +}
 +
 +/* init/exit: */
@@ -45555,8 +45792,8 @@ index 000000000000..8ff8cfa8bf76
 +
 +void bch2_fs_journal_exit(struct journal *j)
 +{
-+	kvpfree(j->buf[1].data, j->buf[1].size);
-+	kvpfree(j->buf[0].data, j->buf[0].size);
++	kvpfree(j->buf[1].data, j->buf[1].buf_size);
++	kvpfree(j->buf[0].data, j->buf[0].buf_size);
 +	free_fifo(&j->pin);
 +}
 +
@@ -45580,8 +45817,8 @@ index 000000000000..8ff8cfa8bf76
 +
 +	lockdep_init_map(&j->res_map, "journal res", &res_key, 0);
 +
-+	j->buf[0].size		= JOURNAL_ENTRY_SIZE_MIN;
-+	j->buf[1].size		= JOURNAL_ENTRY_SIZE_MIN;
++	j->buf[0].buf_size	= JOURNAL_ENTRY_SIZE_MIN;
++	j->buf[1].buf_size	= JOURNAL_ENTRY_SIZE_MIN;
 +	j->write_delay_ms	= 1000;
 +	j->reclaim_delay_ms	= 100;
 +
@@ -45594,8 +45831,8 @@ index 000000000000..8ff8cfa8bf76
 +		 { .cur_entry_offset = JOURNAL_ENTRY_CLOSED_VAL }).v);
 +
 +	if (!(init_fifo(&j->pin, JOURNAL_PIN, GFP_KERNEL)) ||
-+	    !(j->buf[0].data = kvpmalloc(j->buf[0].size, GFP_KERNEL)) ||
-+	    !(j->buf[1].data = kvpmalloc(j->buf[1].size, GFP_KERNEL))) {
++	    !(j->buf[0].data = kvpmalloc(j->buf[0].buf_size, GFP_KERNEL)) ||
++	    !(j->buf[1].data = kvpmalloc(j->buf[1].buf_size, GFP_KERNEL))) {
 +		ret = -ENOMEM;
 +		goto out;
 +	}
@@ -45612,35 +45849,54 @@ index 000000000000..8ff8cfa8bf76
 +{
 +	struct printbuf out = _PBUF(buf, PAGE_SIZE);
 +	struct bch_fs *c = container_of(j, struct bch_fs, journal);
-+	union journal_res_state *s = &j->reservations;
++	union journal_res_state s;
 +	struct bch_dev *ca;
 +	unsigned iter;
 +
 +	rcu_read_lock();
 +	spin_lock(&j->lock);
++	s = READ_ONCE(j->reservations);
 +
 +	pr_buf(&out,
 +	       "active journal entries:\t%llu\n"
 +	       "seq:\t\t\t%llu\n"
 +	       "last_seq:\t\t%llu\n"
 +	       "last_seq_ondisk:\t%llu\n"
-+	       "reservation count:\t%u\n"
-+	       "reservation offset:\t%u\n"
-+	       "current entry u64s:\t%u\n"
-+	       "io in flight:\t\t%i\n"
-+	       "need write:\t\t%i\n"
-+	       "dirty:\t\t\t%i\n"
-+	       "replay done:\t\t%i\n",
++	       "current entry:\t\t",
 +	       fifo_used(&j->pin),
 +	       journal_cur_seq(j),
 +	       journal_last_seq(j),
-+	       j->last_seq_ondisk,
-+	       journal_state_count(*s, s->idx),
-+	       s->cur_entry_offset,
-+	       j->cur_entry_u64s,
-+	       s->prev_buf_unwritten,
++	       j->last_seq_ondisk);
++
++	switch (s.cur_entry_offset) {
++	case JOURNAL_ENTRY_ERROR_VAL:
++		pr_buf(&out, "error\n");
++		break;
++	case JOURNAL_ENTRY_CLOSED_VAL:
++		pr_buf(&out, "closed\n");
++		break;
++	default:
++		pr_buf(&out, "%u/%u\n",
++		       s.cur_entry_offset,
++		       j->cur_entry_u64s);
++		break;
++	}
++
++	pr_buf(&out,
++	       "current entry refs:\t%u\n"
++	       "prev entry unwritten:\t",
++	       journal_state_count(s, s.idx));
++
++	if (s.prev_buf_unwritten)
++		pr_buf(&out, "yes, ref %u\n",
++		       journal_state_count(s, !s.idx));
++	else
++		pr_buf(&out, "no\n");
++
++	pr_buf(&out,
++	       "need write:\t\t%i\n"
++	       "replay done:\t\t%i\n",
 +	       test_bit(JOURNAL_NEED_WRITE,	&j->flags),
-+	       journal_entry_is_open(j),
 +	       test_bit(JOURNAL_REPLAY_DONE,	&j->flags));
 +
 +	for_each_member_device_rcu(ca, c, iter,
@@ -45653,9 +45909,12 @@ index 000000000000..8ff8cfa8bf76
 +		pr_buf(&out,
 +		       "dev %u:\n"
 +		       "\tnr\t\t%u\n"
++		       "\tavailable\t%u:%u\n"
 +		       "\tcur_idx\t\t%u (seq %llu)\n"
 +		       "\tlast_idx\t%u (seq %llu)\n",
 +		       iter, ja->nr,
++		       bch2_journal_dev_buckets_available(j, ja),
++		       ja->sectors_free,
 +		       ja->cur_idx,	ja->bucket_seq[ja->cur_idx],
 +		       ja->last_idx,	ja->bucket_seq[ja->last_idx]);
 +	}
@@ -45695,10 +45954,10 @@ index 000000000000..8ff8cfa8bf76
 +}
 diff --git a/fs/bcachefs/journal.h b/fs/bcachefs/journal.h
 new file mode 100644
-index 000000000000..50d864a3cae3
+index 000000000000..71929bd67a7c
 --- /dev/null
 +++ b/fs/bcachefs/journal.h
-@@ -0,0 +1,385 @@
+@@ -0,0 +1,390 @@
 +#ifndef _BCACHEFS_JOURNAL_H
 +#define _BCACHEFS_JOURNAL_H
 +
@@ -45879,6 +46138,11 @@ index 000000000000..50d864a3cae3
 +	return u64s + sizeof(struct jset_entry) / sizeof(u64);
 +}
 +
++static inline int journal_entry_overhead(struct journal *j)
++{
++	return sizeof(struct jset) / sizeof(u64) + j->entry_u64s_reserved;
++}
++
 +static inline struct jset_entry *
 +bch2_journal_add_entry_noreservation(struct journal_buf *buf, size_t u64s)
 +{
@@ -45923,7 +46187,7 @@ index 000000000000..50d864a3cae3
 +			       id, 0, k, k->k.u64s);
 +}
 +
-+void bch2_journal_buf_put_slowpath(struct journal *, bool);
++void __bch2_journal_buf_put(struct journal *, bool);
 +
 +static inline void bch2_journal_buf_put(struct journal *j, unsigned idx,
 +				       bool need_write_just_set)
@@ -45934,17 +46198,10 @@ index 000000000000..50d864a3cae3
 +				    .buf0_count = idx == 0,
 +				    .buf1_count = idx == 1,
 +				    }).v, &j->reservations.counter);
-+
-+	EBUG_ON(s.idx != idx && !s.prev_buf_unwritten);
-+
-+	/*
-+	 * Do not initiate a journal write if the journal is in an error state
-+	 * (previous journal entry write may have failed)
-+	 */
-+	if (s.idx != idx &&
-+	    !journal_state_count(s, idx) &&
-+	    s.cur_entry_offset != JOURNAL_ENTRY_ERROR_VAL)
-+		bch2_journal_buf_put_slowpath(j, need_write_just_set);
++	if (!journal_state_count(s, idx)) {
++		EBUG_ON(s.idx == idx || !s.prev_buf_unwritten);
++		__bch2_journal_buf_put(j, need_write_just_set);
++	}
 +}
 +
 +/*
@@ -45992,6 +46249,8 @@ index 000000000000..50d864a3cae3
 +		if (new.cur_entry_offset + res->u64s > j->cur_entry_u64s)
 +			return 0;
 +
++		EBUG_ON(!journal_state_count(new, new.idx));
++
 +		if (flags & JOURNAL_RES_GET_CHECK)
 +			return 1;
 +
@@ -46031,6 +46290,8 @@ index 000000000000..50d864a3cae3
 +	return 0;
 +}
 +
++/* journal_entry_res: */
++
 +void bch2_journal_entry_res_resize(struct journal *,
 +				   struct journal_entry_res *,
 +				   unsigned);
@@ -46068,6 +46329,9 @@ index 000000000000..50d864a3cae3
 +	set_bit(JOURNAL_REPLAY_DONE, &j->flags);
 +}
 +
++void bch2_journal_unblock(struct journal *);
++void bch2_journal_block(struct journal *);
++
 +ssize_t bch2_journal_print_debug(struct journal *, char *);
 +ssize_t bch2_journal_print_pins(struct journal *, char *);
 +
@@ -46086,10 +46350,10 @@ index 000000000000..50d864a3cae3
 +#endif /* _BCACHEFS_JOURNAL_H */
 diff --git a/fs/bcachefs/journal_io.c b/fs/bcachefs/journal_io.c
 new file mode 100644
-index 000000000000..0f1f8e1507c4
+index 000000000000..16cb6be87cbf
 --- /dev/null
 +++ b/fs/bcachefs/journal_io.c
-@@ -0,0 +1,1344 @@
+@@ -0,0 +1,1278 @@
 +#include "bcachefs.h"
 +#include "alloc_background.h"
 +#include "alloc_foreground.h"
@@ -46917,7 +47181,6 @@ index 000000000000..0f1f8e1507c4
 +int bch2_journal_replay(struct bch_fs *c, struct list_head *list)
 +{
 +	struct journal *j = &c->journal;
-+	struct journal_entry_pin_list *pin_list;
 +	struct bkey_i *k, *_n;
 +	struct jset_entry *entry;
 +	struct journal_replay *i, *n;
@@ -46946,7 +47209,8 @@ index 000000000000..0f1f8e1507c4
 +				ret = bch2_btree_insert(c, entry->btree_id, k,
 +						&disk_res, NULL,
 +						BTREE_INSERT_NOFAIL|
-+						BTREE_INSERT_JOURNAL_REPLAY);
++						BTREE_INSERT_JOURNAL_REPLAY|
++						BTREE_INSERT_NOMARK);
 +			}
 +
 +			if (ret) {
@@ -46958,10 +47222,7 @@ index 000000000000..0f1f8e1507c4
 +			cond_resched();
 +		}
 +
-+		pin_list = journal_seq_pin(j, j->replay_journal_seq);
-+
-+		if (atomic_dec_and_test(&pin_list->count))
-+			journal_wake(j);
++		bch2_journal_pin_put(j, j->replay_journal_seq);
 +	}
 +
 +	j->replay_journal_seq = 0;
@@ -46975,82 +47236,6 @@ index 000000000000..0f1f8e1507c4
 +}
 +
 +/* journal write: */
-+
-+static unsigned journal_dev_buckets_available(struct journal *j,
-+					      struct journal_device *ja)
-+{
-+	unsigned next = (ja->cur_idx + 1) % ja->nr;
-+	unsigned available = (ja->last_idx + ja->nr - next) % ja->nr;
-+
-+	/*
-+	 * Don't use the last bucket unless writing the new last_seq
-+	 * will make another bucket available:
-+	 */
-+	if (available &&
-+	    journal_last_seq(j) <= ja->bucket_seq[ja->last_idx])
-+		--available;
-+
-+	return available;
-+}
-+
-+/* returns number of sectors available for next journal entry: */
-+int bch2_journal_entry_sectors(struct journal *j)
-+{
-+	struct bch_fs *c = container_of(j, struct bch_fs, journal);
-+	struct bch_dev *ca;
-+	unsigned sectors_available = UINT_MAX;
-+	unsigned i, nr_online = 0, nr_devs = 0;
-+
-+	lockdep_assert_held(&j->lock);
-+
-+	rcu_read_lock();
-+	for_each_member_device_rcu(ca, c, i,
-+				   &c->rw_devs[BCH_DATA_JOURNAL]) {
-+		struct journal_device *ja = &ca->journal;
-+		unsigned buckets_this_device, sectors_this_device;
-+
-+		if (!ja->nr)
-+			continue;
-+
-+		buckets_this_device = journal_dev_buckets_available(j, ja);
-+		sectors_this_device = ja->sectors_free;
-+
-+		nr_online++;
-+
-+		/*
-+		 * We that we don't allocate the space for a journal entry
-+		 * until we write it out - thus, account for it here:
-+		 */
-+		if (j->prev_buf_sectors >= sectors_this_device) {
-+			if (!buckets_this_device)
-+				continue;
-+
-+			buckets_this_device--;
-+			sectors_this_device = ca->mi.bucket_size;
-+		}
-+
-+		sectors_this_device -= j->prev_buf_sectors;
-+
-+		if (buckets_this_device)
-+			sectors_this_device = ca->mi.bucket_size;
-+
-+		if (!sectors_this_device)
-+			continue;
-+
-+		sectors_available = min(sectors_available,
-+					sectors_this_device);
-+		nr_devs++;
-+	}
-+	rcu_read_unlock();
-+
-+	if (nr_online < c->opts.metadata_replicas_required)
-+		return -EROFS;
-+
-+	if (nr_devs < min_t(unsigned, nr_online, c->opts.metadata_replicas))
-+		return 0;
-+
-+	return sectors_available;
-+}
 +
 +static void __journal_write_alloc(struct journal *j,
 +				  struct journal_buf *w,
@@ -47125,7 +47310,6 @@ index 000000000000..0f1f8e1507c4
 +	devs_sorted = bch2_dev_alloc_list(c, &j->wp.stripe,
 +					  &c->rw_devs[BCH_DATA_JOURNAL]);
 +
-+	spin_lock(&j->lock);
 +	__journal_write_alloc(j, w, &devs_sorted,
 +			      sectors, &replicas, replicas_want);
 +
@@ -47141,7 +47325,7 @@ index 000000000000..0f1f8e1507c4
 +
 +		if (sectors > ja->sectors_free &&
 +		    sectors <= ca->mi.bucket_size &&
-+		    journal_dev_buckets_available(j, ja)) {
++		    bch2_journal_dev_buckets_available(j, ja)) {
 +			ja->cur_idx = (ja->cur_idx + 1) % ja->nr;
 +			ja->sectors_free = ca->mi.bucket_size;
 +		}
@@ -47150,10 +47334,6 @@ index 000000000000..0f1f8e1507c4
 +	__journal_write_alloc(j, w, &devs_sorted,
 +			      sectors, &replicas, replicas_want);
 +done:
-+	if (replicas >= replicas_want)
-+		j->prev_buf_sectors = 0;
-+
-+	spin_unlock(&j->lock);
 +	rcu_read_unlock();
 +
 +	return replicas >= c->opts.metadata_replicas_required ? 0 : -EROFS;
@@ -47208,17 +47388,17 @@ index 000000000000..0f1f8e1507c4
 +	unsigned new_size = READ_ONCE(j->buf_size_want);
 +	void *new_buf;
 +
-+	if (buf->size >= new_size)
++	if (buf->buf_size >= new_size)
 +		return;
 +
 +	new_buf = kvpmalloc(new_size, GFP_NOIO|__GFP_NOWARN);
 +	if (!new_buf)
 +		return;
 +
-+	memcpy(new_buf, buf->data, buf->size);
-+	kvpfree(buf->data, buf->size);
++	memcpy(new_buf, buf->data, buf->buf_size);
++	kvpfree(buf->data, buf->buf_size);
 +	buf->data	= new_buf;
-+	buf->size	= new_size;
++	buf->buf_size	= new_size;
 +}
 +
 +static void journal_write_done(struct closure *cl)
@@ -47258,7 +47438,7 @@ index 000000000000..0f1f8e1507c4
 +	 * Must come before signaling write completion, for
 +	 * bch2_fs_journal_stop():
 +	 */
-+	mod_delayed_work(system_freezable_wq, &j->reclaim_work, 0);
++	mod_delayed_work(c->journal_reclaim_wq, &j->reclaim_work, 0);
 +out:
 +	/* also must come before signalling write completion: */
 +	closure_debug_destroy(cl);
@@ -47312,20 +47492,22 @@ index 000000000000..0f1f8e1507c4
 +	struct bch_extent_ptr *ptr;
 +	bool validate_before_checksum = false;
 +	unsigned i, sectors, bytes, u64s;
++	int ret;
++
++	bch2_journal_pin_put(j, le64_to_cpu(w->data->seq));
 +
 +	journal_buf_realloc(j, w);
 +	jset = w->data;
 +
 +	j->write_start_time = local_clock();
 +
-+	start	= vstruct_last(w->data);
++	start	= vstruct_last(jset);
 +	end	= bch2_journal_super_entries_add_common(c, start);
 +	u64s	= (u64 *) end - (u64 *) start;
 +	BUG_ON(u64s > j->entry_u64s_reserved);
 +
-+	le32_add_cpu(&w->data->u64s, u64s);
-+	BUG_ON(vstruct_sectors(jset, c->block_bits) >
-+	       w->disk_sectors);
++	le32_add_cpu(&jset->u64s, u64s);
++	BUG_ON(vstruct_sectors(jset, c->block_bits) > w->sectors);
 +
 +	journal_write_compact(jset);
 +
@@ -47363,12 +47545,28 @@ index 000000000000..0f1f8e1507c4
 +		goto err;
 +
 +	sectors = vstruct_sectors(jset, c->block_bits);
-+	BUG_ON(sectors > j->prev_buf_sectors);
++	BUG_ON(sectors > w->sectors);
 +
-+	bytes = vstruct_bytes(w->data);
-+	memset((void *) w->data + bytes, 0, (sectors << 9) - bytes);
++	bytes = vstruct_bytes(jset);
++	memset((void *) jset + bytes, 0, (sectors << 9) - bytes);
 +
-+	if (journal_write_alloc(j, w, sectors)) {
++	spin_lock(&j->lock);
++	ret = journal_write_alloc(j, w, sectors);
++
++	/*
++	 * write is allocated, no longer need to account for it in
++	 * bch2_journal_space_available():
++	 */
++	w->sectors = 0;
++
++	/*
++	 * journal entry has been compacted and allocated, recalculate space
++	 * available:
++	 */
++	bch2_journal_space_available(j);
++	spin_unlock(&j->lock);
++
++	if (ret) {
 +		bch2_journal_halt(j);
 +		bch_err(c, "Unable to allocate journal write");
 +		bch2_fatal_error(c);
@@ -47408,7 +47606,7 @@ index 000000000000..0f1f8e1507c4
 +		trace_journal_write(bio);
 +		closure_bio_submit(bio, cl);
 +
-+		ca->journal.bucket_seq[ca->journal.cur_idx] = le64_to_cpu(w->data->seq);
++		ca->journal.bucket_seq[ca->journal.cur_idx] = le64_to_cpu(jset->seq);
 +	}
 +
 +	for_each_rw_member(ca, c, i)
@@ -47436,10 +47634,10 @@ index 000000000000..0f1f8e1507c4
 +}
 diff --git a/fs/bcachefs/journal_io.h b/fs/bcachefs/journal_io.h
 new file mode 100644
-index 000000000000..d0a652cf9356
+index 000000000000..ec7b49b8f85c
 --- /dev/null
 +++ b/fs/bcachefs/journal_io.h
-@@ -0,0 +1,45 @@
+@@ -0,0 +1,44 @@
 +#ifndef _BCACHEFS_JOURNAL_IO_H
 +#define _BCACHEFS_JOURNAL_IO_H
 +
@@ -47481,27 +47679,224 @@ index 000000000000..d0a652cf9356
 +void bch2_journal_entries_free(struct list_head *);
 +int bch2_journal_replay(struct bch_fs *, struct list_head *);
 +
-+int bch2_journal_entry_sectors(struct journal *);
 +void bch2_journal_write(struct closure *);
 +
 +#endif /* _BCACHEFS_JOURNAL_IO_H */
 diff --git a/fs/bcachefs/journal_reclaim.c b/fs/bcachefs/journal_reclaim.c
 new file mode 100644
-index 000000000000..a795e888c56b
+index 000000000000..b8603a1ff1f2
 --- /dev/null
 +++ b/fs/bcachefs/journal_reclaim.c
-@@ -0,0 +1,431 @@
+@@ -0,0 +1,523 @@
 +
 +#include "bcachefs.h"
 +#include "journal.h"
++#include "journal_io.h"
 +#include "journal_reclaim.h"
 +#include "replicas.h"
 +#include "super.h"
++
++/* Free space calculations: */
++
++unsigned bch2_journal_dev_buckets_available(struct journal *j,
++					    struct journal_device *ja)
++{
++	struct bch_fs *c = container_of(j, struct bch_fs, journal);
++	unsigned next = (ja->cur_idx + 1) % ja->nr;
++	unsigned available = (ja->last_idx + ja->nr - next) % ja->nr;
++
++	/*
++	 * Allocator startup needs some journal space before we can do journal
++	 * replay:
++	 */
++	if (available &&
++	    test_bit(BCH_FS_ALLOCATOR_STARTED, &c->flags))
++		available--;
++
++	/*
++	 * Don't use the last bucket unless writing the new last_seq
++	 * will make another bucket available:
++	 */
++	if (available &&
++	    journal_last_seq(j) <= ja->bucket_seq[ja->last_idx])
++		--available;
++
++	return available;
++}
++
++void bch2_journal_space_available(struct journal *j)
++{
++	struct bch_fs *c = container_of(j, struct bch_fs, journal);
++	struct bch_dev *ca;
++	unsigned sectors_next_entry	= UINT_MAX;
++	unsigned sectors_total		= UINT_MAX;
++	unsigned max_entry_size		= min(j->buf[0].buf_size >> 9,
++					      j->buf[1].buf_size >> 9);
++	unsigned i, nr_online = 0, nr_devs = 0;
++	unsigned unwritten_sectors = j->reservations.prev_buf_unwritten
++		? journal_prev_buf(j)->sectors
++		: 0;
++	int ret = 0;
++
++	lockdep_assert_held(&j->lock);
++
++	rcu_read_lock();
++	for_each_member_device_rcu(ca, c, i,
++				   &c->rw_devs[BCH_DATA_JOURNAL]) {
++		struct journal_device *ja = &ca->journal;
++		unsigned buckets_this_device, sectors_this_device;
++
++		if (!ja->nr)
++			continue;
++
++		nr_online++;
++
++		buckets_this_device = bch2_journal_dev_buckets_available(j, ja);
++		sectors_this_device = ja->sectors_free;
++
++		/*
++		 * We that we don't allocate the space for a journal entry
++		 * until we write it out - thus, account for it here:
++		 */
++		if (unwritten_sectors >= sectors_this_device) {
++			if (!buckets_this_device)
++				continue;
++
++			buckets_this_device--;
++			sectors_this_device = ca->mi.bucket_size;
++		}
++
++		sectors_this_device -= unwritten_sectors;
++
++		if (sectors_this_device < ca->mi.bucket_size &&
++		    buckets_this_device) {
++			buckets_this_device--;
++			sectors_this_device = ca->mi.bucket_size;
++		}
++
++		if (!sectors_this_device)
++			continue;
++
++		sectors_next_entry = min(sectors_next_entry,
++					 sectors_this_device);
++
++		sectors_total = min(sectors_total,
++			buckets_this_device * ca->mi.bucket_size +
++			sectors_this_device);
++
++		max_entry_size = min_t(unsigned, max_entry_size,
++				       ca->mi.bucket_size);
++
++		nr_devs++;
++	}
++	rcu_read_unlock();
++
++	if (nr_online < c->opts.metadata_replicas_required) {
++		ret = -EROFS;
++		sectors_next_entry = 0;
++	} else if (!sectors_next_entry ||
++		   nr_devs < min_t(unsigned, nr_online,
++				   c->opts.metadata_replicas)) {
++		ret = -ENOSPC;
++		sectors_next_entry = 0;
++	} else if (!fifo_free(&j->pin)) {
++		ret = -ENOSPC;
++		sectors_next_entry = 0;
++	}
++
++	j->cur_entry_sectors	= sectors_next_entry;
++	j->cur_entry_error	= ret;
++
++	if (!ret)
++		journal_wake(j);
++}
++
++/* Discards - last part of journal reclaim: */
++
++static bool should_discard_bucket(struct journal *j, struct journal_device *ja)
++{
++	bool ret;
++
++	spin_lock(&j->lock);
++	ret = ja->nr &&
++		ja->last_idx != ja->cur_idx &&
++		ja->bucket_seq[ja->last_idx] < j->last_seq_ondisk;
++	spin_unlock(&j->lock);
++
++	return ret;
++}
++
++/*
++ * Advance ja->last_idx as long as it points to buckets that are no longer
++ * dirty, issuing discards if necessary:
++ */
++static void journal_do_discards(struct journal *j)
++{
++	struct bch_fs *c = container_of(j, struct bch_fs, journal);
++	struct bch_dev *ca;
++	unsigned iter;
++
++	mutex_lock(&j->reclaim_lock);
++
++	for_each_rw_member(ca, c, iter) {
++		struct journal_device *ja = &ca->journal;
++
++		while (should_discard_bucket(j, ja)) {
++			if (ca->mi.discard &&
++			    blk_queue_discard(bdev_get_queue(ca->disk_sb.bdev)))
++				blkdev_issue_discard(ca->disk_sb.bdev,
++					bucket_to_sector(ca,
++						ja->buckets[ja->last_idx]),
++					ca->mi.bucket_size, GFP_NOIO, 0);
++
++			spin_lock(&j->lock);
++			ja->last_idx = (ja->last_idx + 1) % ja->nr;
++
++			bch2_journal_space_available(j);
++			spin_unlock(&j->lock);
++		}
++	}
++
++	mutex_unlock(&j->reclaim_lock);
++}
 +
 +/*
 + * Journal entry pinning - machinery for holding a reference on a given journal
 + * entry, holding it open to ensure it gets replayed during recovery:
 + */
++
++static void bch2_journal_reclaim_fast(struct journal *j)
++{
++	struct journal_entry_pin_list temp;
++	bool popped = false;
++
++	lockdep_assert_held(&j->lock);
++
++	/*
++	 * Unpin journal entries whose reference counts reached zero, meaning
++	 * all btree nodes got written out
++	 */
++	while (!fifo_empty(&j->pin) &&
++	       !atomic_read(&fifo_peek_front(&j->pin).count)) {
++		BUG_ON(!list_empty(&fifo_peek_front(&j->pin).list));
++		BUG_ON(!fifo_pop(&j->pin, temp));
++		popped = true;
++	}
++
++	if (popped)
++		bch2_journal_space_available(j);
++}
++
++void bch2_journal_pin_put(struct journal *j, u64 seq)
++{
++	struct journal_entry_pin_list *pin_list = journal_seq_pin(j, seq);
++
++	if (atomic_dec_and_test(&pin_list->count)) {
++		spin_lock(&j->lock);
++		bch2_journal_reclaim_fast(j);
++		spin_unlock(&j->lock);
++	}
++}
 +
 +static inline void __journal_pin_add(struct journal *j,
 +				     u64 seq,
@@ -47517,10 +47912,7 @@ index 000000000000..a795e888c56b
 +	pin->seq	= seq;
 +	pin->flush	= flush_fn;
 +
-+	if (flush_fn)
-+		list_add(&pin->list, &pin_list->list);
-+	else
-+		INIT_LIST_HEAD(&pin->list);
++	list_add(&pin->list, flush_fn ? &pin_list->list : &pin_list->flushed);
 +
 +	/*
 +	 * If the journal is currently full,  we might want to call flush_fn
@@ -47622,86 +48014,51 @@ index 000000000000..a795e888c56b
 + * data off of a specific device:
 + */
 +
-+/**
-+ * bch2_journal_reclaim_fast - do the fast part of journal reclaim
-+ *
-+ * Called from IO submission context, does not block. Cleans up after btree
-+ * write completions by advancing the journal pin and each cache's last_idx,
-+ * kicking off discards and background reclaim as necessary.
-+ */
-+void bch2_journal_reclaim_fast(struct journal *j)
-+{
-+	struct journal_entry_pin_list temp;
-+	bool popped = false;
-+
-+	lockdep_assert_held(&j->lock);
-+
-+	/*
-+	 * Unpin journal entries whose reference counts reached zero, meaning
-+	 * all btree nodes got written out
-+	 */
-+	while (!fifo_empty(&j->pin) &&
-+	       !atomic_read(&fifo_peek_front(&j->pin).count)) {
-+		BUG_ON(!list_empty(&fifo_peek_front(&j->pin).list));
-+		BUG_ON(!fifo_pop(&j->pin, temp));
-+		popped = true;
-+	}
-+
-+	if (popped)
-+		journal_wake(j);
-+}
-+
-+static void journal_pin_mark_flushing(struct journal *j,
-+				      struct journal_entry_pin *pin,
-+				      u64 seq)
-+{
-+	lockdep_assert_held(&j->reclaim_lock);
-+
-+	list_move(&pin->list, &journal_seq_pin(j, seq)->flushed);
-+	BUG_ON(j->flush_in_progress);
-+	j->flush_in_progress = pin;
-+}
-+
-+static void journal_pin_flush(struct journal *j,
-+			      struct journal_entry_pin *pin,
-+			      u64 seq)
-+{
-+	pin->flush(j, pin, seq);
-+
-+	BUG_ON(j->flush_in_progress != pin);
-+	j->flush_in_progress = NULL;
-+	wake_up(&j->pin_flush_wait);
-+}
-+
 +static struct journal_entry_pin *
-+journal_get_next_pin(struct journal *j, u64 seq_to_flush, u64 *seq)
++journal_get_next_pin(struct journal *j, u64 max_seq, u64 *seq)
 +{
 +	struct journal_entry_pin_list *pin_list;
 +	struct journal_entry_pin *ret = NULL;
 +
-+	/* no need to iterate over empty fifo entries: */
-+	bch2_journal_reclaim_fast(j);
++	spin_lock(&j->lock);
 +
 +	fifo_for_each_entry_ptr(pin_list, &j->pin, *seq)
-+		if (*seq > seq_to_flush ||
++		if (*seq > max_seq ||
 +		    (ret = list_first_entry_or_null(&pin_list->list,
 +				struct journal_entry_pin, list)))
 +			break;
 +
-+	return ret;
-+}
++	if (ret) {
++		list_move(&ret->list, &pin_list->flushed);
++		BUG_ON(j->flush_in_progress);
++		j->flush_in_progress = ret;
++		j->last_flushed = jiffies;
++	}
 +
-+static bool should_discard_bucket(struct journal *j, struct journal_device *ja)
-+{
-+	bool ret;
-+
-+	spin_lock(&j->lock);
-+	ret = ja->nr &&
-+		(ja->last_idx != ja->cur_idx &&
-+		 ja->bucket_seq[ja->last_idx] < j->last_seq_ondisk);
 +	spin_unlock(&j->lock);
 +
 +	return ret;
++}
++
++static void journal_flush_pins(struct journal *j, u64 seq_to_flush,
++			       unsigned min_nr)
++{
++	struct journal_entry_pin *pin;
++	u64 seq;
++
++	lockdep_assert_held(&j->reclaim_lock);
++
++	while ((pin = journal_get_next_pin(j, min_nr
++				? U64_MAX : seq_to_flush, &seq))) {
++		if (min_nr)
++			min_nr--;
++
++		pin->flush(j, pin, seq);
++
++		BUG_ON(j->flush_in_progress != pin);
++		j->flush_in_progress = NULL;
++		wake_up(&j->pin_flush_wait);
++	}
 +}
 +
 +/**
@@ -47728,104 +48085,44 @@ index 000000000000..a795e888c56b
 +				struct bch_fs, journal.reclaim_work);
 +	struct journal *j = &c->journal;
 +	struct bch_dev *ca;
-+	struct journal_entry_pin *pin;
-+	u64 seq, seq_to_flush = 0;
-+	unsigned iter, bucket_to_flush;
-+	unsigned long next_flush;
-+	bool reclaim_lock_held = false, need_flush;
++	unsigned iter, bucket_to_flush, min_nr = 0;
++	u64 seq_to_flush = 0;
 +
-+	/*
-+	 * Advance last_idx to point to the oldest journal entry containing
-+	 * btree node updates that have not yet been written out
-+	 */
++	journal_do_discards(j);
++
++	mutex_lock(&j->reclaim_lock);
++	spin_lock(&j->lock);
++
 +	for_each_rw_member(ca, c, iter) {
 +		struct journal_device *ja = &ca->journal;
 +
 +		if (!ja->nr)
 +			continue;
 +
-+		while (should_discard_bucket(j, ja)) {
-+			if (!reclaim_lock_held) {
-+				/*
-+				 * ugh:
-+				 * might be called from __journal_res_get()
-+				 * under wait_event() - have to go back to
-+				 * TASK_RUNNING before doing something that
-+				 * would block, but only if we're doing work:
-+				 */
-+				__set_current_state(TASK_RUNNING);
 +
-+				mutex_lock(&j->reclaim_lock);
-+				reclaim_lock_held = true;
-+				/* recheck under reclaim_lock: */
-+				continue;
-+			}
-+
-+			if (ca->mi.discard &&
-+			    blk_queue_discard(bdev_get_queue(ca->disk_sb.bdev)))
-+				blkdev_issue_discard(ca->disk_sb.bdev,
-+					bucket_to_sector(ca,
-+						ja->buckets[ja->last_idx]),
-+					ca->mi.bucket_size, GFP_NOIO, 0);
-+
-+			spin_lock(&j->lock);
-+			ja->last_idx = (ja->last_idx + 1) % ja->nr;
-+			spin_unlock(&j->lock);
-+
-+			journal_wake(j);
-+		}
-+
-+		/*
-+		 * Write out enough btree nodes to free up 50% journal
-+		 * buckets
-+		 */
-+		spin_lock(&j->lock);
++		/* Try to keep the journal at most half full: */
 +		bucket_to_flush = (ja->cur_idx + (ja->nr >> 1)) % ja->nr;
 +		seq_to_flush = max_t(u64, seq_to_flush,
 +				     ja->bucket_seq[bucket_to_flush]);
-+		spin_unlock(&j->lock);
 +	}
 +
 +	/* Also flush if the pin fifo is more than half full */
-+	spin_lock(&j->lock);
 +	seq_to_flush = max_t(s64, seq_to_flush,
 +			     (s64) journal_cur_seq(j) -
 +			     (j->pin.size >> 1));
++	spin_unlock(&j->lock);
 +
 +	/*
 +	 * If it's been longer than j->reclaim_delay_ms since we last flushed,
 +	 * make sure to flush at least one journal pin:
 +	 */
-+	next_flush = j->last_flushed + msecs_to_jiffies(j->reclaim_delay_ms);
-+	need_flush = time_after(jiffies, next_flush);
++	if (time_after(jiffies, j->last_flushed +
++		       msecs_to_jiffies(j->reclaim_delay_ms)))
++		min_nr = 1;
 +
-+	while ((pin = journal_get_next_pin(j, need_flush
-+					   ? U64_MAX
-+					   : seq_to_flush, &seq))) {
-+		if (!reclaim_lock_held) {
-+			spin_unlock(&j->lock);
-+			__set_current_state(TASK_RUNNING);
-+			mutex_lock(&j->reclaim_lock);
-+			reclaim_lock_held = true;
-+			spin_lock(&j->lock);
-+			continue;
-+		}
++	journal_flush_pins(j, seq_to_flush, min_nr);
 +
-+		journal_pin_mark_flushing(j, pin, seq);
-+		spin_unlock(&j->lock);
-+
-+		journal_pin_flush(j, pin, seq);
-+
-+		need_flush = false;
-+		j->last_flushed = jiffies;
-+
-+		spin_lock(&j->lock);
-+	}
-+
-+	spin_unlock(&j->lock);
-+
-+	if (reclaim_lock_held)
-+		mutex_unlock(&j->reclaim_lock);
++	mutex_unlock(&j->reclaim_lock);
 +
 +	if (!test_bit(BCH_FS_RO, &c->flags))
 +		queue_delayed_work(c->journal_reclaim_wq, &j->reclaim_work,
@@ -47834,8 +48131,6 @@ index 000000000000..a795e888c56b
 +
 +static int journal_flush_done(struct journal *j, u64 seq_to_flush)
 +{
-+	struct journal_entry_pin *pin;
-+	u64 pin_seq;
 +	int ret;
 +
 +	ret = bch2_journal_error(j);
@@ -47843,16 +48138,10 @@ index 000000000000..a795e888c56b
 +		return ret;
 +
 +	mutex_lock(&j->reclaim_lock);
++
++	journal_flush_pins(j, seq_to_flush, 0);
++
 +	spin_lock(&j->lock);
-+
-+	while ((pin = journal_get_next_pin(j, seq_to_flush, &pin_seq))) {
-+		journal_pin_mark_flushing(j, pin, pin_seq);
-+		spin_unlock(&j->lock);
-+
-+		journal_pin_flush(j, pin, pin_seq);
-+
-+		spin_lock(&j->lock);
-+	}
 +	/*
 +	 * If journal replay hasn't completed, the unreplayed journal entries
 +	 * hold refs on their corresponding sequence numbers
@@ -47924,14 +48213,18 @@ index 000000000000..a795e888c56b
 +}
 diff --git a/fs/bcachefs/journal_reclaim.h b/fs/bcachefs/journal_reclaim.h
 new file mode 100644
-index 000000000000..287590cd37ee
+index 000000000000..1d688d6fa2cc
 --- /dev/null
 +++ b/fs/bcachefs/journal_reclaim.h
-@@ -0,0 +1,42 @@
+@@ -0,0 +1,47 @@
 +#ifndef _BCACHEFS_JOURNAL_RECLAIM_H
 +#define _BCACHEFS_JOURNAL_RECLAIM_H
 +
 +#define JOURNAL_PIN	(32 * 1024)
++
++unsigned bch2_journal_dev_buckets_available(struct journal *,
++					    struct journal_device *);
++void bch2_journal_space_available(struct journal *);
 +
 +static inline bool journal_pin_active(struct journal_entry_pin *pin)
 +{
@@ -47946,6 +48239,8 @@ index 000000000000..287590cd37ee
 +	return &j->pin.data[seq & j->pin.mask];
 +}
 +
++void bch2_journal_pin_put(struct journal *, u64);
++
 +void bch2_journal_pin_add(struct journal *, u64, struct journal_entry_pin *,
 +			  journal_pin_flush_fn);
 +void bch2_journal_pin_update(struct journal *, u64, struct journal_entry_pin *,
@@ -47957,7 +48252,6 @@ index 000000000000..287590cd37ee
 +				  journal_pin_flush_fn);
 +void bch2_journal_pin_flush(struct journal *, struct journal_entry_pin *);
 +
-+void bch2_journal_reclaim_fast(struct journal *);
 +void bch2_journal_reclaim_work(struct work_struct *);
 +
 +void bch2_journal_flush_pins(struct journal *, u64);
@@ -48356,10 +48650,10 @@ index 000000000000..95ea6e90ba93
 +#endif /* _BCACHEFS_JOURNAL_SEQ_BLACKLIST_H */
 diff --git a/fs/bcachefs/journal_types.h b/fs/bcachefs/journal_types.h
 new file mode 100644
-index 000000000000..a91662f6a61b
+index 000000000000..8772e53fb64c
 --- /dev/null
 +++ b/fs/bcachefs/journal_types.h
-@@ -0,0 +1,256 @@
+@@ -0,0 +1,269 @@
 +#ifndef _BCACHEFS_JOURNAL_TYPES_H
 +#define _BCACHEFS_JOURNAL_TYPES_H
 +
@@ -48383,8 +48677,10 @@ index 000000000000..a91662f6a61b
 +
 +	struct closure_waitlist	wait;
 +
-+	unsigned		size;
-+	unsigned		disk_sectors;
++	unsigned		buf_size;	/* size in bytes of @data */
++	unsigned		sectors;	/* maximum size for current entry */
++	unsigned		disk_sectors;	/* maximum size entry could have been, if
++						   buf_size was bigger */
 +	unsigned		u64s_reserved;
 +	/* bloom filter: */
 +	unsigned long		has_inode[1024 / sizeof(unsigned long)];
@@ -48490,9 +48786,20 @@ index 000000000000..a91662f6a61b
 +	unsigned long		flags;
 +
 +	union journal_res_state reservations;
++
++	/* Max size of current journal entry */
 +	unsigned		cur_entry_u64s;
-+	unsigned		prev_buf_sectors;
-+	unsigned		cur_buf_sectors;
++	unsigned		cur_entry_sectors;
++
++	/*
++	 * 0, or -ENOSPC if waiting on journal reclaim, or -EROFS if
++	 * insufficient devices:
++	 */
++	int			cur_entry_error;
++
++	/* Reserved space in journal entry to be used just prior to write */
++	unsigned		entry_u64s_reserved;
++
 +	unsigned		buf_size_want;
 +
 +	/*
@@ -48502,6 +48809,9 @@ index 000000000000..a91662f6a61b
 +	struct journal_buf	buf[2];
 +
 +	spinlock_t		lock;
++
++	/* if nonzero, we may not open a new journal entry: */
++	unsigned		blocked;
 +
 +	/* Used when waiting because the journal was full */
 +	wait_queue_head_t	wait;
@@ -48516,9 +48826,6 @@ index 000000000000..a91662f6a61b
 +	/* seq, last_seq from the most recent journal entry successfully written */
 +	u64			seq_ondisk;
 +	u64			last_seq_ondisk;
-+
-+	/* Reserved space in journal entry to be used just prior to write */
-+	unsigned		entry_u64s_reserved;
 +
 +	/*
 +	 * FIFO of journal entries whose btree updates have not yet been
@@ -52684,10 +52991,10 @@ index 000000000000..aaf5b9ca133c
 +#endif /* _BCACHEFS_REBALANCE_TYPES_H */
 diff --git a/fs/bcachefs/recovery.c b/fs/bcachefs/recovery.c
 new file mode 100644
-index 000000000000..38187cc802f6
+index 000000000000..77ab464a8242
 --- /dev/null
 +++ b/fs/bcachefs/recovery.c
-@@ -0,0 +1,493 @@
+@@ -0,0 +1,495 @@
 +
 +#include "bcachefs.h"
 +#include "alloc_background.h"
@@ -52772,7 +53079,7 @@ index 000000000000..38187cc802f6
 +					       le64_to_cpu(u->v));
 +			break;
 +		case FS_USAGE_INODES:
-+			percpu_u64_set(&c->usage[0]->s.nr_inodes,
++			percpu_u64_set(&c->usage[0]->nr_inodes,
 +				       le64_to_cpu(u->v));
 +			break;
 +		case FS_USAGE_KEY_VERSION:
@@ -53102,11 +53409,13 @@ index 000000000000..38187cc802f6
 +		bch2_btree_root_alloc(c, i);
 +
 +	err = "unable to allocate journal buckets";
-+	for_each_online_member(ca, c, i)
-+		if (bch2_dev_journal_alloc(ca)) {
++	for_each_online_member(ca, c, i) {
++		ret = bch2_dev_journal_alloc(ca);
++		if (ret) {
 +			percpu_ref_put(&ca->io_ref);
 +			goto err;
 +		}
++	}
 +
 +	/*
 +	 * journal_res_get() will crash if called before this has
@@ -53196,10 +53505,10 @@ index 000000000000..685507e8aa97
 +#endif /* _BCACHEFS_RECOVERY_H */
 diff --git a/fs/bcachefs/replicas.c b/fs/bcachefs/replicas.c
 new file mode 100644
-index 000000000000..4d0c9718c109
+index 000000000000..99283b1047ff
 --- /dev/null
 +++ b/fs/bcachefs/replicas.c
-@@ -0,0 +1,978 @@
+@@ -0,0 +1,977 @@
 +
 +#include "bcachefs.h"
 +#include "journal.h"
@@ -53446,14 +53755,14 @@ index 000000000000..4d0c9718c109
 +	*dst = *src;
 +
 +	for (src_idx = 0; src_idx < src_r->nr; src_idx++) {
-+		if (!src->data[src_idx])
++		if (!src->replicas[src_idx])
 +			continue;
 +
 +		dst_idx = __replicas_entry_idx(dst_r,
 +				cpu_replicas_entry(src_r, src_idx));
 +		BUG_ON(dst_idx < 0);
 +
-+		dst->data[dst_idx] = src->data[src_idx];
++		dst->replicas[dst_idx] = src->replicas[src_idx];
 +	}
 +}
 +
@@ -53463,39 +53772,37 @@ index 000000000000..4d0c9718c109
 +static int replicas_table_update(struct bch_fs *c,
 +				 struct bch_replicas_cpu *new_r)
 +{
-+	struct bch_fs_usage __percpu *new_usage[3] = { NULL, NULL, NULL };
++	struct bch_fs_usage __percpu *new_usage[2] = { NULL, NULL };
++	struct bch_fs_usage __percpu *new_scratch = NULL;
 +	unsigned bytes = sizeof(struct bch_fs_usage) +
 +		sizeof(u64) * new_r->nr;
-+	unsigned i;
 +	int ret = -ENOMEM;
 +
-+	for (i = 0; i < 3; i++) {
-+		if (i < 2 && !c->usage[i])
-+			continue;
++	if (!(new_usage[0] = __alloc_percpu_gfp(bytes, sizeof(u64),
++						GFP_NOIO)) ||
++	    (c->usage[1] &&
++	     !(new_usage[1] = __alloc_percpu_gfp(bytes, sizeof(u64),
++						 GFP_NOIO))) ||
++	    !(new_scratch  = __alloc_percpu_gfp(bytes, sizeof(u64),
++						GFP_NOIO)))
++		goto err;
 +
-+		new_usage[i] = __alloc_percpu_gfp(bytes, sizeof(u64),
-+						  GFP_NOIO);
-+		if (!new_usage[i])
-+			goto err;
-+	}
++	if (c->usage[0])
++		__replicas_table_update(new_usage[0],	new_r,
++					c->usage[0],	&c->replicas);
++	if (c->usage[1])
++		__replicas_table_update(new_usage[1],	new_r,
++					c->usage[1],	&c->replicas);
 +
-+	for (i = 0; i < 2; i++) {
-+		if (!c->usage[i])
-+			continue;
-+
-+		__replicas_table_update(new_usage[i],	new_r,
-+					c->usage[i],	&c->replicas);
-+
-+		swap(c->usage[i], new_usage[i]);
-+	}
-+
-+	swap(c->usage_scratch, new_usage[2]);
-+
-+	swap(c->replicas, *new_r);
++	swap(c->usage[0],	new_usage[0]);
++	swap(c->usage[1],	new_usage[1]);
++	swap(c->usage_scratch,	new_scratch);
++	swap(c->replicas,	*new_r);
 +	ret = 0;
 +err:
-+	for (i = 0; i < 3; i++)
-+		free_percpu(new_usage[i]);
++	free_percpu(new_scratch);
++	free_percpu(new_usage[1]);
++	free_percpu(new_usage[0]);
 +	return ret;
 +}
 +
@@ -53658,7 +53965,7 @@ index 000000000000..4d0c9718c109
 +		if (__replicas_has_entry(&c->replicas_gc, e))
 +			continue;
 +
-+		v = percpu_u64_get(&c->usage[0]->data[i]);
++		v = percpu_u64_get(&c->usage[0]->replicas[i]);
 +		if (!v)
 +			continue;
 +
@@ -53759,7 +54066,7 @@ index 000000000000..4d0c9718c109
 +		BUG_ON(ret < 0);
 +	}
 +
-+	percpu_u64_set(&c->usage[0]->data[idx], sectors);
++	percpu_u64_set(&c->usage[0]->replicas[idx], sectors);
 +
 +	return 0;
 +}
@@ -54176,7 +54483,8 @@ index 000000000000..4d0c9718c109
 +{
 +	c->journal.entry_u64s_reserved +=
 +		reserve_journal_replicas(c, &c->replicas);
-+	return 0;
++
++	return replicas_table_update(c, &c->replicas);
 +}
 diff --git a/fs/bcachefs/replicas.h b/fs/bcachefs/replicas.h
 new file mode 100644
@@ -54565,10 +54873,10 @@ index 000000000000..7a4b2241f1e1
 +#endif /* _SIPHASH_H_ */
 diff --git a/fs/bcachefs/str_hash.h b/fs/bcachefs/str_hash.h
 new file mode 100644
-index 000000000000..1f343e64ca28
+index 000000000000..a1ca837b3021
 --- /dev/null
 +++ b/fs/bcachefs/str_hash.h
-@@ -0,0 +1,318 @@
+@@ -0,0 +1,322 @@
 +#ifndef _BCACHEFS_STR_HASH_H
 +#define _BCACHEFS_STR_HASH_H
 +
@@ -54696,7 +55004,7 @@ index 000000000000..1f343e64ca28
 +	bool		(*cmp_bkey)(struct bkey_s_c, struct bkey_s_c);
 +};
 +
-+static inline struct btree_iter *
++static __always_inline struct btree_iter *
 +bch2_hash_lookup(struct btree_trans *trans,
 +		 const struct bch_hash_desc desc,
 +		 const struct bch_hash_info *info,
@@ -54730,7 +55038,7 @@ index 000000000000..1f343e64ca28
 +	return IS_ERR(k.k) ? ERR_CAST(k.k) : ERR_PTR(-ENOENT);
 +}
 +
-+static inline struct btree_iter *
++static __always_inline struct btree_iter *
 +bch2_hash_hole(struct btree_trans *trans,
 +	       const struct bch_hash_desc desc,
 +	       const struct bch_hash_info *info,
@@ -54756,10 +55064,11 @@ index 000000000000..1f343e64ca28
 +	return IS_ERR(k.k) ? ERR_CAST(k.k) : ERR_PTR(-ENOSPC);
 +}
 +
-+static inline int bch2_hash_needs_whiteout(struct btree_trans *trans,
-+					   const struct bch_hash_desc desc,
-+					   const struct bch_hash_info *info,
-+					   struct btree_iter *start)
++static __always_inline
++int bch2_hash_needs_whiteout(struct btree_trans *trans,
++			     const struct bch_hash_desc desc,
++			     const struct bch_hash_info *info,
++			     struct btree_iter *start)
 +{
 +	struct btree_iter *iter;
 +	struct bkey_s_c k;
@@ -54782,10 +55091,11 @@ index 000000000000..1f343e64ca28
 +	return btree_iter_err(k);
 +}
 +
-+static inline int __bch2_hash_set(struct btree_trans *trans,
-+				  const struct bch_hash_desc desc,
-+				  const struct bch_hash_info *info,
-+				  u64 inode, struct bkey_i *insert, int flags)
++static __always_inline
++int __bch2_hash_set(struct btree_trans *trans,
++		    const struct bch_hash_desc desc,
++		    const struct bch_hash_info *info,
++		    u64 inode, struct bkey_i *insert, int flags)
 +{
 +	struct btree_iter *iter, *slot = NULL;
 +	struct bkey_s_c k;
@@ -54847,10 +55157,11 @@ index 000000000000..1f343e64ca28
 +					inode, insert, flags));
 +}
 +
-+static inline int bch2_hash_delete_at(struct btree_trans *trans,
-+				      const struct bch_hash_desc desc,
-+				      const struct bch_hash_info *info,
-+				      struct btree_iter *iter)
++static __always_inline
++int bch2_hash_delete_at(struct btree_trans *trans,
++			const struct bch_hash_desc desc,
++			const struct bch_hash_info *info,
++			struct btree_iter *iter)
 +{
 +	struct bkey_i *delete;
 +	int ret;
@@ -54871,10 +55182,11 @@ index 000000000000..1f343e64ca28
 +	return 0;
 +}
 +
-+static inline int bch2_hash_delete(struct btree_trans *trans,
-+				   const struct bch_hash_desc desc,
-+				   const struct bch_hash_info *info,
-+				   u64 inode, const void *key)
++static __always_inline
++int bch2_hash_delete(struct btree_trans *trans,
++		     const struct bch_hash_desc desc,
++		     const struct bch_hash_info *info,
++		     u64 inode, const void *key)
 +{
 +	struct btree_iter *iter;
 +
@@ -54889,7 +55201,7 @@ index 000000000000..1f343e64ca28
 +#endif /* _BCACHEFS_STR_HASH_H */
 diff --git a/fs/bcachefs/super-io.c b/fs/bcachefs/super-io.c
 new file mode 100644
-index 000000000000..c4695396188b
+index 000000000000..71d97c57830f
 --- /dev/null
 +++ b/fs/bcachefs/super-io.c
 @@ -0,0 +1,1088 @@
@@ -55818,7 +56130,7 @@ index 000000000000..c4695396188b
 +	percpu_down_read_preempt_disable(&c->mark_lock);
 +
 +	{
-+		u64 nr_inodes = percpu_u64_get(&c->usage[0]->s.nr_inodes);
++		u64 nr_inodes = percpu_u64_get(&c->usage[0]->nr_inodes);
 +		struct jset_entry_usage *u =
 +			container_of(entry, struct jset_entry_usage, entry);
 +
@@ -55865,7 +56177,7 @@ index 000000000000..c4695396188b
 +	for (i = 0; i < c->replicas.nr; i++) {
 +		struct bch_replicas_entry *e =
 +			cpu_replicas_entry(&c->replicas, i);
-+		u64 sectors = percpu_u64_get(&c->usage[0]->data[i]);
++		u64 sectors = percpu_u64_get(&c->usage[0]->replicas[i]);
 +		struct jset_entry_data_usage *u =
 +			container_of(entry, struct jset_entry_data_usage, entry);
 +
@@ -56137,10 +56449,10 @@ index 000000000000..c48294c8253a
 +#endif /* _BCACHEFS_SUPER_IO_H */
 diff --git a/fs/bcachefs/super.c b/fs/bcachefs/super.c
 new file mode 100644
-index 000000000000..a8eb161585c1
+index 000000000000..1528f77e6d30
 --- /dev/null
 +++ b/fs/bcachefs/super.c
-@@ -0,0 +1,1887 @@
+@@ -0,0 +1,1882 @@
 +/*
 + * bcachefs setup/teardown code, and some metadata io - read a superblock and
 + * figure out what to do with it.
@@ -56710,7 +57022,7 @@ index 000000000000..a8eb161585c1
 +{
 +	struct bch_sb_field_members *mi;
 +	struct bch_fs *c;
-+	unsigned i, iter_size, fs_usage_size;
++	unsigned i, iter_size;
 +	const char *err;
 +
 +	pr_verbose_init(opts, "");
@@ -56804,9 +57116,6 @@ index 000000000000..a8eb161585c1
 +		(btree_blocks(c) + 1) * 2 *
 +		sizeof(struct btree_node_iter_set);
 +
-+	fs_usage_size = sizeof(struct bch_fs_usage) +
-+		sizeof(u64) * c->replicas.nr;
-+
 +	if (!(c->wq = alloc_workqueue("bcachefs",
 +				WQ_FREEZABLE|WQ_MEM_RECLAIM|WQ_HIGHPRI, 1)) ||
 +	    !(c->copygc_wq = alloc_workqueue("bcache_copygc",
@@ -56823,8 +57132,6 @@ index 000000000000..a8eb161585c1
 +			max(offsetof(struct btree_read_bio, bio),
 +			    offsetof(struct btree_write_bio, wbio.bio)),
 +			BIOSET_NEED_BVECS) ||
-+	    !(c->usage[0] = __alloc_percpu(fs_usage_size, sizeof(u64))) ||
-+	    !(c->usage_scratch = __alloc_percpu(fs_usage_size, sizeof(u64))) ||
 +	    !(c->pcpu = alloc_percpu(struct bch_fs_pcpu)) ||
 +	    mempool_init_kvpmalloc_pool(&c->btree_bounce_pool, 1,
 +					btree_bytes(c)) ||
@@ -58319,7 +58626,7 @@ index 000000000000..ebb238aa5472
 +#endif /* _BCACHEFS_SUPER_TYPES_H */
 diff --git a/fs/bcachefs/sysfs.c b/fs/bcachefs/sysfs.c
 new file mode 100644
-index 000000000000..7e3aebed2c18
+index 000000000000..b56db15daf11
 --- /dev/null
 +++ b/fs/bcachefs/sysfs.c
 @@ -0,0 +1,1091 @@
@@ -58568,17 +58875,17 @@ index 000000000000..7e3aebed2c18
 +	pr_buf(&out, "capacity:\t\t\t%llu\n", c->capacity);
 +
 +	pr_buf(&out, "hidden:\t\t\t\t%llu\n",
-+	       fs_usage->s.hidden);
++	       fs_usage->hidden);
 +	pr_buf(&out, "data:\t\t\t\t%llu\n",
-+	       fs_usage->s.data);
++	       fs_usage->data);
 +	pr_buf(&out, "cached:\t\t\t\t%llu\n",
-+	       fs_usage->s.cached);
++	       fs_usage->cached);
 +	pr_buf(&out, "reserved:\t\t\t%llu\n",
-+	       fs_usage->s.reserved);
++	       fs_usage->reserved);
 +	pr_buf(&out, "nr_inodes:\t\t\t%llu\n",
-+	       fs_usage->s.nr_inodes);
++	       fs_usage->nr_inodes);
 +	pr_buf(&out, "online reserved:\t\t%llu\n",
-+	       fs_usage->s.online_reserved);
++	       fs_usage->online_reserved);
 +
 +	for (i = 0;
 +	     i < ARRAY_SIZE(fs_usage->persistent_reserved);
@@ -58594,7 +58901,7 @@ index 000000000000..7e3aebed2c18
 +
 +		pr_buf(&out, "\t");
 +		bch2_replicas_entry_to_text(&out, e);
-+		pr_buf(&out, ":\t%llu\n", fs_usage->data[i]);
++		pr_buf(&out, ":\t%llu\n", fs_usage->replicas[i]);
 +	}
 +
 +	percpu_up_read_preempt_enable(&c->mark_lock);
