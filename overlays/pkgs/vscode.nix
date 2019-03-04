@@ -25,11 +25,6 @@ self: super:
         version = "2.7.0";
         sha256 = "1rs4ygsqh3hv2lg4kqj8vfkkvins2zfdqniyap3m1xr5kxfa96pn"; }
 
-      { name = "vsc-material-theme-icons";
-        publisher = "equinusocio";
-        version = "0.9.8";
-        sha256 = "1dhy50sdfapcpl81ky9bghz5m5jm7fhx7dmzyrg4z8xzsmgiwxmf"; }
-
       { name = "Ionide-FAKE";
         publisher = "Ionide";
         version = "1.2.3";
@@ -42,8 +37,8 @@ self: super:
 
       { name = "Ionide-fsharp";
         publisher = "Ionide";
-        version = "3.33.0";
-        sha256 = "0ichfnpy48bb1z2vpg6x1m7z5z2pdzx5fnf6zz6r2ykzl8x2agjn"; }
+        version = "3.34.0";
+        sha256 = "0wwqnhc6hx50h4il78zbf83xkqswya906drf4nw2cyl1qmjbb271"; }
 
       { name = "latex-workshop";
         publisher = "James-Yu";
@@ -62,8 +57,8 @@ self: super:
 
       { name = "vscode-sqlite";
         publisher = "alexcvzz";
-        version = "0.5.1";
-        sha256 = "0lmy327fy541smd7d0qlq1vfcf39mn6x0r9plpqcc3qgfxgv5bif"; }
+        version = "0.5.3";
+        sha256 = "173lvdb3jgwpvwmqapzpx2aaqgmxx8fbwlz51rm7n2w6xlwd449a"; }
 
       { name = "Nix";
         publisher = "bbenoist";
@@ -105,6 +100,11 @@ self: super:
         version = "1.0.43";
         sha256 = "0p0lvkip083vx1y5p53ksy9457x76ylxlc2kf7zdb09vqm6ss8z3"; }
 
+      { name = "vsc-material-theme-icons";
+        publisher = "equinusocio";
+        version = "0.9.8";
+        sha256 = "1dhy50sdfapcpl81ky9bghz5m5jm7fhx7dmzyrg4z8xzsmgiwxmf"; }
+
       { name = "auto-rename-tag";
         publisher = "formulahendry";
         version = "0.0.15";
@@ -137,8 +137,8 @@ self: super:
 
       { name = "azure-account";
         publisher = "ms-vscode";
-        version = "0.8.0";
-        sha256 = "11z4f9vdj8vq0pz4j2zpc0mlhb1kgvn89c25is50kh44qwds13h7"; }
+        version = "0.8.10";
+        sha256 = "02hra09501xl08xwinnry4pgl8p9y8j5ars5h20amz5h7xvs8y58"; }
 
       { name = "vs-keybindings";
         publisher = "ms-vscode";
@@ -147,13 +147,13 @@ self: super:
 
       { name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "0.3.1225";
-        sha256 = "0anmsmjjw5s0s1ybyh4p01jy5ix7a2sy1rh7fnlxlm9w3zqhnvrs"; }
+        version = "0.3.1256";
+        sha256 = "0n8206p861n5min22pnk4d16hv6776hcgyjp5acl35x4pvcj1h6j"; }
 
       { name = "debugger-for-chrome";
         publisher = "msjsdiag";
-        version = "4.11.2";
-        sha256 = "0hs12rwcz3zzp2cvmz84jv3qjjkhblf4zrs63lqk685k4r92vw5c"; }
+        version = "4.11.3";
+        sha256 = "1i5skl12pdd1f5diday0prihdd99kdvcv3www3zrkpvxkpyp8v9a"; }
 
       { name = "quicktype";
         publisher = "quicktype";
@@ -167,8 +167,8 @@ self: super:
 
       { name = "java";
         publisher = "redhat";
-        version = "0.39.0";
-        sha256 = "1l39jraabgmxl6vf9ly0b5pqx7yfgj077d2kf5g6djl31rvx32cy"; }
+        version = "0.40.0";
+        sha256 = "1zzjqvhpxgavsr8bkxwmpwr6lrr0hpjkif9y5bwcidkf89kc7n45"; }
 
       { name = "rust";
         publisher = "rust-lang";
