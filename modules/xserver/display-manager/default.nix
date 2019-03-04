@@ -4,6 +4,7 @@ with config.nixos; {
   imports =
     [
       ./chili.nix
+      ./delicious.nix
       ./enso-greeter.nix
       ./gtk-greeter.nix
     ];
