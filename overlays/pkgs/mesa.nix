@@ -9,7 +9,7 @@ let
 
     src = builtins.fetchGit {
       url = "https://gitlab.freedesktop.org/mesa/mesa.git";
-      rev = "32ffd90002b04bff20a587e5d2f31fe79af1a4f2";
+      rev = "3214f20914134df07b070f471c0ca2d610ed3b81";
     };
 
     patches = with self.pkgs.lib; filter (patch: !(isDerivation patch)) oldAttrs.patches;
