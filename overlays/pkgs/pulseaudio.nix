@@ -21,12 +21,21 @@ with self.pkgs; {
   pulseaudio-modules-bt = super.pulseaudio-modules-bt.overrideAttrs (oldAttrs: rec {
     name = "${pname}-${version}";
     pname = stdenv.lib.removeSuffix "-${oldAttrs.version}" oldAttrs.name;
-    version = "unstable-2019-02-17";
+    version = "unstable-2019-02-28";
 
-    src = builtins.fetchGit {
-      url = "https://github.com/EHfive/pulseaudio-modules-bt";
-      rev = "8a58314e73e88116ac868a2063d1c02d3a36c03d";
+    src = fetchFromGitHub {
+      owner = "EHfive";
+      repo = "pulseaudio-modules-bt";
+      rev = "ade461fbb01416d543fb27611319dd11dba7ef95";
+      sha256 = "0h8clilkpj7j26m0ng0c3x4g0bfmhwmszxj0xq45i6bw4n8yzj7f";
+      fetchSubmodules = true;
     };
+
+    patches = [];
+
+    postPatch = ''
+      sed -i 's@ ''${PulseAudio_modlibexecdir})@ ${placeholder "out"}/lib/pulse-${pulseaudio.version}/modules/)@' CMakeLists.txt
+    '';
 
     buildInputs = oldAttrs.buildInputs ++ [
       ldacbt
