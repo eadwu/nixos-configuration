@@ -15,8 +15,8 @@ with self.pkgs; {
     dontBuild = true;
 
     installPhase = ''
-      mkdir -p mkdir -p $out/share/sddm/themes
-      cp -r $src $out/share/sddm/themes/chili
+      mkdir -p $out/share/sddm/themes
+      cp -r . $out/share/sddm/themes/chili
     '';
   };
 }
