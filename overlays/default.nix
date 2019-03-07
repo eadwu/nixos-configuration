@@ -47,11 +47,4 @@ in with self.pkgs; subOverlays // {
   rstudioWrapper = super.rstudioWrapper.override {
     packages = rPackages;
   };
-
-  rustPlatform = (import "${builtins.fetchGit {
-    url = "https://github.com/mozilla/nixpkgs-mozilla";
-  }}/rust-overlay.nix" self super).latest.rustChannels.nightly // {
-    inherit (super.rustPlatform) buildRustPackage recurseForDerivations;
-    rustcSrc = rustPlatform.rust-src;
-  };
 }
