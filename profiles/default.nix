@@ -18,7 +18,7 @@
       htop
       libarchive
       openssl
-      nixopsUnstable
+      nixops
       pass
       tree
       unrar
