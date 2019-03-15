@@ -2757,10 +2757,10 @@ index 000000000000..e06724309ff8
 +#endif /* _BCACHEFS_ACL_H */
 diff --git a/fs/bcachefs/alloc_background.c b/fs/bcachefs/alloc_background.c
 new file mode 100644
-index 000000000000..b080f30ea46c
+index 000000000000..62f639b8a72b
 --- /dev/null
 +++ b/fs/bcachefs/alloc_background.c
-@@ -0,0 +1,1707 @@
+@@ -0,0 +1,1725 @@
 +#include "bcachefs.h"
 +#include "alloc_background.h"
 +#include "alloc_foreground.h"
@@ -3701,7 +3701,7 @@ index 000000000000..b080f30ea46c
 +	else
 +		memset(&u, 0, sizeof(u));
 +
-+	invalidating_cached_data = u.cached_sectors != 0;
++	invalidating_cached_data = m.cached_sectors != 0;
 +
 +	//BUG_ON(u.dirty_sectors);
 +	u.data_type	= 0;
@@ -3709,15 +3709,29 @@ index 000000000000..b080f30ea46c
 +	u.cached_sectors = 0;
 +	u.read_time	= c->bucket_clock[READ].hand;
 +	u.write_time	= c->bucket_clock[WRITE].hand;
-+	u.gen++;
++
++	/*
++	 * The allocator has to start before journal replay is finished - thus,
++	 * we have to trust the in memory bucket @m, not the version in the
++	 * btree:
++	 */
++	u.gen		= m.gen + 1;
 +
 +	a = bkey_alloc_init(&alloc_key.k);
 +	a->k.p = iter->pos;
 +	bch2_alloc_pack(a, u);
 +
++	/*
++	 * XXX:
++	 * when using deferred btree updates, we have journal reclaim doing
++	 * btree updates and thus requiring the allocator to make forward
++	 * progress, and here the allocator is requiring space in the journal -
++	 * so we need a journal pre-reservation:
++	 */
 +	ret = bch2_btree_insert_at(c, NULL,
 +			invalidating_cached_data ? journal_seq : NULL,
 +			BTREE_INSERT_ATOMIC|
++			BTREE_INSERT_NOUNLOCK|
 +			BTREE_INSERT_NOCHECK_RW|
 +			BTREE_INSERT_NOFAIL|
 +			BTREE_INSERT_USE_RESERVE|
@@ -3736,6 +3750,10 @@ index 000000000000..b080f30ea46c
 +
 +		if (!top->nr)
 +			heap_pop(&ca->alloc_heap, e, bucket_alloc_cmp, NULL);
++
++		/* with btree still locked: */
++		if (ca->buckets_written)
++			set_bit(b, ca->buckets_written);
 +
 +		/*
 +		 * Make sure we flush the last journal entry that updated this
@@ -18033,10 +18051,10 @@ index 000000000000..4de1fb736ae5
 +#endif /* _BCACHEFS_BTREE_IO_H */
 diff --git a/fs/bcachefs/btree_iter.c b/fs/bcachefs/btree_iter.c
 new file mode 100644
-index 000000000000..73e2c5ef2eab
+index 000000000000..94b86ad6c7e6
 --- /dev/null
 +++ b/fs/bcachefs/btree_iter.c
-@@ -0,0 +1,1932 @@
+@@ -0,0 +1,1953 @@
 +
 +#include "bcachefs.h"
 +#include "bkey_methods.h"
@@ -19649,7 +19667,7 @@ index 000000000000..73e2c5ef2eab
 +	prefetch(c->btree_roots[btree_id].b);
 +}
 +
-+void bch2_btree_iter_unlink(struct btree_iter *iter)
++static void bch2_btree_iter_unlink(struct btree_iter *iter)
 +{
 +	struct btree_iter *linked;
 +
@@ -19668,22 +19686,12 @@ index 000000000000..73e2c5ef2eab
 +	BUG();
 +}
 +
-+void bch2_btree_iter_link(struct btree_iter *iter, struct btree_iter *new)
++static void bch2_btree_iter_link(struct btree_iter *iter, struct btree_iter *new)
 +{
 +	BUG_ON(btree_iter_linked(new));
 +
 +	new->next = iter->next;
 +	iter->next = new;
-+
-+	if (IS_ENABLED(CONFIG_BCACHEFS_DEBUG)) {
-+		unsigned nr_iters = 0;
-+
-+		for_each_btree_iter(new, iter)
-+			if (iter->btree_id == new->btree_id)
-+				nr_iters++;
-+
-+		BUG_ON(nr_iters > SIX_LOCK_MAX_RECURSE);
-+	}
 +}
 +
 +void bch2_btree_iter_copy(struct btree_iter *dst, struct btree_iter *src)
@@ -19720,7 +19728,7 @@ index 000000000000..73e2c5ef2eab
 +	ssize_t idx = iter - trans->iters;
 +
 +	BUG_ON(idx < 0 || idx >= trans->nr_iters);
-+	BUG_ON(!(trans->iters_live & (1U << idx)));
++	BUG_ON(!(trans->iters_live & (1ULL << idx)));
 +
 +	return idx;
 +}
@@ -19730,7 +19738,7 @@ index 000000000000..73e2c5ef2eab
 +{
 +	ssize_t idx = btree_trans_iter_idx(trans, iter);
 +
-+	trans->iters_live	&= ~(1U << idx);
++	trans->iters_live	&= ~(1ULL << idx);
 +}
 +
 +void bch2_trans_iter_free(struct btree_trans *trans,
@@ -19738,23 +19746,50 @@ index 000000000000..73e2c5ef2eab
 +{
 +	ssize_t idx = btree_trans_iter_idx(trans, iter);
 +
-+	trans->iters_live	&= ~(1U << idx);
-+	trans->iters_linked	&= ~(1U << idx);
++	trans->iters_live	&= ~(1ULL << idx);
++	trans->iters_linked	&= ~(1ULL << idx);
 +	bch2_btree_iter_unlink(iter);
 +}
 +
-+static int btree_trans_realloc_iters(struct btree_trans *trans)
++static int btree_trans_realloc_iters(struct btree_trans *trans,
++				     unsigned new_size)
 +{
-+	struct btree_iter *new_iters;
++	void *new_iters, *new_updates;
 +	unsigned i;
++
++	BUG_ON(new_size > BTREE_ITER_MAX);
++
++	if (new_size <= trans->size)
++		return 0;
++
++	BUG_ON(trans->used_mempool);
 +
 +	bch2_trans_unlock(trans);
 +
++	new_iters = kmalloc(sizeof(struct btree_iter) * new_size +
++			    sizeof(struct btree_insert_entry) * (new_size + 4),
++			    GFP_NOFS);
++	if (new_iters)
++		goto success;
++
 +	new_iters = mempool_alloc(&trans->c->btree_iters_pool, GFP_NOFS);
++	new_size = BTREE_ITER_MAX;
++
++	trans->used_mempool = true;
++success:
++	new_updates = new_iters + sizeof(struct btree_iter) * new_size;
 +
 +	memcpy(new_iters, trans->iters,
 +	       sizeof(struct btree_iter) * trans->nr_iters);
-+	trans->iters = new_iters;
++	memcpy(new_updates, trans->updates,
++	       sizeof(struct btree_insert_entry) * trans->nr_updates);
++
++	if (trans->iters != trans->iters_onstack)
++		kfree(trans->iters);
++
++	trans->iters	= new_iters;
++	trans->updates	= new_updates;
++	trans->size	= new_size;
 +
 +	for (i = 0; i < trans->nr_iters; i++)
 +		trans->iters[i].next = &trans->iters[i];
@@ -19780,8 +19815,7 @@ index 000000000000..73e2c5ef2eab
 +
 +void bch2_trans_preload_iters(struct btree_trans *trans)
 +{
-+	if (trans->iters == trans->iters_onstack)
-+		btree_trans_realloc_iters(trans);
++	btree_trans_realloc_iters(trans, BTREE_ITER_MAX);
 +}
 +
 +static struct btree_iter *__btree_trans_get_iter(struct btree_trans *trans,
@@ -19794,7 +19828,7 @@ index 000000000000..73e2c5ef2eab
 +	BUG_ON(trans->nr_iters > BTREE_ITER_MAX);
 +
 +	for (idx = 0; idx < trans->nr_iters; idx++)
-+		if (trans->iter_ids[idx] == iter_id)
++		if (trans->iters[idx].id == iter_id)
 +			goto found;
 +	idx = -1;
 +found:
@@ -19803,19 +19837,20 @@ index 000000000000..73e2c5ef2eab
 +		if (idx < trans->nr_iters)
 +			goto got_slot;
 +
-+		BUG_ON(trans->nr_iters == BTREE_ITER_MAX);
++		BUG_ON(trans->nr_iters > trans->size);
 +
-+		if (trans->iters == trans->iters_onstack &&
-+		    trans->nr_iters == ARRAY_SIZE(trans->iters_onstack)) {
-+			int ret = btree_trans_realloc_iters(trans);
++		if (trans->nr_iters == trans->size) {
++			int ret = btree_trans_realloc_iters(trans,
++							trans->size * 2);
 +			if (ret)
 +				return ERR_PTR(ret);
 +		}
 +
 +		idx = trans->nr_iters++;
++		BUG_ON(trans->nr_iters > trans->size);
 +got_slot:
-+		trans->iter_ids[idx] = iter_id;
 +		iter = &trans->iters[idx];
++		iter->id = iter_id;
 +
 +		bch2_btree_iter_init(iter, trans->c, btree_id, POS_MIN, flags);
 +	} else {
@@ -19825,15 +19860,15 @@ index 000000000000..73e2c5ef2eab
 +		iter->flags |= flags & (BTREE_ITER_INTENT|BTREE_ITER_PREFETCH);
 +	}
 +
-+	BUG_ON(trans->iters_live & (1 << idx));
-+	trans->iters_live |= 1 << idx;
++	BUG_ON(trans->iters_live & (1ULL << idx));
++	trans->iters_live |= 1ULL << idx;
 +
 +	if (trans->iters_linked &&
 +	    !(trans->iters_linked & (1 << idx)))
 +		bch2_btree_iter_link(&trans->iters[__ffs(trans->iters_linked)],
 +				     iter);
 +
-+	trans->iters_linked |= 1 << idx;
++	trans->iters_linked |= 1ULL << idx;
 +
 +	btree_trans_verify(trans);
 +
@@ -19917,6 +19952,7 @@ index 000000000000..73e2c5ef2eab
 +
 +void __bch2_trans_begin(struct btree_trans *trans)
 +{
++	u64 linked_not_live;
 +	unsigned idx;
 +
 +	btree_trans_verify(trans);
@@ -19929,10 +19965,15 @@ index 000000000000..73e2c5ef2eab
 +	 * further (allocated an iter with a higher idx) than where the iter
 +	 * was originally allocated:
 +	 */
-+	while (trans->iters_linked &&
-+	       trans->iters_live &&
-+	       (idx = __fls(trans->iters_linked)) >
-+	       __fls(trans->iters_live)) {
++	while (1) {
++		linked_not_live = trans->iters_linked & ~trans->iters_live;
++		if (!linked_not_live)
++			break;
++
++		idx = __ffs64(linked_not_live);
++		if (1ULL << idx > trans->iters_live)
++			break;
++
 +		trans->iters_linked ^= 1 << idx;
 +		bch2_btree_iter_unlink(&trans->iters[idx]);
 +	}
@@ -19946,16 +19987,12 @@ index 000000000000..73e2c5ef2eab
 +
 +void bch2_trans_init(struct btree_trans *trans, struct bch_fs *c)
 +{
++	memset(trans, 0, offsetof(struct btree_trans, iters_onstack));
++
 +	trans->c		= c;
-+	trans->nr_restarts	= 0;
-+	trans->nr_iters		= 0;
-+	trans->iters_live	= 0;
-+	trans->iters_linked	= 0;
-+	trans->nr_updates	= 0;
-+	trans->mem_top		= 0;
-+	trans->mem_bytes	= 0;
-+	trans->mem		= NULL;
++	trans->size		= ARRAY_SIZE(trans->iters_onstack);
 +	trans->iters		= trans->iters_onstack;
++	trans->updates		= trans->updates_onstack;
 +}
 +
 +int bch2_trans_exit(struct btree_trans *trans)
@@ -19963,18 +20000,20 @@ index 000000000000..73e2c5ef2eab
 +	int ret = bch2_trans_unlock(trans);
 +
 +	kfree(trans->mem);
-+	if (trans->iters != trans->iters_onstack)
++	if (trans->used_mempool)
 +		mempool_free(trans->iters, &trans->c->btree_iters_pool);
++	else if (trans->iters != trans->iters_onstack)
++		kfree(trans->iters);
 +	trans->mem	= (void *) 0x1;
 +	trans->iters	= (void *) 0x1;
 +	return ret;
 +}
 diff --git a/fs/bcachefs/btree_iter.h b/fs/bcachefs/btree_iter.h
 new file mode 100644
-index 000000000000..873332f78826
+index 000000000000..7c49a661277a
 --- /dev/null
 +++ b/fs/bcachefs/btree_iter.h
-@@ -0,0 +1,342 @@
+@@ -0,0 +1,341 @@
 +#ifndef _BCACHEFS_BTREE_ITER_H
 +#define _BCACHEFS_BTREE_ITER_H
 +
@@ -20082,6 +20121,7 @@ index 000000000000..873332f78826
 +			      unsigned, unsigned);
 +
 +int bch2_btree_iter_unlock(struct btree_iter *);
++bool bch2_btree_iter_relock(struct btree_iter *);
 +
 +bool __bch2_btree_iter_upgrade(struct btree_iter *, unsigned);
 +bool __bch2_btree_iter_upgrade_nounlock(struct btree_iter *, unsigned);
@@ -20141,8 +20181,6 @@ index 000000000000..873332f78826
 +				?  BTREE_ITER_IS_EXTENTS : 0)|flags);
 +}
 +
-+void bch2_btree_iter_link(struct btree_iter *, struct btree_iter *);
-+void bch2_btree_iter_unlink(struct btree_iter *);
 +void bch2_btree_iter_copy(struct btree_iter *, struct btree_iter *);
 +
 +static inline struct bpos btree_type_successor(enum btree_id id,
@@ -20319,10 +20357,10 @@ index 000000000000..873332f78826
 +#endif /* _BCACHEFS_BTREE_ITER_H */
 diff --git a/fs/bcachefs/btree_locking.h b/fs/bcachefs/btree_locking.h
 new file mode 100644
-index 000000000000..9054de0dbd2e
+index 000000000000..f565fa367bf1
 --- /dev/null
 +++ b/fs/bcachefs/btree_locking.h
-@@ -0,0 +1,223 @@
+@@ -0,0 +1,221 @@
 +#ifndef _BCACHEFS_BTREE_LOCKING_H
 +#define _BCACHEFS_BTREE_LOCKING_H
 +
@@ -20528,8 +20566,6 @@ index 000000000000..9054de0dbd2e
 +		__bch2_btree_node_relock(iter, level);
 +}
 +
-+bool bch2_btree_iter_relock(struct btree_iter *);
-+
 +void bch2_btree_node_unlock_write(struct btree *, struct btree_iter *);
 +
 +void __bch2_btree_node_lock_write(struct btree *, struct btree_iter *);
@@ -20548,10 +20584,10 @@ index 000000000000..9054de0dbd2e
 +
 diff --git a/fs/bcachefs/btree_types.h b/fs/bcachefs/btree_types.h
 new file mode 100644
-index 000000000000..b38722da18eb
+index 000000000000..a6aea023a562
 --- /dev/null
 +++ b/fs/bcachefs/btree_types.h
-@@ -0,0 +1,511 @@
+@@ -0,0 +1,515 @@
 +#ifndef _BCACHEFS_BTREE_TYPES_H
 +#define _BCACHEFS_BTREE_TYPES_H
 +
@@ -20785,24 +20821,24 @@ index 000000000000..b38722da18eb
 +	 */
 +	struct bkey		k;
 +
++	u64			id;
++
 +	/*
 +	 * Circular linked list of linked iterators: linked iterators share
 +	 * locks (e.g. two linked iterators may have the same node intent
 +	 * locked, or read and write locked, at the same time), and insertions
 +	 * through one iterator won't invalidate the other linked iterators.
 +	 */
-+
 +	/* Must come last: */
 +	struct btree_iter	*next;
 +};
 +
-+#define BTREE_ITER_MAX		8
-+
 +struct deferred_update {
++	struct journal_preres	res;
 +	struct journal_entry_pin journal;
 +
 +	spinlock_t		lock;
-+	unsigned		gen;
++	unsigned		dirty:1;
 +
 +	u8			allocated_u64s;
 +	enum btree_id		btree_id;
@@ -20822,25 +20858,29 @@ index 000000000000..b38722da18eb
 +	bool			deferred;
 +};
 +
++#define BTREE_ITER_MAX		64
++
 +struct btree_trans {
 +	struct bch_fs		*c;
 +	size_t			nr_restarts;
 +
++	u64			iters_live;
++	u64			iters_linked;
++
 +	u8			nr_iters;
-+	u8			iters_live;
-+	u8			iters_linked;
 +	u8			nr_updates;
++	u8			size;
++	unsigned		used_mempool:1;
 +
 +	unsigned		mem_top;
 +	unsigned		mem_bytes;
 +	void			*mem;
 +
 +	struct btree_iter	*iters;
-+	u64			iter_ids[BTREE_ITER_MAX];
-+
-+	struct btree_insert_entry updates[BTREE_ITER_MAX];
++	struct btree_insert_entry *updates;
 +
 +	struct btree_iter	iters_onstack[2];
++	struct btree_insert_entry updates_onstack[6];
 +};
 +
 +#define BTREE_FLAG(flag)						\
@@ -21065,10 +21105,10 @@ index 000000000000..b38722da18eb
 +#endif /* _BCACHEFS_BTREE_TYPES_H */
 diff --git a/fs/bcachefs/btree_update.h b/fs/bcachefs/btree_update.h
 new file mode 100644
-index 000000000000..faacde9ae4bb
+index 000000000000..1f371b5a1b3d
 --- /dev/null
 +++ b/fs/bcachefs/btree_update.h
-@@ -0,0 +1,173 @@
+@@ -0,0 +1,177 @@
 +#ifndef _BCACHEFS_BTREE_UPDATE_H
 +#define _BCACHEFS_BTREE_UPDATE_H
 +
@@ -21097,6 +21137,7 @@ index 000000000000..faacde9ae4bb
 +	struct bch_fs		*c;
 +	struct disk_reservation *disk_res;
 +	struct journal_res	journal_res;
++	struct journal_preres	journal_preres;
 +	u64			*journal_seq;
 +	unsigned		flags;
 +	bool			did_work;
@@ -21152,6 +21193,7 @@ index 000000000000..faacde9ae4bb
 +	__BTREE_INSERT_USE_RESERVE,
 +	__BTREE_INSERT_USE_ALLOC_RESERVE,
 +	__BTREE_INSERT_JOURNAL_REPLAY,
++	__BTREE_INSERT_JOURNAL_RESERVED,
 +	__BTREE_INSERT_NOMARK,
 +	__BTREE_INSERT_NOWAIT,
 +	__BTREE_INSERT_GC_LOCK_HELD,
@@ -21181,6 +21223,8 @@ index 000000000000..faacde9ae4bb
 +
 +/* Insert is for journal replay - don't get journal reservations: */
 +#define BTREE_INSERT_JOURNAL_REPLAY	(1 << __BTREE_INSERT_JOURNAL_REPLAY)
++
++#define BTREE_INSERT_JOURNAL_RESERVED	(1 << __BTREE_INSERT_JOURNAL_RESERVED)
 +
 +/* Don't call bch2_mark_key: */
 +#define BTREE_INSERT_NOMARK		(1 << __BTREE_INSERT_NOMARK)
@@ -21214,7 +21258,7 @@ index 000000000000..faacde9ae4bb
 +bch2_trans_update(struct btree_trans *trans,
 +		  struct btree_insert_entry entry)
 +{
-+	BUG_ON(trans->nr_updates >= ARRAY_SIZE(trans->updates));
++	BUG_ON(trans->nr_updates >= trans->nr_iters + 4);
 +
 +	trans->updates[trans->nr_updates++] = entry;
 +}
@@ -23789,10 +23833,10 @@ index 000000000000..6ae17ffa4101
 +#endif /* _BCACHEFS_BTREE_UPDATE_INTERIOR_H */
 diff --git a/fs/bcachefs/btree_update_leaf.c b/fs/bcachefs/btree_update_leaf.c
 new file mode 100644
-index 000000000000..da8c69871c76
+index 000000000000..4a4904e743c3
 --- /dev/null
 +++ b/fs/bcachefs/btree_update_leaf.c
-@@ -0,0 +1,916 @@
+@@ -0,0 +1,972 @@
 +
 +#include "bcachefs.h"
 +#include "btree_update.h"
@@ -23811,6 +23855,9 @@ index 000000000000..da8c69871c76
 +
 +#include <linux/sort.h>
 +#include <trace/events/bcachefs.h>
++
++static bool btree_trans_relock(struct btree_insert *);
++static void btree_trans_unlock(struct btree_insert *);
 +
 +/* Inserting into a given leaf node (last stage of insert): */
 +
@@ -24034,15 +24081,15 @@ index 000000000000..da8c69871c76
 +/* Deferred btree updates: */
 +
 +static void deferred_update_flush(struct journal *j,
-+					struct journal_entry_pin *pin,
-+					u64 seq)
++				  struct journal_entry_pin *pin,
++				  u64 seq)
 +{
 +	struct bch_fs *c = container_of(j, struct bch_fs, journal);
 +	struct deferred_update *d =
 +		container_of(pin, struct deferred_update, journal);
++	struct journal_preres res = { 0 };
 +	u64 tmp[32];
 +	struct bkey_i *k = (void *) tmp;
-+	unsigned gen;
 +	int ret;
 +
 +	if (d->allocated_u64s > ARRAY_SIZE(tmp)) {
@@ -24052,26 +24099,32 @@ index 000000000000..da8c69871c76
 +	}
 +
 +	spin_lock(&d->lock);
-+	gen = d->gen;
++	if (d->dirty) {
++		BUG_ON(jset_u64s(d->k.k.u64s) > d->res.u64s);
 +
-+	if (journal_pin_active(&d->journal)) {
++		swap(res, d->res);
++
 +		BUG_ON(d->k.k.u64s > d->allocated_u64s);
-+		bkey_copy(k, &d->k);
 +
++		bkey_copy(k, &d->k);
++		d->dirty = false;
 +		spin_unlock(&d->lock);
 +
 +		ret = bch2_btree_insert(c, d->btree_id, k, NULL, NULL,
-+					BTREE_INSERT_NOFAIL);
++					BTREE_INSERT_NOFAIL|
++					BTREE_INSERT_USE_RESERVE|
++					BTREE_INSERT_JOURNAL_RESERVED);
 +		bch2_fs_fatal_err_on(ret && !bch2_journal_error(j),
-+			c, "error flushing deferred btree update: %i", ret);
++				     c, "error flushing deferred btree update: %i", ret);
 +
 +		spin_lock(&d->lock);
 +	}
 +
-+	if (gen == d->gen)
++	if (!d->dirty)
 +		bch2_journal_pin_drop(j, &d->journal);
 +	spin_unlock(&d->lock);
 +
++	bch2_journal_preres_put(j, &res);
 +	if (k != (void *) tmp)
 +		kfree(k);
 +}
@@ -24083,6 +24136,7 @@ index 000000000000..da8c69871c76
 +	struct bch_fs *c = trans->c;
 +	struct journal *j = &c->journal;
 +	struct deferred_update *d = insert->d;
++	int difference;
 +
 +	BUG_ON(trans->flags & BTREE_INSERT_JOURNAL_REPLAY);
 +	BUG_ON(insert->k->u64s > d->allocated_u64s);
@@ -24090,12 +24144,21 @@ index 000000000000..da8c69871c76
 +	__btree_journal_key(trans, d->btree_id, insert->k);
 +
 +	spin_lock(&d->lock);
-+	d->gen++;
++	BUG_ON(jset_u64s(insert->k->u64s) >
++	       trans->journal_preres.u64s);
++
++	difference = jset_u64s(insert->k->u64s) - d->res.u64s;
++	if (difference > 0) {
++		trans->journal_preres.u64s	-= difference;
++		d->res.u64s			+= difference;
++	}
++
 +	bkey_copy(&d->k, insert->k);
-+	spin_unlock(&d->lock);
++	d->dirty = true;
 +
 +	bch2_journal_pin_update(j, trans->journal_res.seq, &d->journal,
 +				deferred_update_flush);
++	spin_unlock(&d->lock);
 +
 +	return BTREE_INSERT_OK;
 +}
@@ -24314,13 +24377,16 @@ index 000000000000..da8c69871c76
 +	}
 +
 +	if (likely(!(trans->flags & BTREE_INSERT_JOURNAL_REPLAY))) {
++		unsigned flags = (trans->flags & BTREE_INSERT_JOURNAL_RESERVED)
++			? JOURNAL_RES_GET_RESERVED : 0;
++
 +		u64s = 0;
 +		trans_for_each_entry(trans, i)
 +			u64s += jset_u64s(i->k->k.u64s);
 +
 +		ret = bch2_journal_res_get(&c->journal,
 +				&trans->journal_res, u64s,
-+				JOURNAL_RES_GET_NONBLOCK);
++				flags|JOURNAL_RES_GET_NONBLOCK);
 +		if (likely(!ret))
 +			goto got_journal_res;
 +		if (ret != -EAGAIN)
@@ -24331,7 +24397,7 @@ index 000000000000..da8c69871c76
 +
 +		ret = bch2_journal_res_get(&c->journal,
 +				&trans->journal_res, u64s,
-+				JOURNAL_RES_GET_CHECK);
++				flags|JOURNAL_RES_GET_CHECK);
 +		if (ret)
 +			return ret;
 +
@@ -24381,6 +24447,10 @@ index 000000000000..da8c69871c76
 +		}
 +	}
 +out:
++	BUG_ON(ret &&
++	       (trans->flags & BTREE_INSERT_JOURNAL_RESERVED) &&
++	       trans->journal_res.ref);
++
 +	multi_unlock_write(trans);
 +	bch2_journal_res_put(&c->journal, &trans->journal_res);
 +
@@ -24422,7 +24492,7 @@ index 000000000000..da8c69871c76
 +	struct bch_fs *c = trans->c;
 +	struct btree_insert_entry *i;
 +	struct btree_iter *linked;
-+	unsigned flags;
++	unsigned flags, u64s = 0;
 +	int ret;
 +
 +	BUG_ON(!trans->nr);
@@ -24433,11 +24503,39 @@ index 000000000000..da8c69871c76
 +	if (trans->flags & BTREE_INSERT_GC_LOCK_HELD)
 +		lockdep_assert_held(&c->gc_lock);
 +
++	memset(&trans->journal_preres, 0, sizeof(trans->journal_preres));
++
 +	bubble_sort(trans->entries, trans->nr, btree_trans_cmp);
 +
 +	trans_for_each_entry(trans, i)
 +		btree_insert_entry_checks(c, i);
 +
++	trans_for_each_entry(trans, i)
++		if (i->deferred)
++			u64s += jset_u64s(i->k->k.u64s);
++
++	if (u64s) {
++		ret = bch2_journal_preres_get(&c->journal,
++				&trans->journal_preres, u64s,
++				JOURNAL_RES_GET_NONBLOCK);
++		if (!ret)
++			goto got_journal_preres;
++		if (ret != -EAGAIN)
++			return ret;
++
++		btree_trans_unlock(trans);
++		ret = bch2_journal_preres_get(&c->journal,
++				&trans->journal_preres, u64s, 0);
++		if (ret)
++			return ret;
++
++		if (!btree_trans_relock(trans)) {
++			trans_restart(" (iter relock after journal preres get blocked)");
++			bch2_journal_preres_put(&c->journal, &trans->journal_preres);
++			return -EINTR;
++		}
++	}
++got_journal_preres:
 +	if (unlikely(!(trans->flags & BTREE_INSERT_NOCHECK_RW) &&
 +		     !percpu_ref_tryget(&c->writes)))
 +		return -EROFS;
@@ -24469,6 +24567,8 @@ index 000000000000..da8c69871c76
 +	trans_for_each_iter(trans, i)
 +		bch2_btree_iter_downgrade(i->iter);
 +out:
++	bch2_journal_preres_put(&c->journal, &trans->journal_preres);
++
 +	if (unlikely(!(trans->flags & BTREE_INSERT_NOCHECK_RW)))
 +		percpu_ref_put(&c->writes);
 +
@@ -24711,10 +24811,10 @@ index 000000000000..da8c69871c76
 +}
 diff --git a/fs/bcachefs/buckets.c b/fs/bcachefs/buckets.c
 new file mode 100644
-index 000000000000..377a8b0f7f7d
+index 000000000000..072d22ae2b7b
 --- /dev/null
 +++ b/fs/bcachefs/buckets.c
-@@ -0,0 +1,1311 @@
+@@ -0,0 +1,1317 @@
 +/*
 + * Code for manipulating bucket marks for garbage collection.
 + *
@@ -25253,11 +25353,14 @@ index 000000000000..377a8b0f7f7d
 +}
 +
 +#define checked_add(a, b)					\
-+do {								\
++({								\
 +	unsigned _res = (unsigned) (a) + (b);			\
++	bool overflow = _res > U16_MAX;				\
++	if (overflow)						\
++		_res = U16_MAX;					\
 +	(a) = _res;						\
-+	BUG_ON((a) != _res);					\
-+} while (0)
++	overflow;						\
++})
 +
 +static int __bch2_mark_metadata_bucket(struct bch_fs *c, struct bch_dev *ca,
 +				       size_t b, enum bch_data_type type,
@@ -25265,16 +25368,24 @@ index 000000000000..377a8b0f7f7d
 +{
 +	struct bch_fs_usage *fs_usage = this_cpu_ptr(c->usage[gc]);
 +	struct bucket *g = __bucket(ca, b, gc);
-+	struct bucket_mark new;
++	struct bucket_mark old, new;
++	bool overflow;
 +
 +	BUG_ON(type != BCH_DATA_SB &&
 +	       type != BCH_DATA_JOURNAL);
 +
-+	bucket_data_cmpxchg(c, ca, fs_usage, g, new, ({
++	old = bucket_cmpxchg(g, new, ({
 +		new.dirty	= true;
 +		new.data_type	= type;
-+		checked_add(new.dirty_sectors, sectors);
++		overflow = checked_add(new.dirty_sectors, sectors);
 +	}));
++
++	bch2_fs_inconsistent_on(overflow, c,
++		"bucket sector count overflow: %u + %u > U16_MAX",
++		old.dirty_sectors, sectors);
++
++	if (c)
++		bch2_dev_usage_update(c, ca, fs_usage, old, new, gc);
 +
 +	return 0;
 +}
@@ -25291,19 +25402,7 @@ index 000000000000..377a8b0f7f7d
 +		do_mark_fn(__bch2_mark_metadata_bucket, c, pos, flags,
 +			   ca, b, type, sectors);
 +	} else {
-+		struct bucket *g;
-+		struct bucket_mark new;
-+
-+		rcu_read_lock();
-+
-+		g = bucket(ca, b);
-+		bucket_cmpxchg(g, new, ({
-+			new.dirty	= true;
-+			new.data_type	= type;
-+			checked_add(new.dirty_sectors, sectors);
-+		}));
-+
-+		rcu_read_unlock();
++		__bch2_mark_metadata_bucket(c, ca, b, type, sectors, 0);
 +	}
 +}
 +
@@ -25344,6 +25443,7 @@ index 000000000000..377a8b0f7f7d
 +	struct bch_dev *ca = bch_dev_bkey_exists(c, p.ptr.dev);
 +	size_t b = PTR_BUCKET_NR(ca, &p.ptr);
 +	struct bucket *g = __bucket(ca, b, gc);
++	bool overflow;
 +	u64 v;
 +
 +	v = atomic64_read(&g->_mark.v);
@@ -25365,9 +25465,9 @@ index 000000000000..377a8b0f7f7d
 +		}
 +
 +		if (!p.ptr.cached)
-+			checked_add(new.dirty_sectors, sectors);
++			overflow = checked_add(new.dirty_sectors, sectors);
 +		else
-+			checked_add(new.cached_sectors, sectors);
++			overflow = checked_add(new.cached_sectors, sectors);
 +
 +		if (!new.dirty_sectors &&
 +		    !new.cached_sectors) {
@@ -25388,6 +25488,12 @@ index 000000000000..377a8b0f7f7d
 +	} while ((v = atomic64_cmpxchg(&g->_mark.v,
 +			      old.v.counter,
 +			      new.v.counter)) != old.v.counter);
++
++	bch2_fs_inconsistent_on(overflow, c,
++		"bucket sector count overflow: %u + %lli > U16_MAX",
++		!p.ptr.cached
++		? old.dirty_sectors
++		: old.cached_sectors, sectors);
 +
 +	bch2_dev_usage_update(c, ca, fs_usage, old, new, gc);
 +
@@ -35226,10 +35332,10 @@ index 000000000000..0982af022ff9
 +#endif /* _BCACHEFS_FIFO_H */
 diff --git a/fs/bcachefs/fs-io.c b/fs/bcachefs/fs-io.c
 new file mode 100644
-index 000000000000..2cfc2d9e7db5
+index 000000000000..d3a03641cbfd
 --- /dev/null
 +++ b/fs/bcachefs/fs-io.c
-@@ -0,0 +1,2822 @@
+@@ -0,0 +1,2865 @@
 +#ifndef NO_BCACHEFS_FS
 +
 +#include "bcachefs.h"
@@ -35461,20 +35567,21 @@ index 000000000000..2cfc2d9e7db5
 +
 +/* normal i_size/i_sectors update machinery: */
 +
-+static s64 sum_sector_overwrites(struct bkey_i *new, struct btree_iter *_iter,
-+				 bool *allocating)
++static int sum_sector_overwrites(struct btree_trans *trans,
++				 struct btree_iter *extent_iter,
++				 struct bkey_i *new, bool *allocating,
++				 s64 *delta)
 +{
-+	struct btree_iter iter;
++	struct btree_iter *iter;
 +	struct bkey_s_c old;
-+	s64 delta = 0;
 +
-+	bch2_btree_iter_init(&iter, _iter->c, BTREE_ID_EXTENTS, POS_MIN,
-+			     BTREE_ITER_SLOTS);
++	*delta = 0;
 +
-+	bch2_btree_iter_link(_iter, &iter);
-+	bch2_btree_iter_copy(&iter, _iter);
++	iter = bch2_trans_copy_iter(trans, extent_iter);
++	if (IS_ERR(iter))
++		return PTR_ERR(iter);
 +
-+	old = bch2_btree_iter_peek_slot(&iter);
++	old = bch2_btree_iter_peek_slot(iter);
 +
 +	while (1) {
 +		/*
@@ -35490,7 +35597,7 @@ index 000000000000..2cfc2d9e7db5
 +		    bch2_bkey_nr_dirty_ptrs(bkey_i_to_s_c(new)))
 +			*allocating = true;
 +
-+		delta += (min(new->k.p.offset,
++		*delta += (min(new->k.p.offset,
 +			      old.k->p.offset) -
 +			  max(bkey_start_offset(&new->k),
 +			      bkey_start_offset(old.k))) *
@@ -35500,12 +35607,11 @@ index 000000000000..2cfc2d9e7db5
 +		if (bkey_cmp(old.k->p, new->k.p) >= 0)
 +			break;
 +
-+		old = bch2_btree_iter_next_slot(&iter);
++		old = bch2_btree_iter_next_slot(iter);
 +	}
 +
-+	bch2_btree_iter_unlink(&iter);
-+
-+	return delta;
++	bch2_trans_iter_free(trans, iter);
++	return 0;
 +}
 +
 +static int bch2_extent_update(struct btree_trans *trans,
@@ -35519,11 +35625,13 @@ index 000000000000..2cfc2d9e7db5
 +			      bool direct,
 +			      s64 *total_delta)
 +{
++	struct bch_fs *c = trans->c;
 +	struct btree_iter *inode_iter = NULL;
 +	struct bch_inode_unpacked inode_u;
 +	struct bkey_inode_buf inode_p;
 +	bool allocating = false;
 +	bool extended = false;
++	bool inode_locked = false;
 +	s64 i_sectors_delta;
 +	int ret;
 +
@@ -35535,7 +35643,12 @@ index 000000000000..2cfc2d9e7db5
 +
 +	bch2_extent_trim_atomic(k, extent_iter);
 +
-+	i_sectors_delta = sum_sector_overwrites(k, extent_iter, &allocating);
++	ret = sum_sector_overwrites(trans, extent_iter,
++				    k, &allocating,
++				    &i_sectors_delta);
++	if (ret)
++		return ret;
++
 +	if (!may_allocate && allocating)
 +		return -ENOSPC;
 +
@@ -35546,30 +35659,62 @@ index 000000000000..2cfc2d9e7db5
 +	/* XXX: inode->i_size locking */
 +	if (i_sectors_delta ||
 +	    new_i_size > inode->ei_inode.bi_size) {
-+		inode_iter = bch2_trans_get_iter(trans,
-+			BTREE_ID_INODES,
-+			POS(k->k.p.inode, 0),
-+			BTREE_ITER_SLOTS|BTREE_ITER_INTENT);
-+		if (IS_ERR(inode_iter))
-+			return PTR_ERR(inode_iter);
++		if (c->opts.new_inode_updates) {
++			bch2_btree_iter_unlock(extent_iter);
++			mutex_lock(&inode->ei_update_lock);
 +
-+		ret = bch2_btree_iter_traverse(inode_iter);
-+		if (ret)
-+			goto err;
++			if (!bch2_btree_iter_relock(extent_iter)) {
++				mutex_unlock(&inode->ei_update_lock);
++				return -EINTR;
++			}
 +
-+		inode_u = inode->ei_inode;
-+		inode_u.bi_sectors += i_sectors_delta;
++			inode_locked = true;
 +
-+		/* XXX: this is slightly suspect */
-+		if (!(inode_u.bi_flags & BCH_INODE_I_SIZE_DIRTY) &&
-+		    new_i_size > inode_u.bi_size) {
-+			inode_u.bi_size = new_i_size;
-+			extended = true;
++			if (!inode->ei_inode_update)
++				inode->ei_inode_update =
++					bch2_deferred_update_alloc(c,
++								BTREE_ID_INODES, 64);
++
++			inode_u = inode->ei_inode;
++			inode_u.bi_sectors += i_sectors_delta;
++
++			/* XXX: this is slightly suspect */
++			if (!(inode_u.bi_flags & BCH_INODE_I_SIZE_DIRTY) &&
++			    new_i_size > inode_u.bi_size) {
++				inode_u.bi_size = new_i_size;
++				extended = true;
++			}
++
++			bch2_inode_pack(&inode_p, &inode_u);
++			bch2_trans_update(trans,
++				BTREE_INSERT_DEFERRED(inode->ei_inode_update,
++						      &inode_p.inode.k_i));
++		} else {
++			inode_iter = bch2_trans_get_iter(trans,
++				BTREE_ID_INODES,
++				POS(k->k.p.inode, 0),
++				BTREE_ITER_SLOTS|BTREE_ITER_INTENT);
++			if (IS_ERR(inode_iter))
++				return PTR_ERR(inode_iter);
++
++			ret = bch2_btree_iter_traverse(inode_iter);
++			if (ret)
++				goto err;
++
++			inode_u = inode->ei_inode;
++			inode_u.bi_sectors += i_sectors_delta;
++
++			/* XXX: this is slightly suspect */
++			if (!(inode_u.bi_flags & BCH_INODE_I_SIZE_DIRTY) &&
++			    new_i_size > inode_u.bi_size) {
++				inode_u.bi_size = new_i_size;
++				extended = true;
++			}
++
++			bch2_inode_pack(&inode_p, &inode_u);
++			bch2_trans_update(trans,
++				BTREE_INSERT_ENTRY(inode_iter, &inode_p.inode.k_i));
 +		}
-+
-+		bch2_inode_pack(&inode_p, &inode_u);
-+		bch2_trans_update(trans,
-+			BTREE_INSERT_ENTRY(inode_iter, &inode_p.inode.k_i));
 +	}
 +
 +	ret = bch2_trans_commit(trans, disk_res,
@@ -35598,18 +35743,22 @@ index 000000000000..2cfc2d9e7db5
 +	}
 +
 +	if (direct)
-+		i_sectors_acct(trans->c, inode, quota_res, i_sectors_delta);
++		i_sectors_acct(c, inode, quota_res, i_sectors_delta);
 +
 +	if (total_delta)
 +		*total_delta += i_sectors_delta;
 +err:
 +	if (!IS_ERR_OR_NULL(inode_iter))
 +		bch2_trans_iter_put(trans, inode_iter);
++	if (inode_locked)
++		mutex_unlock(&inode->ei_update_lock);
++
 +	return ret;
 +}
 +
 +static int bchfs_write_index_update(struct bch_write_op *wop)
 +{
++	struct bch_fs *c = wop->c;
 +	struct bchfs_write_op *op = container_of(wop,
 +				struct bchfs_write_op, op);
 +	struct quota_res *quota_res = op->is_dio
@@ -35624,7 +35773,7 @@ index 000000000000..2cfc2d9e7db5
 +
 +	BUG_ON(k->k.p.inode != inode->v.i_ino);
 +
-+	bch2_trans_init(&trans, wop->c);
++	bch2_trans_init(&trans, c);
 +	bch2_trans_preload_iters(&trans);
 +
 +	iter = bch2_trans_get_iter(&trans,
@@ -38497,10 +38646,10 @@ index 000000000000..c7124ed3b620
 +#endif /* _BCACHEFS_FS_IOCTL_H */
 diff --git a/fs/bcachefs/fs.c b/fs/bcachefs/fs.c
 new file mode 100644
-index 000000000000..c7797338fe91
+index 000000000000..55fc88d33d94
 --- /dev/null
 +++ b/fs/bcachefs/fs.c
-@@ -0,0 +1,1796 @@
+@@ -0,0 +1,1817 @@
 +#ifndef NO_BCACHEFS_FS
 +
 +#include "bcachefs.h"
@@ -38608,22 +38757,30 @@ index 000000000000..c7797338fe91
 +				inode_set_fn set,
 +				void *p)
 +{
++	struct bch_fs *c = trans->c;
 +	struct btree_iter *iter;
 +	struct bkey_inode_buf *inode_p;
 +	int ret;
 +
 +	lockdep_assert_held(&inode->ei_update_lock);
 +
-+	iter = bch2_trans_get_iter(trans, BTREE_ID_INODES,
-+			POS(inode->v.i_ino, 0),
-+			BTREE_ITER_SLOTS|BTREE_ITER_INTENT);
-+	if (IS_ERR(iter))
-+		return PTR_ERR(iter);
++	if (c->opts.new_inode_updates) {
++	/* XXX: Don't do this with btree locks held */
++	if (!inode->ei_inode_update)
++		inode->ei_inode_update =
++			bch2_deferred_update_alloc(c, BTREE_ID_INODES, 64);
++	} else {
++		iter = bch2_trans_get_iter(trans, BTREE_ID_INODES,
++					   POS(inode->v.i_ino, 0),
++					   BTREE_ITER_SLOTS|BTREE_ITER_INTENT);
++		if (IS_ERR(iter))
++			return PTR_ERR(iter);
 +
-+	/* The btree node lock is our lock on the inode: */
-+	ret = bch2_btree_iter_traverse(iter);
-+	if (ret)
-+		return ret;
++		/* The btree node lock is our lock on the inode: */
++		ret = bch2_btree_iter_traverse(iter);
++		if (ret)
++			return ret;
++	}
 +
 +	*inode_u = inode->ei_inode;
 +
@@ -38638,7 +38795,15 @@ index 000000000000..c7797338fe91
 +		return PTR_ERR(inode_p);
 +
 +	bch2_inode_pack(inode_p, inode_u);
-+	bch2_trans_update(trans, BTREE_INSERT_ENTRY(iter, &inode_p->inode.k_i));
++
++	if (!inode->ei_inode_update)
++		bch2_trans_update(trans,
++			BTREE_INSERT_ENTRY(iter, &inode_p->inode.k_i));
++	else
++		bch2_trans_update(trans,
++			BTREE_INSERT_DEFERRED(inode->ei_inode_update,
++					      &inode_p->inode.k_i));
++
 +	return 0;
 +}
 +
@@ -39849,6 +40014,7 @@ index 000000000000..c7797338fe91
 +	inode_init_once(&inode->v);
 +	mutex_init(&inode->ei_update_lock);
 +	mutex_init(&inode->ei_quota_lock);
++	inode->ei_inode_update = NULL;
 +	inode->ei_journal_seq = 0;
 +
 +	return &inode->v;
@@ -39911,6 +40077,10 @@ index 000000000000..c7797338fe91
 +	clear_inode(&inode->v);
 +
 +	BUG_ON(!is_bad_inode(&inode->v) && inode->ei_quota_reserved);
++
++	if (inode->ei_inode_update)
++		bch2_deferred_update_free(c, inode->ei_inode_update);
++	inode->ei_inode_update = NULL;
 +
 +	if (!inode->v.i_nlink && !is_bad_inode(&inode->v)) {
 +		bch2_quota_acct(c, inode->ei_qid, Q_SPC, -((s64) inode->v.i_blocks),
@@ -40299,10 +40469,10 @@ index 000000000000..c7797338fe91
 +#endif /* NO_BCACHEFS_FS */
 diff --git a/fs/bcachefs/fs.h b/fs/bcachefs/fs.h
 new file mode 100644
-index 000000000000..9ac6fc87f69a
+index 000000000000..7080de1e8748
 --- /dev/null
 +++ b/fs/bcachefs/fs.h
-@@ -0,0 +1,151 @@
+@@ -0,0 +1,152 @@
 +#ifndef _BCACHEFS_FS_H
 +#define _BCACHEFS_FS_H
 +
@@ -40318,6 +40488,7 @@ index 000000000000..9ac6fc87f69a
 +	struct inode		v;
 +
 +	struct mutex		ei_update_lock;
++	struct deferred_update	*ei_inode_update;
 +	u64			ei_journal_seq;
 +	u64			ei_quota_reserved;
 +	unsigned long		ei_last_dirtied;
@@ -44769,10 +44940,10 @@ index 000000000000..8ec846cc996f
 +#endif /* _BCACHEFS_IO_TYPES_H */
 diff --git a/fs/bcachefs/journal.c b/fs/bcachefs/journal.c
 new file mode 100644
-index 000000000000..f108a28233c7
+index 000000000000..a58a1fb6f0af
 --- /dev/null
 +++ b/fs/bcachefs/journal.c
-@@ -0,0 +1,1179 @@
+@@ -0,0 +1,1247 @@
 +/*
 + * bcachefs journalling code, for btree insertions
 + *
@@ -45023,13 +45194,13 @@ index 000000000000..f108a28233c7
 +	do {
 +		old.v = new.v = v;
 +
-+		EBUG_ON(journal_state_count(new, new.idx));
-+
 +		if (old.cur_entry_offset == JOURNAL_ENTRY_ERROR_VAL)
 +			return -EROFS;
 +
 +		/* Handle any already added entries */
 +		new.cur_entry_offset = le32_to_cpu(buf->data->u64s);
++
++		EBUG_ON(journal_state_count(new, new.idx));
 +		journal_state_inc(&new);
 +	} while ((v = atomic64_cmpxchg(&j->reservations.counter,
 +				       old.v, new.v)) != old.v);
@@ -45097,6 +45268,7 @@ index 000000000000..f108a28233c7
 +{
 +	struct bch_fs *c = container_of(j, struct bch_fs, journal);
 +	struct journal_buf *buf;
++	bool can_discard;
 +	int ret;
 +retry:
 +	if (journal_res_get_fast(j, res, flags))
@@ -45115,6 +45287,16 @@ index 000000000000..f108a28233c7
 +	if (journal_res_get_fast(j, res, flags)) {
 +		spin_unlock(&j->lock);
 +		return 0;
++	}
++
++	if (!(flags & JOURNAL_RES_GET_RESERVED) &&
++	    !test_bit(JOURNAL_MAY_GET_UNRESERVED, &j->flags)) {
++		/*
++		 * Don't want to close current journal entry, just need to
++		 * invoke reclaim:
++		 */
++		ret = -ENOSPC;
++		goto unlock;
 +	}
 +
 +	/*
@@ -45140,23 +45322,38 @@ index 000000000000..f108a28233c7
 +	} else {
 +		ret = journal_entry_open(j);
 +	}
-+
++unlock:
 +	if ((ret == -EAGAIN || ret == -ENOSPC) &&
 +	    !j->res_get_blocked_start)
 +		j->res_get_blocked_start = local_clock() ?: 1;
 +
++	can_discard = j->can_discard;
 +	spin_unlock(&j->lock);
 +
 +	if (!ret)
 +		goto retry;
++
 +	if (ret == -ENOSPC) {
++		BUG_ON(!can_discard && (flags & JOURNAL_RES_GET_RESERVED));
++
 +		/*
 +		 * Journal is full - can't rely on reclaim from work item due to
 +		 * freezing:
 +		 */
 +		trace_journal_full(c);
-+		if (!(flags & JOURNAL_RES_GET_NONBLOCK))
-+			bch2_journal_reclaim_work(&j->reclaim_work.work);
++
++		if (!(flags & JOURNAL_RES_GET_NONBLOCK)) {
++			if (can_discard) {
++				bch2_journal_do_discards(j);
++				goto retry;
++			}
++
++			if (mutex_trylock(&j->reclaim_lock)) {
++				bch2_journal_reclaim(j);
++				mutex_unlock(&j->reclaim_lock);
++			}
++		}
++
 +		ret = -EAGAIN;
 +	}
 +
@@ -45181,6 +45378,32 @@ index 000000000000..f108a28233c7
 +	closure_wait_event(&j->async_wait,
 +		   (ret = __journal_res_get(j, res, flags)) != -EAGAIN ||
 +		   (flags & JOURNAL_RES_GET_NONBLOCK));
++	return ret;
++}
++
++/* journal_preres: */
++
++static bool journal_preres_available(struct journal *j,
++				     struct journal_preres *res,
++				     unsigned new_u64s)
++{
++	bool ret = bch2_journal_preres_get_fast(j, res, new_u64s);
++
++	if (!ret)
++		bch2_journal_reclaim_work(&j->reclaim_work.work);
++
++	return ret;
++}
++
++int __bch2_journal_preres_get(struct journal *j,
++			      struct journal_preres *res,
++			      unsigned new_u64s)
++{
++	int ret;
++
++	closure_wait_event(&j->preres_wait,
++		   (ret = bch2_journal_error(j)) ||
++		   journal_preres_available(j, res, new_u64s));
 +	return ret;
 +}
 +
@@ -45535,6 +45758,7 @@ index 000000000000..f108a28233c7
 +
 +	while (ja->nr < nr) {
 +		struct open_bucket *ob = NULL;
++		unsigned pos;
 +		long bucket;
 +
 +		if (new_fs) {
@@ -45561,20 +45785,24 @@ index 000000000000..f108a28233c7
 +			preempt_disable();
 +		}
 +
-+		__array_insert_item(ja->buckets,		ja->nr, ja->last_idx);
-+		__array_insert_item(ja->bucket_seq,		ja->nr, ja->last_idx);
-+		__array_insert_item(journal_buckets->buckets,	ja->nr, ja->last_idx);
-+
-+		ja->buckets[ja->last_idx] = bucket;
-+		ja->bucket_seq[ja->last_idx] = 0;
-+		journal_buckets->buckets[ja->last_idx] = cpu_to_le64(bucket);
-+
-+		if (ja->last_idx < ja->nr) {
-+			if (ja->cur_idx >= ja->last_idx)
-+				ja->cur_idx++;
-+			ja->last_idx++;
-+		}
++		pos = ja->nr ? (ja->cur_idx + 1) % ja->nr : 0;
++		__array_insert_item(ja->buckets,		ja->nr, pos);
++		__array_insert_item(ja->bucket_seq,		ja->nr, pos);
++		__array_insert_item(journal_buckets->buckets,	ja->nr, pos);
 +		ja->nr++;
++
++		ja->buckets[pos] = bucket;
++		ja->bucket_seq[pos] = 0;
++		journal_buckets->buckets[pos] = cpu_to_le64(bucket);
++
++		if (pos <= ja->discard_idx)
++			ja->discard_idx = (ja->discard_idx + 1) % ja->nr;
++		if (pos <= ja->dirty_idx_ondisk)
++			ja->dirty_idx_ondisk = (ja->dirty_idx_ondisk + 1) % ja->nr;
++		if (pos <= ja->dirty_idx)
++			ja->dirty_idx = (ja->dirty_idx + 1) % ja->nr;
++		if (pos <= ja->cur_idx)
++			ja->cur_idx = (ja->cur_idx + 1) % ja->nr;
 +
 +		bch2_mark_metadata_bucket(c, ca, bucket, BCH_DATA_JOURNAL,
 +					  ca->mi.bucket_size,
@@ -45814,6 +46042,7 @@ index 000000000000..f108a28233c7
 +	mutex_init(&j->blacklist_lock);
 +	INIT_LIST_HEAD(&j->seq_blacklist);
 +	mutex_init(&j->reclaim_lock);
++	mutex_init(&j->discard_lock);
 +
 +	lockdep_init_map(&j->res_map, "journal res", &res_key, 0);
 +
@@ -45862,11 +46091,16 @@ index 000000000000..f108a28233c7
 +	       "seq:\t\t\t%llu\n"
 +	       "last_seq:\t\t%llu\n"
 +	       "last_seq_ondisk:\t%llu\n"
++	       "prereserved:\t\t%u/%u\n"
++	       "current entry sectors:\t%u\n"
 +	       "current entry:\t\t",
 +	       fifo_used(&j->pin),
 +	       journal_cur_seq(j),
 +	       journal_last_seq(j),
-+	       j->last_seq_ondisk);
++	       j->last_seq_ondisk,
++	       j->prereserved.reserved,
++	       j->prereserved.remaining,
++	       j->cur_entry_sectors);
 +
 +	switch (s.cur_entry_offset) {
 +	case JOURNAL_ENTRY_ERROR_VAL:
@@ -45888,8 +46122,9 @@ index 000000000000..f108a28233c7
 +	       journal_state_count(s, s.idx));
 +
 +	if (s.prev_buf_unwritten)
-+		pr_buf(&out, "yes, ref %u\n",
-+		       journal_state_count(s, !s.idx));
++		pr_buf(&out, "yes, ref %u sectors %u\n",
++		       journal_state_count(s, !s.idx),
++		       journal_prev_buf(j)->sectors);
 +	else
 +		pr_buf(&out, "no\n");
 +
@@ -45910,13 +46145,17 @@ index 000000000000..f108a28233c7
 +		       "dev %u:\n"
 +		       "\tnr\t\t%u\n"
 +		       "\tavailable\t%u:%u\n"
-+		       "\tcur_idx\t\t%u (seq %llu)\n"
-+		       "\tlast_idx\t%u (seq %llu)\n",
++		       "\tdiscard_idx\t\t%u\n"
++		       "\tdirty_idx_ondisk\t%u (seq %llu)\n"
++		       "\tdirty_idx\t\t%u (seq %llu)\n"
++		       "\tcur_idx\t\t%u (seq %llu)\n",
 +		       iter, ja->nr,
-+		       bch2_journal_dev_buckets_available(j, ja),
++		       bch2_journal_dev_buckets_available(j, ja, journal_space_discarded),
 +		       ja->sectors_free,
-+		       ja->cur_idx,	ja->bucket_seq[ja->cur_idx],
-+		       ja->last_idx,	ja->bucket_seq[ja->last_idx]);
++		       ja->discard_idx,
++		       ja->dirty_idx_ondisk,	ja->bucket_seq[ja->dirty_idx_ondisk],
++		       ja->dirty_idx,		ja->bucket_seq[ja->dirty_idx],
++		       ja->cur_idx,		ja->bucket_seq[ja->cur_idx]);
 +	}
 +
 +	spin_unlock(&j->lock);
@@ -45954,10 +46193,10 @@ index 000000000000..f108a28233c7
 +}
 diff --git a/fs/bcachefs/journal.h b/fs/bcachefs/journal.h
 new file mode 100644
-index 000000000000..71929bd67a7c
+index 000000000000..83b70d51860f
 --- /dev/null
 +++ b/fs/bcachefs/journal.h
-@@ -0,0 +1,390 @@
+@@ -0,0 +1,479 @@
 +#ifndef _BCACHEFS_JOURNAL_H
 +#define _BCACHEFS_JOURNAL_H
 +
@@ -46078,6 +46317,7 @@ index 000000000000..71929bd67a7c
 +{
 +	wake_up(&j->wait);
 +	closure_wake_up(&j->async_wait);
++	closure_wake_up(&j->preres_wait);
 +}
 +
 +static inline struct journal_buf *journal_cur_buf(struct journal *j)
@@ -46231,6 +46471,7 @@ index 000000000000..71929bd67a7c
 +
 +#define JOURNAL_RES_GET_NONBLOCK	(1 << 0)
 +#define JOURNAL_RES_GET_CHECK		(1 << 1)
++#define JOURNAL_RES_GET_RESERVED	(1 << 2)
 +
 +static inline int journal_res_get_fast(struct journal *j,
 +				       struct journal_res *res,
@@ -46250,6 +46491,10 @@ index 000000000000..71929bd67a7c
 +			return 0;
 +
 +		EBUG_ON(!journal_state_count(new, new.idx));
++
++		if (!(flags & JOURNAL_RES_GET_RESERVED) &&
++		    !test_bit(JOURNAL_MAY_GET_UNRESERVED, &j->flags))
++			return 0;
 +
 +		if (flags & JOURNAL_RES_GET_CHECK)
 +			return 1;
@@ -46288,6 +46533,89 @@ index 000000000000..71929bd67a7c
 +		EBUG_ON(!res->ref);
 +	}
 +	return 0;
++}
++
++/* journal_preres: */
++
++static inline bool journal_check_may_get_unreserved(struct journal *j)
++{
++	union journal_preres_state s = READ_ONCE(j->prereserved);
++	bool ret = s.reserved <= s.remaining &&
++		fifo_free(&j->pin) > 8;
++
++	lockdep_assert_held(&j->lock);
++
++	if (ret != test_bit(JOURNAL_MAY_GET_UNRESERVED, &j->flags)) {
++		if (ret) {
++			set_bit(JOURNAL_MAY_GET_UNRESERVED, &j->flags);
++			journal_wake(j);
++		} else {
++			clear_bit(JOURNAL_MAY_GET_UNRESERVED, &j->flags);
++		}
++	}
++	return ret;
++}
++
++static inline void bch2_journal_preres_put(struct journal *j,
++					   struct journal_preres *res)
++{
++	union journal_preres_state s = { .reserved = res->u64s };
++
++	if (!res->u64s)
++		return;
++
++	s.v = atomic64_sub_return(s.v, &j->prereserved.counter);
++	res->u64s = 0;
++	closure_wake_up(&j->preres_wait);
++
++	if (s.reserved <= s.remaining &&
++	    !test_bit(JOURNAL_MAY_GET_UNRESERVED, &j->flags)) {
++		spin_lock(&j->lock);
++		journal_check_may_get_unreserved(j);
++		spin_unlock(&j->lock);
++	}
++}
++
++int __bch2_journal_preres_get(struct journal *,
++			struct journal_preres *, unsigned);
++
++static inline int bch2_journal_preres_get_fast(struct journal *j,
++					       struct journal_preres *res,
++					       unsigned new_u64s)
++{
++	int d = new_u64s - res->u64s;
++	union journal_preres_state old, new;
++	u64 v = atomic64_read(&j->prereserved.counter);
++
++	do {
++		old.v = new.v = v;
++
++		new.reserved += d;
++
++		if (new.reserved > new.remaining)
++			return 0;
++	} while ((v = atomic64_cmpxchg(&j->prereserved.counter,
++				       old.v, new.v)) != old.v);
++
++	res->u64s += d;
++	return 1;
++}
++
++static inline int bch2_journal_preres_get(struct journal *j,
++					  struct journal_preres *res,
++					  unsigned new_u64s,
++					  unsigned flags)
++{
++	if (new_u64s <= res->u64s)
++		return 0;
++
++	if (bch2_journal_preres_get_fast(j, res, new_u64s))
++		return 0;
++
++	if (flags & JOURNAL_RES_GET_NONBLOCK)
++		return -EAGAIN;
++
++	return __bch2_journal_preres_get(j, res, new_u64s);
 +}
 +
 +/* journal_entry_res: */
@@ -46350,10 +46678,10 @@ index 000000000000..71929bd67a7c
 +#endif /* _BCACHEFS_JOURNAL_H */
 diff --git a/fs/bcachefs/journal_io.c b/fs/bcachefs/journal_io.c
 new file mode 100644
-index 000000000000..16cb6be87cbf
+index 000000000000..a7791518c35b
 --- /dev/null
 +++ b/fs/bcachefs/journal_io.c
-@@ -0,0 +1,1278 @@
+@@ -0,0 +1,1337 @@
 +#include "bcachefs.h"
 +#include "alloc_background.h"
 +#include "alloc_foreground.h"
@@ -46981,11 +47309,12 @@ index 000000000000..16cb6be87cbf
 +	ja->sectors_free = 0;
 +
 +	/*
-+	 * Set last_idx to indicate the entire journal is full and needs to be
++	 * Set dirty_idx to indicate the entire journal is full and needs to be
 +	 * reclaimed - journal reclaim will immediately reclaim whatever isn't
 +	 * pinned when it first runs:
 +	 */
-+	ja->last_idx = (ja->cur_idx + 1) % ja->nr;
++	ja->discard_idx = ja->dirty_idx_ondisk =
++		ja->dirty_idx = (ja->cur_idx + 1) % ja->nr;
 +out:
 +	kvpfree(buf.data, buf.size);
 +	percpu_ref_put(&ca->io_ref);
@@ -47178,6 +47507,63 @@ index 000000000000..16cb6be87cbf
 +
 +/* journal replay: */
 +
++static int bch2_extent_replay_key(struct bch_fs *c, struct bkey_i *k)
++{
++	/*
++	 * We might cause compressed extents to be
++	 * split, so we need to pass in a
++	 * disk_reservation:
++	 */
++	struct disk_reservation disk_res =
++		bch2_disk_reservation_init(c, 0);
++	BKEY_PADDED(k) split;
++	struct btree_iter iter;
++	int ret;
++
++	bch2_btree_iter_init(&iter, c, BTREE_ID_EXTENTS,
++			     bkey_start_pos(&k->k),
++			     BTREE_ITER_INTENT);
++	do {
++		ret = bch2_btree_iter_traverse(&iter);
++		if (ret)
++			break;
++
++		bkey_copy(&split.k, k);
++		bch2_cut_front(iter.pos, &split.k);
++		bch2_extent_trim_atomic(&split.k, &iter);
++
++		ret = bch2_disk_reservation_add(c, &disk_res,
++				split.k.k.size *
++				bch2_bkey_nr_dirty_ptrs(bkey_i_to_s_c(&split.k)),
++				BCH_DISK_RESERVATION_NOFAIL);
++		BUG_ON(ret);
++
++		ret = bch2_btree_insert_at(c, &disk_res, NULL,
++					   BTREE_INSERT_ATOMIC|
++					   BTREE_INSERT_NOFAIL|
++					   BTREE_INSERT_JOURNAL_REPLAY,
++					   BTREE_INSERT_ENTRY(&iter, &split.k));
++	} while ((!ret || ret == -EINTR) &&
++		 bkey_cmp(k->k.p, iter.pos));
++
++	bch2_disk_reservation_put(c, &disk_res);
++
++	/*
++	 * This isn't strictly correct - we should only be relying on the btree
++	 * node lock for synchronization with gc when we've got a write lock
++	 * held.
++	 *
++	 * but - there are other correctness issues if btree gc were to run
++	 * before journal replay finishes
++	 */
++	bch2_mark_key(c, bkey_i_to_s_c(k), false, -((s64) k->k.size),
++		      gc_pos_btree_node(iter.l[0].b),
++		      NULL, 0, 0);
++	bch2_btree_iter_unlock(&iter);
++
++	return ret;
++}
++
 +int bch2_journal_replay(struct bch_fs *c, struct list_head *list)
 +{
 +	struct journal *j = &c->journal;
@@ -47190,27 +47576,20 @@ index 000000000000..16cb6be87cbf
 +		j->replay_journal_seq = le64_to_cpu(i->j.seq);
 +
 +		for_each_jset_key(k, _n, entry, &i->j) {
-+
-+			if (entry->btree_id == BTREE_ID_ALLOC) {
-+				/*
-+				 * allocation code handles replay for
-+				 * BTREE_ID_ALLOC keys:
-+				 */
++			switch (entry->btree_id) {
++			case BTREE_ID_ALLOC:
 +				ret = bch2_alloc_replay_key(c, k);
-+			} else {
-+				/*
-+				 * We might cause compressed extents to be
-+				 * split, so we need to pass in a
-+				 * disk_reservation:
-+				 */
-+				struct disk_reservation disk_res =
-+					bch2_disk_reservation_init(c, 0);
-+
++				break;
++			case BTREE_ID_EXTENTS:
++				ret = bch2_extent_replay_key(c, k);
++				break;
++			default:
 +				ret = bch2_btree_insert(c, entry->btree_id, k,
-+						&disk_res, NULL,
++						NULL, NULL,
 +						BTREE_INSERT_NOFAIL|
 +						BTREE_INSERT_JOURNAL_REPLAY|
 +						BTREE_INSERT_NOMARK);
++				break;
 +			}
 +
 +			if (ret) {
@@ -47325,9 +47704,16 @@ index 000000000000..16cb6be87cbf
 +
 +		if (sectors > ja->sectors_free &&
 +		    sectors <= ca->mi.bucket_size &&
-+		    bch2_journal_dev_buckets_available(j, ja)) {
++		    bch2_journal_dev_buckets_available(j, ja,
++					journal_space_discarded)) {
 +			ja->cur_idx = (ja->cur_idx + 1) % ja->nr;
 +			ja->sectors_free = ca->mi.bucket_size;
++
++			/*
++			 * ja->bucket_seq[ja->cur_idx] must always have
++			 * something sensible:
++			 */
++			ja->bucket_seq[ja->cur_idx] = le64_to_cpu(w->data->seq);
 +		}
 +	}
 +
@@ -47425,11 +47811,12 @@ index 000000000000..16cb6be87cbf
 +		goto err;
 +
 +	spin_lock(&j->lock);
-+	j->seq_ondisk		= seq;
-+	j->last_seq_ondisk	= last_seq;
-+
 +	if (seq >= j->pin.front)
 +		journal_seq_pin(j, seq)->devs = devs;
++
++	j->seq_ondisk		= seq;
++	j->last_seq_ondisk	= last_seq;
++	bch2_journal_space_available(j);
 +
 +	/*
 +	 * Updating last_seq_ondisk may let bch2_journal_reclaim_work() discard
@@ -47684,10 +48071,10 @@ index 000000000000..ec7b49b8f85c
 +#endif /* _BCACHEFS_JOURNAL_IO_H */
 diff --git a/fs/bcachefs/journal_reclaim.c b/fs/bcachefs/journal_reclaim.c
 new file mode 100644
-index 000000000000..b8603a1ff1f2
+index 000000000000..5cee6872c1f1
 --- /dev/null
 +++ b/fs/bcachefs/journal_reclaim.c
-@@ -0,0 +1,523 @@
+@@ -0,0 +1,625 @@
 +
 +#include "bcachefs.h"
 +#include "journal.h"
@@ -47698,47 +48085,72 @@ index 000000000000..b8603a1ff1f2
 +
 +/* Free space calculations: */
 +
++static unsigned journal_space_from(struct journal_device *ja,
++				   enum journal_space_from from)
++{
++	switch (from) {
++	case journal_space_discarded:
++		return ja->discard_idx;
++	case journal_space_clean_ondisk:
++		return ja->dirty_idx_ondisk;
++	case journal_space_clean:
++		return ja->dirty_idx;
++	default:
++		BUG();
++	}
++}
++
 +unsigned bch2_journal_dev_buckets_available(struct journal *j,
-+					    struct journal_device *ja)
++					    struct journal_device *ja,
++					    enum journal_space_from from)
 +{
 +	struct bch_fs *c = container_of(j, struct bch_fs, journal);
-+	unsigned next = (ja->cur_idx + 1) % ja->nr;
-+	unsigned available = (ja->last_idx + ja->nr - next) % ja->nr;
++	unsigned available = (journal_space_from(ja, from) -
++			      ja->cur_idx - 1 + ja->nr) % ja->nr;
 +
 +	/*
 +	 * Allocator startup needs some journal space before we can do journal
 +	 * replay:
 +	 */
-+	if (available &&
-+	    test_bit(BCH_FS_ALLOCATOR_STARTED, &c->flags))
-+		available--;
++	if (available && test_bit(BCH_FS_ALLOCATOR_STARTED, &c->flags))
++		--available;
 +
 +	/*
 +	 * Don't use the last bucket unless writing the new last_seq
 +	 * will make another bucket available:
 +	 */
-+	if (available &&
-+	    journal_last_seq(j) <= ja->bucket_seq[ja->last_idx])
++	if (available && ja->dirty_idx_ondisk == ja->dirty_idx)
 +		--available;
 +
 +	return available;
 +}
 +
-+void bch2_journal_space_available(struct journal *j)
++static void journal_set_remaining(struct journal *j, unsigned u64s_remaining)
++{
++	union journal_preres_state old, new;
++	u64 v = atomic64_read(&j->prereserved.counter);
++
++	do {
++		old.v = new.v = v;
++		new.remaining = u64s_remaining;
++	} while ((v = atomic64_cmpxchg(&j->prereserved.counter,
++				       old.v, new.v)) != old.v);
++}
++
++static struct journal_space {
++	unsigned	next_entry;
++	unsigned	remaining;
++} __journal_space_available(struct journal *j, unsigned nr_devs_want,
++			    enum journal_space_from from)
 +{
 +	struct bch_fs *c = container_of(j, struct bch_fs, journal);
 +	struct bch_dev *ca;
 +	unsigned sectors_next_entry	= UINT_MAX;
 +	unsigned sectors_total		= UINT_MAX;
-+	unsigned max_entry_size		= min(j->buf[0].buf_size >> 9,
-+					      j->buf[1].buf_size >> 9);
-+	unsigned i, nr_online = 0, nr_devs = 0;
++	unsigned i, nr_devs = 0;
 +	unsigned unwritten_sectors = j->reservations.prev_buf_unwritten
 +		? journal_prev_buf(j)->sectors
 +		: 0;
-+	int ret = 0;
-+
-+	lockdep_assert_held(&j->lock);
 +
 +	rcu_read_lock();
 +	for_each_member_device_rcu(ca, c, i,
@@ -47749,9 +48161,7 @@ index 000000000000..b8603a1ff1f2
 +		if (!ja->nr)
 +			continue;
 +
-+		nr_online++;
-+
-+		buckets_this_device = bch2_journal_dev_buckets_available(j, ja);
++		buckets_this_device = bch2_journal_dev_buckets_available(j, ja, from);
 +		sectors_this_device = ja->sectors_free;
 +
 +		/*
@@ -47784,28 +48194,88 @@ index 000000000000..b8603a1ff1f2
 +			buckets_this_device * ca->mi.bucket_size +
 +			sectors_this_device);
 +
-+		max_entry_size = min_t(unsigned, max_entry_size,
-+				       ca->mi.bucket_size);
-+
 +		nr_devs++;
 +	}
 +	rcu_read_unlock();
 +
++	if (nr_devs < nr_devs_want)
++		return (struct journal_space) { 0, 0 };
++
++	return (struct journal_space) {
++		.next_entry	= sectors_next_entry,
++		.remaining	= max_t(int, 0, sectors_total - sectors_next_entry),
++	};
++}
++
++void bch2_journal_space_available(struct journal *j)
++{
++	struct bch_fs *c = container_of(j, struct bch_fs, journal);
++	struct bch_dev *ca;
++	struct journal_space discarded, clean_ondisk, clean;
++	unsigned overhead, u64s_remaining = 0;
++	unsigned max_entry_size	 = min(j->buf[0].buf_size >> 9,
++				       j->buf[1].buf_size >> 9);
++	unsigned i, nr_online = 0, nr_devs_want;
++	bool can_discard = false;
++	int ret = 0;
++
++	lockdep_assert_held(&j->lock);
++
++	rcu_read_lock();
++	for_each_member_device_rcu(ca, c, i,
++				   &c->rw_devs[BCH_DATA_JOURNAL]) {
++		struct journal_device *ja = &ca->journal;
++
++		if (!ja->nr)
++			continue;
++
++		while (ja->dirty_idx != ja->cur_idx &&
++		       ja->bucket_seq[ja->dirty_idx] < journal_last_seq(j))
++			ja->dirty_idx = (ja->dirty_idx + 1) % ja->nr;
++
++		while (ja->dirty_idx_ondisk != ja->dirty_idx &&
++		       ja->bucket_seq[ja->dirty_idx_ondisk] < j->last_seq_ondisk)
++			ja->dirty_idx_ondisk = (ja->dirty_idx_ondisk + 1) % ja->nr;
++
++		if (ja->discard_idx != ja->dirty_idx_ondisk)
++			can_discard = true;
++
++		max_entry_size = min_t(unsigned, max_entry_size, ca->mi.bucket_size);
++		nr_online++;
++	}
++	rcu_read_unlock();
++
++	j->can_discard = can_discard;
++
 +	if (nr_online < c->opts.metadata_replicas_required) {
 +		ret = -EROFS;
-+		sectors_next_entry = 0;
-+	} else if (!sectors_next_entry ||
-+		   nr_devs < min_t(unsigned, nr_online,
-+				   c->opts.metadata_replicas)) {
-+		ret = -ENOSPC;
-+		sectors_next_entry = 0;
-+	} else if (!fifo_free(&j->pin)) {
-+		ret = -ENOSPC;
-+		sectors_next_entry = 0;
++		goto out;
 +	}
 +
-+	j->cur_entry_sectors	= sectors_next_entry;
++	if (!fifo_free(&j->pin)) {
++		ret = -ENOSPC;
++		goto out;
++	}
++
++	nr_devs_want = min_t(unsigned, nr_online, c->opts.metadata_replicas);
++
++	discarded	= __journal_space_available(j, nr_devs_want, journal_space_discarded);
++	clean_ondisk	= __journal_space_available(j, nr_devs_want, journal_space_clean_ondisk);
++	clean		= __journal_space_available(j, nr_devs_want, journal_space_clean);
++
++	if (!discarded.next_entry)
++		ret = -ENOSPC;
++
++	overhead = DIV_ROUND_UP(clean.remaining, max_entry_size) *
++		journal_entry_overhead(j);
++	u64s_remaining = clean.remaining << 6;
++	u64s_remaining = max_t(int, 0, u64s_remaining - overhead);
++	u64s_remaining /= 4;
++out:
++	j->cur_entry_sectors	= !ret ? discarded.next_entry : 0;
 +	j->cur_entry_error	= ret;
++	journal_set_remaining(j, u64s_remaining);
++	journal_check_may_get_unreserved(j);
 +
 +	if (!ret)
 +		journal_wake(j);
@@ -47818,25 +48288,23 @@ index 000000000000..b8603a1ff1f2
 +	bool ret;
 +
 +	spin_lock(&j->lock);
-+	ret = ja->nr &&
-+		ja->last_idx != ja->cur_idx &&
-+		ja->bucket_seq[ja->last_idx] < j->last_seq_ondisk;
++	ret = ja->discard_idx != ja->dirty_idx_ondisk;
 +	spin_unlock(&j->lock);
 +
 +	return ret;
 +}
 +
 +/*
-+ * Advance ja->last_idx as long as it points to buckets that are no longer
++ * Advance ja->discard_idx as long as it points to buckets that are no longer
 + * dirty, issuing discards if necessary:
 + */
-+static void journal_do_discards(struct journal *j)
++void bch2_journal_do_discards(struct journal *j)
 +{
 +	struct bch_fs *c = container_of(j, struct bch_fs, journal);
 +	struct bch_dev *ca;
 +	unsigned iter;
 +
-+	mutex_lock(&j->reclaim_lock);
++	mutex_lock(&j->discard_lock);
 +
 +	for_each_rw_member(ca, c, iter) {
 +		struct journal_device *ja = &ca->journal;
@@ -47846,18 +48314,18 @@ index 000000000000..b8603a1ff1f2
 +			    blk_queue_discard(bdev_get_queue(ca->disk_sb.bdev)))
 +				blkdev_issue_discard(ca->disk_sb.bdev,
 +					bucket_to_sector(ca,
-+						ja->buckets[ja->last_idx]),
++						ja->buckets[ja->discard_idx]),
 +					ca->mi.bucket_size, GFP_NOIO, 0);
 +
 +			spin_lock(&j->lock);
-+			ja->last_idx = (ja->last_idx + 1) % ja->nr;
++			ja->discard_idx = (ja->discard_idx + 1) % ja->nr;
 +
 +			bch2_journal_space_available(j);
 +			spin_unlock(&j->lock);
 +		}
 +	}
 +
-+	mutex_unlock(&j->reclaim_lock);
++	mutex_unlock(&j->discard_lock);
 +}
 +
 +/*
@@ -48062,7 +48530,7 @@ index 000000000000..b8603a1ff1f2
 +}
 +
 +/**
-+ * bch2_journal_reclaim_work - free up journal buckets
++ * bch2_journal_reclaim - free up journal buckets
 + *
 + * Background journal reclaim writes out btree nodes. It should be run
 + * early enough so that we never completely run out of journal buckets.
@@ -48079,31 +48547,39 @@ index 000000000000..b8603a1ff1f2
 + * 512 journal entries or 25% of all journal buckets, then
 + * journal_next_bucket() should not stall.
 + */
-+void bch2_journal_reclaim_work(struct work_struct *work)
++void bch2_journal_reclaim(struct journal *j)
 +{
-+	struct bch_fs *c = container_of(to_delayed_work(work),
-+				struct bch_fs, journal.reclaim_work);
-+	struct journal *j = &c->journal;
++	struct bch_fs *c = container_of(j, struct bch_fs, journal);
 +	struct bch_dev *ca;
-+	unsigned iter, bucket_to_flush, min_nr = 0;
++	unsigned iter, min_nr = 0;
 +	u64 seq_to_flush = 0;
 +
-+	journal_do_discards(j);
++	lockdep_assert_held(&j->reclaim_lock);
 +
-+	mutex_lock(&j->reclaim_lock);
++	bch2_journal_do_discards(j);
++
 +	spin_lock(&j->lock);
 +
 +	for_each_rw_member(ca, c, iter) {
 +		struct journal_device *ja = &ca->journal;
++		unsigned nr_buckets, bucket_to_flush;
 +
 +		if (!ja->nr)
 +			continue;
 +
-+
 +		/* Try to keep the journal at most half full: */
-+		bucket_to_flush = (ja->cur_idx + (ja->nr >> 1)) % ja->nr;
-+		seq_to_flush = max_t(u64, seq_to_flush,
-+				     ja->bucket_seq[bucket_to_flush]);
++		nr_buckets = ja->nr / 2;
++
++		/* And include pre-reservations: */
++		nr_buckets += DIV_ROUND_UP(j->prereserved.reserved,
++					   (ca->mi.bucket_size << 6) -
++					   journal_entry_overhead(j));
++
++		nr_buckets = min(nr_buckets, ja->nr);
++
++		bucket_to_flush = (ja->cur_idx + nr_buckets) % ja->nr;
++		seq_to_flush = max(seq_to_flush,
++				   ja->bucket_seq[bucket_to_flush]);
 +	}
 +
 +	/* Also flush if the pin fifo is more than half full */
@@ -48120,13 +48596,26 @@ index 000000000000..b8603a1ff1f2
 +		       msecs_to_jiffies(j->reclaim_delay_ms)))
 +		min_nr = 1;
 +
++	if (j->prereserved.reserved * 2 > j->prereserved.remaining) {
++		seq_to_flush = max(seq_to_flush, journal_last_seq(j));
++		min_nr = 1;
++	}
++
 +	journal_flush_pins(j, seq_to_flush, min_nr);
 +
-+	mutex_unlock(&j->reclaim_lock);
-+
-+	if (!test_bit(BCH_FS_RO, &c->flags))
++	if (!bch2_journal_error(j))
 +		queue_delayed_work(c->journal_reclaim_wq, &j->reclaim_work,
 +				   msecs_to_jiffies(j->reclaim_delay_ms));
++}
++
++void bch2_journal_reclaim_work(struct work_struct *work)
++{
++	struct journal *j = container_of(to_delayed_work(work),
++				struct journal, reclaim_work);
++
++	mutex_lock(&j->reclaim_lock);
++	bch2_journal_reclaim(j);
++	mutex_unlock(&j->reclaim_lock);
 +}
 +
 +static int journal_flush_done(struct journal *j, u64 seq_to_flush)
@@ -48213,17 +48702,24 @@ index 000000000000..b8603a1ff1f2
 +}
 diff --git a/fs/bcachefs/journal_reclaim.h b/fs/bcachefs/journal_reclaim.h
 new file mode 100644
-index 000000000000..1d688d6fa2cc
+index 000000000000..7ecfc8143597
 --- /dev/null
 +++ b/fs/bcachefs/journal_reclaim.h
-@@ -0,0 +1,47 @@
+@@ -0,0 +1,56 @@
 +#ifndef _BCACHEFS_JOURNAL_RECLAIM_H
 +#define _BCACHEFS_JOURNAL_RECLAIM_H
 +
 +#define JOURNAL_PIN	(32 * 1024)
 +
++enum journal_space_from {
++	journal_space_discarded,
++	journal_space_clean_ondisk,
++	journal_space_clean,
++};
++
 +unsigned bch2_journal_dev_buckets_available(struct journal *,
-+					    struct journal_device *);
++					    struct journal_device *,
++					    enum journal_space_from);
 +void bch2_journal_space_available(struct journal *);
 +
 +static inline bool journal_pin_active(struct journal_entry_pin *pin)
@@ -48252,6 +48748,8 @@ index 000000000000..1d688d6fa2cc
 +				  journal_pin_flush_fn);
 +void bch2_journal_pin_flush(struct journal *, struct journal_entry_pin *);
 +
++void bch2_journal_do_discards(struct journal *);
++void bch2_journal_reclaim(struct journal *);
 +void bch2_journal_reclaim_work(struct work_struct *);
 +
 +void bch2_journal_flush_pins(struct journal *, u64);
@@ -48650,10 +49148,10 @@ index 000000000000..95ea6e90ba93
 +#endif /* _BCACHEFS_JOURNAL_SEQ_BLACKLIST_H */
 diff --git a/fs/bcachefs/journal_types.h b/fs/bcachefs/journal_types.h
 new file mode 100644
-index 000000000000..8772e53fb64c
+index 000000000000..4685cf67532d
 --- /dev/null
 +++ b/fs/bcachefs/journal_types.h
-@@ -0,0 +1,269 @@
+@@ -0,0 +1,296 @@
 +#ifndef _BCACHEFS_JOURNAL_TYPES_H
 +#define _BCACHEFS_JOURNAL_TYPES_H
 +
@@ -48735,6 +49233,14 @@ index 000000000000..8772e53fb64c
 +	u64			seq;
 +};
 +
++/*
++ * For reserving space in the journal prior to getting a reservation on a
++ * particular journal entry:
++ */
++struct journal_preres {
++	unsigned		u64s;
++};
++
 +union journal_res_state {
 +	struct {
 +		atomic64_t	counter;
@@ -48750,6 +49256,21 @@ index 000000000000..8772e53fb64c
 +				prev_buf_unwritten:1,
 +				buf0_count:21,
 +				buf1_count:21;
++	};
++};
++
++union journal_preres_state {
++	struct {
++		atomic64_t	counter;
++	};
++
++	struct {
++		u64		v;
++	};
++
++	struct {
++		u32		reserved;
++		u32		remaining;
 +	};
 +};
 +
@@ -48777,6 +49298,7 @@ index 000000000000..8772e53fb64c
 +	JOURNAL_STARTED,
 +	JOURNAL_NEED_WRITE,
 +	JOURNAL_NOT_EMPTY,
++	JOURNAL_MAY_GET_UNRESERVED,
 +};
 +
 +/* Embedded in struct bch_fs */
@@ -48797,6 +49319,8 @@ index 000000000000..8772e53fb64c
 +	 */
 +	int			cur_entry_error;
 +
++	union journal_preres_state prereserved;
++
 +	/* Reserved space in journal entry to be used just prior to write */
 +	unsigned		entry_u64s_reserved;
 +
@@ -48816,6 +49340,7 @@ index 000000000000..8772e53fb64c
 +	/* Used when waiting because the journal was full */
 +	wait_queue_head_t	wait;
 +	struct closure_waitlist	async_wait;
++	struct closure_waitlist	preres_wait;
 +
 +	struct closure		io;
 +	struct delayed_work	write_work;
@@ -48848,9 +49373,6 @@ index 000000000000..8772e53fb64c
 +		struct journal_entry_pin_list *data;
 +	}			pin;
 +
-+	struct journal_entry_pin *flush_in_progress;
-+	wait_queue_head_t	pin_flush_wait;
-+
 +	u64			replay_journal_seq;
 +
 +	struct mutex		blacklist_lock;
@@ -48861,10 +49383,15 @@ index 000000000000..8772e53fb64c
 +	spinlock_t		err_lock;
 +
 +	struct delayed_work	reclaim_work;
-+	unsigned long		last_flushed;
-+
-+	/* protects advancing ja->last_idx: */
 +	struct mutex		reclaim_lock;
++	unsigned long		last_flushed;
++	struct journal_entry_pin *flush_in_progress;
++	wait_queue_head_t	pin_flush_wait;
++
++	/* protects advancing ja->discard_idx: */
++	struct mutex		discard_lock;
++	bool			can_discard;
++
 +	unsigned		write_delay_ms;
 +	unsigned		reclaim_delay_ms;
 +
@@ -48895,17 +49422,15 @@ index 000000000000..8772e53fb64c
 +
 +	unsigned		sectors_free;
 +
-+	/* Journal bucket we're currently writing to */
-+	unsigned		cur_idx;
-+
-+	/* Last journal bucket that still contains an open journal entry */
-+
 +	/*
-+	 * j->lock and j->reclaim_lock must both be held to modify, j->lock
-+	 * sufficient to read:
++	 * discard_idx <= dirty_idx_ondisk <= dirty_idx <= cur_idx:
 +	 */
-+	unsigned		last_idx;
++	unsigned		discard_idx;		/* Next bucket to discard */
++	unsigned		dirty_idx_ondisk;
++	unsigned		dirty_idx;
++	unsigned		cur_idx;		/* Journal bucket we're currently writing to */
 +	unsigned		nr;
++
 +	u64			*buckets;
 +
 +	/* Bio for journal reads/writes to this device */
@@ -51271,10 +51796,10 @@ index 000000000000..7bf0f84cb692
 +}
 diff --git a/fs/bcachefs/opts.h b/fs/bcachefs/opts.h
 new file mode 100644
-index 000000000000..f2ce0e5fa825
+index 000000000000..a20a09ee570e
 --- /dev/null
 +++ b/fs/bcachefs/opts.h
-@@ -0,0 +1,403 @@
+@@ -0,0 +1,408 @@
 +#ifndef _BCACHEFS_OPTS_H
 +#define _BCACHEFS_OPTS_H
 +
@@ -51565,7 +52090,12 @@ index 000000000000..f2ce0e5fa825
 +	  OPT_UINT(0, BCH_REPLICAS_MAX),				\
 +	  NO_SB_OPT,			1,				\
 +	  "n",		"Data written to this device will be considered\n"\
-+			"to have already been replicated n times")
++			"to have already been replicated n times")	\
++	x(new_inode_updates,		u8,				\
++	  OPT_MOUNT,							\
++	  OPT_BOOL(),							\
++	  NO_SB_OPT,			false,				\
++	  NULL,		"Enable new btree write-cache for inode updates")
 +
 +
 +struct bch_opts {
@@ -55201,10 +55731,10 @@ index 000000000000..a1ca837b3021
 +#endif /* _BCACHEFS_STR_HASH_H */
 diff --git a/fs/bcachefs/super-io.c b/fs/bcachefs/super-io.c
 new file mode 100644
-index 000000000000..71d97c57830f
+index 000000000000..ca3614247877
 --- /dev/null
 +++ b/fs/bcachefs/super-io.c
-@@ -0,0 +1,1088 @@
+@@ -0,0 +1,1091 @@
 +
 +#include "bcachefs.h"
 +#include "checksum.h"
@@ -56226,7 +56756,10 @@ index 000000000000..71d97c57830f
 +	sb_clean->flags		= 0;
 +	sb_clean->read_clock	= cpu_to_le16(c->bucket_clock[READ].hand);
 +	sb_clean->write_clock	= cpu_to_le16(c->bucket_clock[WRITE].hand);
-+	sb_clean->journal_seq	= journal_cur_seq(&c->journal) - 1;
++	sb_clean->journal_seq	= cpu_to_le64(journal_cur_seq(&c->journal) - 1);
++
++	/* Trying to catch outstanding bug: */
++	BUG_ON(le64_to_cpu(sb_clean->journal_seq) > S64_MAX);
 +
 +	entry = sb_clean->start;
 +	entry = bch2_journal_super_entries_add_common(c, entry);
@@ -56449,10 +56982,10 @@ index 000000000000..c48294c8253a
 +#endif /* _BCACHEFS_SUPER_IO_H */
 diff --git a/fs/bcachefs/super.c b/fs/bcachefs/super.c
 new file mode 100644
-index 000000000000..1528f77e6d30
+index 000000000000..1b3891726639
 --- /dev/null
 +++ b/fs/bcachefs/super.c
-@@ -0,0 +1,1882 @@
+@@ -0,0 +1,1885 @@
 +/*
 + * bcachefs setup/teardown code, and some metadata io - read a superblock and
 + * figure out what to do with it.
@@ -56785,7 +57318,8 @@ index 000000000000..1528f77e6d30
 +
 +	if (!bch2_journal_error(&c->journal) &&
 +	    !test_bit(BCH_FS_ERROR, &c->flags) &&
-+	    !test_bit(BCH_FS_EMERGENCY_RO, &c->flags))
++	    !test_bit(BCH_FS_EMERGENCY_RO, &c->flags) &&
++	    test_bit(BCH_FS_STARTED, &c->flags))
 +		bch2_fs_mark_clean(c, true);
 +
 +	if (c->state != BCH_FS_STOPPING)
@@ -57136,7 +57670,9 @@ index 000000000000..1528f77e6d30
 +	    mempool_init_kvpmalloc_pool(&c->btree_bounce_pool, 1,
 +					btree_bytes(c)) ||
 +	    mempool_init_kmalloc_pool(&c->btree_iters_pool, 1,
-+			sizeof(struct btree_iter) * BTREE_ITER_MAX) ||
++			sizeof(struct btree_iter) * BTREE_ITER_MAX +
++			sizeof(struct btree_insert_entry) *
++			(BTREE_ITER_MAX + 4)) ||
 +	    bch2_io_clock_init(&c->io_clock[READ]) ||
 +	    bch2_io_clock_init(&c->io_clock[WRITE]) ||
 +	    bch2_fs_journal_init(&c->journal) ||
@@ -63864,10 +64400,10 @@ index 291a9bd5b97f..7e3c6b339e05 100644
  
 diff --git a/include/linux/six.h b/include/linux/six.h
 new file mode 100644
-index 000000000000..40e213f2fb40
+index 000000000000..34ab46e60931
 --- /dev/null
 +++ b/include/linux/six.h
-@@ -0,0 +1,230 @@
+@@ -0,0 +1,229 @@
 +// SPDX-License-Identifier: GPL-2.0
 +
 +#ifndef _LINUX_SIX_H
@@ -63920,12 +64456,12 @@ index 000000000000..40e213f2fb40
 + *   six_trylock_convert(lock, from, to)
 + *
 + * A lock may be held multiple types by the same thread (for read or intent,
-+ * not write) - up to SIX_LOCK_MAX_RECURSE. However, the six locks code does
-+ * _not_ implement the actual recursive checks itself though - rather, if your
-+ * code (e.g. btree iterator code) knows that the current thread already has a
-+ * lock held, and for the correct type, six_lock_increment() may be used to
-+ * bump up the counter for that type - the only effect is that one more call to
-+ * unlock will be required before the lock is unlocked.
++ * not write). However, the six locks code does _not_ implement the actual
++ * recursive checks itself though - rather, if your code (e.g. btree iterator
++ * code) knows that the current thread already has a lock held, and for the
++ * correct type, six_lock_increment() may be used to bump up the counter for
++ * that type - the only effect is that one more call to unlock will be required
++ * before the lock is unlocked.
 + */
 +
 +#include <linux/lockdep.h>
@@ -63950,8 +64486,8 @@ index 000000000000..40e213f2fb40
 +	};
 +
 +	struct {
-+		unsigned	read_lock:26;
-+		unsigned	intent_lock:3;
++		unsigned	read_lock:28;
++		unsigned	intent_lock:1;
 +		unsigned	waiters:3;
 +		/*
 +		 * seq works much like in seqlocks: it's incremented every time
@@ -63966,8 +64502,6 @@ index 000000000000..40e213f2fb40
 +	};
 +};
 +
-+#define SIX_LOCK_MAX_RECURSE	((1 << 3) - 1)
-+
 +enum six_lock_type {
 +	SIX_LOCK_read,
 +	SIX_LOCK_intent,
@@ -63976,6 +64510,7 @@ index 000000000000..40e213f2fb40
 +
 +struct six_lock {
 +	union six_lock_state	state;
++	unsigned		intent_lock_recurse;
 +	struct task_struct	*owner;
 +	struct optimistic_spin_queue osq;
 +
@@ -64668,10 +65203,10 @@ index 392c7f23af76..9a73c8564ea8 100644
 +obj-$(CONFIG_SIXLOCKS) += six.o
 diff --git a/kernel/locking/six.c b/kernel/locking/six.c
 new file mode 100644
-index 000000000000..aceeabb03920
+index 000000000000..a4c2052aa8a9
 --- /dev/null
 +++ b/kernel/locking/six.c
-@@ -0,0 +1,535 @@
+@@ -0,0 +1,544 @@
 +// SPDX-License-Identifier: GPL-2.0
 +
 +#include <linux/export.h>
@@ -64748,17 +65283,6 @@ index 000000000000..aceeabb03920
 +	} else {
 +		EBUG_ON(lock->owner != current);
 +	}
-+}
-+
-+static inline void six_clear_owner(struct six_lock *lock, enum six_lock_type type)
-+{
-+	if (type != SIX_LOCK_intent)
-+		return;
-+
-+	EBUG_ON(lock->owner != current);
-+
-+	if (lock->state.intent_lock == 1)
-+		lock->owner = NULL;
 +}
 +
 +static __always_inline bool do_six_trylock_type(struct six_lock *lock,
@@ -65067,11 +65591,21 @@ index 000000000000..aceeabb03920
 +	EBUG_ON(type == SIX_LOCK_write &&
 +		!(lock->state.v & __SIX_LOCK_HELD_intent));
 +
-+	six_clear_owner(lock, type);
++	six_release(&lock->dep_map);
++
++	if (type == SIX_LOCK_intent) {
++		EBUG_ON(lock->owner != current);
++
++		if (lock->intent_lock_recurse) {
++			--lock->intent_lock_recurse;
++			return;
++		}
++
++		lock->owner = NULL;
++	}
 +
 +	state.v = atomic64_add_return_release(l[type].unlock_val,
 +					      &lock->state.counter);
-+	six_release(&lock->dep_map);
 +	six_lock_wakeup(lock, state, l[type].unlock_wakeup);
 +}
 +
@@ -65204,7 +65738,17 @@ index 000000000000..aceeabb03920
 +
 +	/* XXX: assert already locked, and that we don't overflow: */
 +
-+	atomic64_add(l[type].lock_val, &lock->state.counter);
++	switch (type) {
++	case SIX_LOCK_read:
++		atomic64_add(l[type].lock_val, &lock->state.counter);
++		break;
++	case SIX_LOCK_intent:
++		lock->intent_lock_recurse++;
++		break;
++	case SIX_LOCK_write:
++		BUG();
++		break;
++	}
 +}
 +EXPORT_SYMBOL_GPL(six_lock_increment);
 diff --git a/lib/Kconfig b/lib/Kconfig
