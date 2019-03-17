@@ -10,13 +10,13 @@ in {
   }).overrideAttrs (oldAttrs: rec {
     name = "${pname}-${version}";
     pname = stdenv.lib.removeSuffix "-${oldAttrs.version}" oldAttrs.name;
-    version = "unstable-2019-02-24";
+    version = "unstable-2019-03-13";
 
     src = fetchFromGitHub {
       owner = "jaagr";
       repo = "polybar";
-      rev = "db9a83a83be9ed8c293ddb20ae48c98022e83aca";
-      sha256 = "0qr9s9dg9fhgjz3sim6jjhlvas10fnxrlx1vxylhx4zbw2w9mhd2";
+      rev = "5995a8dacef62d7f15ef20ee5e0173eae6e9216f";
+      sha256 = "06v3m540bxxdzvp8dh5faj0ig83c8jgspda3bmh960zjhw5jay13";
       fetchSubmodules = true;
     };
   });
