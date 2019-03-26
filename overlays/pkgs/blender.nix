@@ -13,6 +13,7 @@ in {
 
     src = builtins.fetchGit {
       url = "https://git.blender.org/blender.git";
+      ref = "master";
     };
 
     cmakeFlags = oldAttrs.cmakeFlags ++ [

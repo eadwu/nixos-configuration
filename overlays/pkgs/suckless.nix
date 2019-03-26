@@ -8,7 +8,7 @@ self: super:
 
     src = builtins.fetchGit {
       url = "https://gitlab.com/eadwu/dmenu";
-      ref = "develop";
+      ref = version;
     };
   });
 
@@ -19,7 +19,7 @@ self: super:
 
     src = builtins.fetchGit {
       url = "https://gitlab.com/eadwu/dwm";
-      ref = "develop";
+      ref = version;
     };
   });
 
@@ -30,7 +30,7 @@ self: super:
 
     src = builtins.fetchGit {
       url = "https://gitlab.com/eadwu/st";
-      ref = "develop";
+      ref = version;
     };
   });
 }

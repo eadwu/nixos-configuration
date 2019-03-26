@@ -18,9 +18,12 @@ in with self.pkgs; subOverlays // {
     unfreeEnableUnrar = true;
   };
 
-  capitaine-cursors = super.capitaine-cursors.overrideAttrs (oldAttrs: {
+  capitaine-cursors = super.capitaine-cursors.overrideAttrs (oldAttrs: rec {
+    version = "master";
+
     src = builtins.fetchGit {
       url = "https://github.com/keeferrourke/capitaine-cursors";
+      ref = version;
     };
   });
 
@@ -28,9 +31,14 @@ in with self.pkgs; subOverlays // {
     enableGlfw = true;
   };
 
-  lightdm-enso-os-greeter = super.lightdm-enso-os-greeter.overrideAttrs (oldAttrs: {
+  lightdm-enso-os-greeter = super.lightdm-enso-os-greeter.overrideAttrs (oldAttrs: rec {
+    name = "${pname}-${version}";
+    pname = "lightdm-enso-os-greeter";
+    version = "master";
+
     src = builtins.fetchGit {
       url = "https://github.com/nick92/Enso-OS";
+      ref = version;
     };
   });
 
