@@ -23,7 +23,7 @@
       bcachefsSupport = config.boot.kernelPackages == pkgs.linuxPackages_testing_bcachefs;
       needBcachefsSupport = builtins.elem "bcachefs" config.boot.supportedFilesystems;
     in lib.optional (!bcachefsSupport && needBcachefsSupport)
-      (import ../../patches/kernel/bcachefs-support.nix)
+      (import ../../patches/kernel/bcachefs.nix)
     ++ lib.optionals (config.boot.kernelPackages == pkgs.linuxPackages_testing) [
       (import ../../patches/kernel/disable-amateur-radio-support.nix)
     ];

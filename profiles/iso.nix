@@ -9,7 +9,7 @@
 
   boot = {
     kernelPackages = lib.mkForce pkgs.linuxPackages_latest;
-    kernelPatches = lib.singleton (import ../patches/kernel/bcachefs-support.nix);
+    kernelPatches = lib.singleton (import ../patches/kernel/bcachefs.nix);
     supportedFilesystems = lib.singleton "bcachefs";
     zfs.enableUnstable = true;
   };
