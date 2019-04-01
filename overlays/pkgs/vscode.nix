@@ -112,8 +112,8 @@ self: super:
 
       { name = "horizon-theme-vscode";
         publisher = "jolaleye";
-        version = "1.8.0";
-        sha256 = "1vj9cbqir177m4wgl1jlyckjfspcydc4klh64zym9ln0sz6n9l5l"; }
+        version = "1.8.1";
+        sha256 = "12r6jrh6pmxy4lrdd53l1d87lwnanic5ma4x7szhrwai1lvzxjxl"; }
 
       { name = "language-haskell";
         publisher = "justusadam";
@@ -147,8 +147,8 @@ self: super:
 
       { name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "0.3.1326";
-        sha256 = "0vd5ikq3py7xxnahirqkrz1da7r5r3pbd4lkrw3hkn3hddk3g2ir"; }
+        version = "0.3.1403";
+        sha256 = "0sqyf4chh2irgmx5vw7x23xbp8sy999cy44g1w9dicm9adv0fj0j"; }
 
       { name = "debugger-for-chrome";
         publisher = "msjsdiag";
@@ -167,13 +167,13 @@ self: super:
 
       { name = "java";
         publisher = "redhat";
-        version = "0.41.0";
-        sha256 = "0sh9rl4skcvzp50485vi9w1sicvbz9lrnjmw15a99vfjr51hl1q8"; }
+        version = "0.42.0";
+        sha256 = "033r99nsvjr3bdfrzih7x7la9kbxxv52k1hph4dx4sb238lq17mr"; }
 
       { name = "rust";
         publisher = "rust-lang";
-        version = "0.5.4";
-        sha256 = "1l4m31b4n4gwrfdk008ygj2yzb225kdm44hf7bj6rc7w6qzic2mj"; }
+        version = "0.6.0";
+        sha256 = "1yympisq2p034vxvyn12nzhsmslls1yhfbf68yi3in0ly4xfrb19"; }
 
       { name = "stylelint";
         publisher = "shinnn";
