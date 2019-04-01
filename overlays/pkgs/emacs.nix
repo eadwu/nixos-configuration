@@ -2,7 +2,8 @@ self: super:
 
 let
   inherit (self) pkgs;
-  inherit (pkgs) epkgs stdenv fetchgit emacsPackagesNgGen;
+  inherit (pkgs) lib epkgs stdenv fetchgit emacsPackagesNgGen;
+  inherit (lib) filter isDerivation;
 
   emacs27 = (super.emacs.override {
     srcRepo = true;
@@ -18,6 +19,8 @@ let
       rev = "1b6ef26eb653c9d1e4fdbd16d314679cdb26e8ae";
       sha256 = "0jcpy7i0l79706h6g2lmxhjnihfngmicdkq2m3808gr23cavnfhf";
     };
+
+    patches = filter (patch: !(isDerivation patch)) oldAttrs.patches;
 
     buildInputs = oldAttrs.buildInputs ++ (with pkgs; [
       acl
