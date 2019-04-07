@@ -21,13 +21,13 @@ with self.pkgs; {
   pulseaudio-modules-bt = super.pulseaudio-modules-bt.overrideAttrs (oldAttrs: rec {
     name = "${pname}-${version}";
     pname = stdenv.lib.removeSuffix "-${oldAttrs.version}" oldAttrs.name;
-    version = "unstable-2019-03-29";
+    version = "unstable-2019-04-07";
 
     src = fetchFromGitHub {
       owner = "EHfive";
       repo = "pulseaudio-modules-bt";
-      rev = "bff80fdf47f4e72a949d570af2fdc2dd6fa8252d";
-      sha256 = "1xz0qclxdh4q16bpxvplv26dda1rg2nqdy8by85ccidnaha8jhj5";
+      rev = "d5b87e80cc8a294bbd949f9b89e8eb92f01b8ccf";
+      sha256 = "1l272qfzd6kk4gm2shsx1zxbdg4g93038lpmwi5sm94gckrv7q9c";
       fetchSubmodules = true;
     };
 
