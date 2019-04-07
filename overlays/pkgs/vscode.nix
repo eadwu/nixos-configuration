@@ -37,13 +37,13 @@ self: super:
 
       { name = "Ionide-fsharp";
         publisher = "Ionide";
-        version = "3.34.0";
-        sha256 = "0wwqnhc6hx50h4il78zbf83xkqswya906drf4nw2cyl1qmjbb271"; }
+        version = "3.35.0";
+        sha256 = "0skd6ch5i5hhihii3dzcxg6vcvqavg9m47n0flgsm69fdgszjvx3"; }
 
       { name = "latex-workshop";
         publisher = "James-Yu";
-        version = "6.2.2";
-        sha256 = "00y5argh0qfmcchj4kbvinlpcacip0ngk3nc5x9m50x6lvlha0wp"; }
+        version = "6.3.0";
+        sha256 = "1hq2xavc6aiqh14g0ahkz7i06az96hx46qgxr12cnjn2rpf2v19g"; }
 
       { name = "vscode-docker";
         publisher = "PeterJausovec";
@@ -72,8 +72,8 @@ self: super:
 
       { name = "solargraph";
         publisher = "castwide";
-        version = "0.19.3";
-        sha256 = "0l72b3fksxkqi36cdnvn0h1l8lznsa9k84ijaw3ms81d02nh368n"; }
+        version = "0.19.6";
+        sha256 = "1wibaz834zlc9cg5ckfap2bgy41p7vi97va9qhcm5zdq4lgk7rlp"; }
 
       { name = "path-intellisense";
         publisher = "christian-kohler";
@@ -117,8 +117,8 @@ self: super:
 
       { name = "language-haskell";
         publisher = "justusadam";
-        version = "2.5.0";
-        sha256 = "10jqj8qw5x6da9l8zhjbra3xcbrwb4cpwc3ygsy29mam5pd8g6b3"; }
+        version = "2.6.0";
+        sha256 = "1891pg4x5qkh151pylvn93c4plqw6vgasa4g40jbma5xzq8pygr4"; }
 
       { name = "vscode-language-babel";
         publisher = "mgmcdermott";
@@ -147,8 +147,8 @@ self: super:
 
       { name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "0.3.1403";
-        sha256 = "0sqyf4chh2irgmx5vw7x23xbp8sy999cy44g1w9dicm9adv0fj0j"; }
+        version = "1.0.18";
+        sha256 = "1ms7diqp5avkmpyyjkzl9l90jmihh08zwhwc0h9yiyn0kkgkd7k8"; }
 
       { name = "debugger-for-chrome";
         publisher = "msjsdiag";
@@ -167,13 +167,13 @@ self: super:
 
       { name = "java";
         publisher = "redhat";
-        version = "0.42.0";
-        sha256 = "033r99nsvjr3bdfrzih7x7la9kbxxv52k1hph4dx4sb238lq17mr"; }
+        version = "0.42.1";
+        sha256 = "124xzg9xp9z4jqpf9ww967xiyqn0y968yixmh4s75mpi8k82l17d"; }
 
       { name = "rust";
         publisher = "rust-lang";
-        version = "0.6.0";
-        sha256 = "1yympisq2p034vxvyn12nzhsmslls1yhfbf68yi3in0ly4xfrb19"; }
+        version = "0.6.1";
+        sha256 = "0f66z6b374nvnrn7802dg0xz9f8wq6sjw3sb9ca533gn5jd7n297"; }
 
       { name = "stylelint";
         publisher = "shinnn";
@@ -207,8 +207,8 @@ self: super:
 
       { name = "vscode-maven";
         publisher = "vscjava";
-        version = "0.15.2";
-        sha256 = "1wzf6j4m7dp1v92shxyw1855i1699dvcbydppkzndkyqnmiw74kl"; }
+        version = "0.16.0";
+        sha256 = "1byq5bb4999qgzbxkxxkgw7j3p23kcbyvc2rzxac1687r9idmapm"; }
     ];
   };
 }
