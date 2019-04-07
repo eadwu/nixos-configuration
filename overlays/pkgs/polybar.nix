@@ -10,14 +10,19 @@ in {
   }).overrideAttrs (oldAttrs: rec {
     name = "${pname}-${version}";
     pname = stdenv.lib.removeSuffix "-${oldAttrs.version}" oldAttrs.name;
-    version = "unstable-2019-03-22";
+    version = "unstable-2019-04-07";
 
     src = fetchFromGitHub {
       owner = "jaagr";
       repo = "polybar";
-      rev = "31a25af3d3465af719b82e92ccf19e19010a2a05";
-      sha256 = "0xmdinwysn1dj8ypvgbpprgz5kfv3zzfwjj67w58kl4ja3zcbhl4";
+      rev = "7414e9800879cc3692af5ca217fdb18978ba8b4a";
+      sha256 = "1qa3ik8cc5a573myplsarpb9ah4k5vm4ybc78gzfm5fj4ad9dbaw";
       fetchSubmodules = true;
     };
+
+    postConfigure = ''
+      substituteInPlace ../include/settings.hpp.cmake \
+        --replace "${stdenv.cc}" "${stdenv.cc.name}"
+    '';
   });
 }
