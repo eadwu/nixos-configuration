@@ -2,8 +2,7 @@ self: super:
 
 let
   inherit (self) pkgs;
-  inherit (pkgs) lib epkgs stdenv fetchgit emacsPackagesNgGen;
-  inherit (lib) filter isDerivation;
+  inherit (pkgs) epkgs stdenv emacsPackagesNgGen;
 
   emacs27 = (super.emacs.override {
     srcRepo = true;
@@ -12,15 +11,17 @@ let
   }).overrideAttrs (oldAttrs: rec {
     name = "${pname}-${version}";
     pname = stdenv.lib.removeSuffix "-${oldAttrs.version}" oldAttrs.name;
-    version = "unstable-2019-01-14";
+    version = "master";
 
-    src = fetchgit {
+    src = builtins.fetchGit {
       url = "https://git.savannah.gnu.org/git/emacs.git";
-      rev = "1b6ef26eb653c9d1e4fdbd16d314679cdb26e8ae";
-      sha256 = "0jcpy7i0l79706h6g2lmxhjnihfngmicdkq2m3808gr23cavnfhf";
+      ref = version;
     };
 
-    patches = filter (patch: !(isDerivation patch)) oldAttrs.patches;
+    patches = [
+      ../../patches/emacs/clean-env.patch
+      <nixpkgs/pkgs/applications/editors/emacs/tramp-detect-wrapped-gvfsd.patch>
+    ];
 
     buildInputs = oldAttrs.buildInputs ++ (with pkgs; [
       acl
