@@ -7,9 +7,7 @@ in {
     githubSupport = true;
     mpdSupport = true;
     pulseSupport = true;
-  }).overrideAttrs (oldAttrs: rec {
-    name = "${pname}-${version}";
-    pname = stdenv.lib.removeSuffix "-${oldAttrs.version}" oldAttrs.name;
+  }).overrideAttrs (oldAttrs: {
     version = "unstable-2019-04-07";
 
     src = fetchFromGitHub {
