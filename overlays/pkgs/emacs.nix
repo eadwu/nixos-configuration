@@ -50,9 +50,7 @@ in {
     ivy-rich
     js2-mode
     lsp-java
-    lsp-javascript-typescript
     lsp-mode
-    lsp-python
     lsp-ui
     magit
     nix-buffer
