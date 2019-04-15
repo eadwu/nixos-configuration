@@ -42,8 +42,8 @@ self: super:
 
       { name = "latex-workshop";
         publisher = "James-Yu";
-        version = "6.3.0";
-        sha256 = "1hq2xavc6aiqh14g0ahkz7i06az96hx46qgxr12cnjn2rpf2v19g"; }
+        version = "6.4.0";
+        sha256 = "0dvsabfsr6bmldib0hvqbkdaacnvnmbnmlhyc1iy2j0zlnl2rl2s"; }
 
       { name = "vscode-docker";
         publisher = "PeterJausovec";
@@ -92,8 +92,8 @@ self: super:
 
       { name = "gitlens";
         publisher = "eamodio";
-        version = "9.5.1";
-        sha256 = "10s2g98wv8i0w6fr0pr5xyi8zmh229zn30jn1gg3m5szpaqi1v92"; }
+        version = "9.6.0";
+        sha256 = "0640s1pnmv99x6489b9z561zj6nqipn3lz822cviyycg2g7mwqbp"; }
 
       { name = "tslint";
         publisher = "eg2";
@@ -135,6 +135,11 @@ self: super:
         version = "2.1.2";
         sha256 = "09x394pp4231fjw9mvrp332jw21n7dw9r68cbph526mhhdjnj81i"; }
 
+      { name = "theme-monokai-pro-vscode";
+        publisher = "monokai";
+        version = "1.1.12";
+        sha256 = "1cfsm8pk6jf8x80grm3y95r3s2530lbzaf4vdafdaqrx0m1bgqd5"; }
+
       { name = "azure-account";
         publisher = "ms-vscode";
         version = "0.8.10";
@@ -147,8 +152,8 @@ self: super:
 
       { name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.18";
-        sha256 = "1ms7diqp5avkmpyyjkzl9l90jmihh08zwhwc0h9yiyn0kkgkd7k8"; }
+        version = "1.0.45";
+        sha256 = "1cgjl5ns1409c8mqznxyssc9gn2sdvafb3n9a5i18gyqvc08m1rm"; }
 
       { name = "debugger-for-chrome";
         publisher = "msjsdiag";
@@ -202,13 +207,13 @@ self: super:
 
       { name = "vscode-java-test";
         publisher = "vscjava";
-        version = "0.15.1";
-        sha256 = "161l4rhzvqk6rhv9rgc15zisnhz1y27l2j00za9ny7jafp8rs3bf"; }
+        version = "0.16.0";
+        sha256 = "0q9bajx1hx55qflikscxgzrynr0qkn9641sr08191cpp4n32hmib"; }
 
       { name = "vscode-maven";
         publisher = "vscjava";
-        version = "0.16.0";
-        sha256 = "1byq5bb4999qgzbxkxxkgw7j3p23kcbyvc2rzxac1687r9idmapm"; }
+        version = "0.16.1";
+        sha256 = "03k3rn82j92aarm1whmyx4b8xp1057nwj26y883hp12l97dcmbih"; }
     ];
   };
 }
