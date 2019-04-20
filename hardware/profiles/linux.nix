@@ -19,7 +19,8 @@
       "vm.dirty_writeback_centisecs=6000"
     ];
 
-    kernelPatches = lib.optionals (config.boot.kernelPackages == pkgs.linuxPackages_testing) [
+    kernelPatches = lib.optionals (config.boot.kernelPackages.kernel.version == pkgs.linux_testing.version) [
+      (import ../../patches/kernel/harden-kernel.nix)
       (import ../../patches/kernel/disable-amateur-radio-support.nix)
     ];
   };
