@@ -92,8 +92,8 @@ self: super:
 
       { name = "gitlens";
         publisher = "eamodio";
-        version = "9.6.0";
-        sha256 = "0640s1pnmv99x6489b9z561zj6nqipn3lz822cviyycg2g7mwqbp"; }
+        version = "9.6.3";
+        sha256 = "0psgvlf3945724l2lf3znr4xlmsk0zcrig48lap2bck43lr7xxfw"; }
 
       { name = "tslint";
         publisher = "eg2";
@@ -152,8 +152,8 @@ self: super:
 
       { name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.45";
-        sha256 = "1cgjl5ns1409c8mqznxyssc9gn2sdvafb3n9a5i18gyqvc08m1rm"; }
+        version = "1.0.67";
+        sha256 = "1shy9xaqz1wsyzzz5z8g409ma5h5kaic0y7bc1q2nxy60gbq828n"; }
 
       { name = "debugger-for-chrome";
         publisher = "msjsdiag";
@@ -172,8 +172,8 @@ self: super:
 
       { name = "java";
         publisher = "redhat";
-        version = "0.42.1";
-        sha256 = "124xzg9xp9z4jqpf9ww967xiyqn0y968yixmh4s75mpi8k82l17d"; }
+        version = "0.43.0";
+        sha256 = "1j3sk38hh9iga9cbdsripk93sxw06raklk0xzknxdd98lai963d0"; }
 
       { name = "rust";
         publisher = "rust-lang";
@@ -182,8 +182,8 @@ self: super:
 
       { name = "stylelint";
         publisher = "shinnn";
-        version = "0.48.0";
-        sha256 = "1i8vp555niqaga9n6x1xy57r3dcyk7qz9b4jr67zlg3c8jwh5la0"; }
+        version = "0.49.0";
+        sha256 = "0zgsmg20zhvr41sxndaccqkhs00y4wysp6fz722pn2mvpmpcn4ca"; }
 
       { name = "shader";
         publisher = "slevesque";
