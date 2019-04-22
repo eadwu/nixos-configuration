@@ -36,7 +36,9 @@ in with config.nixos; {
   boot = {
     cleanTmpDir = true;
     supportedFilesystems = [ "ntfs" ];
-    kernelPackages = pkgs.linuxPackages_testing;
+    kernelPackages = if pkgs.linux_latest.meta.branch == pkgs.linux_testing.meta.branch
+      then pkgs.linuxPackages_latest
+      else pkgs.linuxPackages_testing;
   };
 
   environment = {
