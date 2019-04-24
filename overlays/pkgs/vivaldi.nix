@@ -1,14 +1,25 @@
 self: super:
 
-with self.pkgs; {
+with self.pkgs;
+
+let
+  versionAttrPath = [ "rss" "channel" "item" "enclosure" "sparkle:version" ];
+  vivaldiVersion = runCommand "vivaldi-version" {
+    src = builtins.fetchurl {
+      url = "https://update.vivaldi.com/update/1.0/win/appcast.xml";
+    };
+    buildInputs = [ haskellPackages.xml-to-json ];
+  } ''
+    xml-to-json $src > $out
+  '';
+in {
   vivaldi = (super.vivaldi.override {
     isSnapshot = true;
   }).overrideAttrs (oldAttrs: rec {
-    version = "2.5.1511.4-1";
+    version = lib.getAttrFromPath versionAttrPath (builtins.fromJSON (builtins.readFile "${vivaldiVersion}"));
 
-    src = fetchurl {
-      url = "https://downloads.vivaldi.com/snapshot/vivaldi-snapshot_${version}_amd64.deb";
-      sha256 = "024171p021i1p0hhxk8r61mpjn5ivpnlk3z0ja3gz94q8ipvqxrn";
+    src = builtins.fetchurl {
+      url = "https://downloads.vivaldi.com/snapshot/vivaldi-snapshot_${version}-1_amd64.deb";
     };
   });
 }
