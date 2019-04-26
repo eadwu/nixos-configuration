@@ -2724,10 +2724,10 @@ index 000000000000..e06724309ff8
 +#endif /* _BCACHEFS_ACL_H */
 diff --git a/fs/bcachefs/alloc_background.c b/fs/bcachefs/alloc_background.c
 new file mode 100644
-index 000000000000..a61b25cc719c
+index 000000000000..5a3065688341
 --- /dev/null
 +++ b/fs/bcachefs/alloc_background.c
-@@ -0,0 +1,1685 @@
+@@ -0,0 +1,1725 @@
 +#include "bcachefs.h"
 +#include "alloc_background.h"
 +#include "alloc_foreground.h"
@@ -2741,7 +2741,7 @@ index 000000000000..a61b25cc719c
 +#include "debug.h"
 +#include "ec.h"
 +#include "error.h"
-+#include "recovery.h"
++#include "journal_io.h"
 +
 +#include <linux/kthread.h>
 +#include <linux/math64.h>
@@ -2858,26 +2858,20 @@ index 000000000000..a61b25cc719c
 +	*p += bytes;
 +}
 +
-+struct bkey_alloc_unpacked bch2_alloc_unpack(struct bkey_s_c k)
++struct bkey_alloc_unpacked bch2_alloc_unpack(const struct bch_alloc *a)
 +{
-+	struct bkey_alloc_unpacked ret = { .gen = 0 };
-+
-+	if (k.k->type == KEY_TYPE_alloc) {
-+		const struct bch_alloc *a = bkey_s_c_to_alloc(k).v;
-+		const void *d = a->data;
-+		unsigned idx = 0;
-+
-+		ret.gen = a->gen;
++	struct bkey_alloc_unpacked ret = { .gen = a->gen };
++	const void *d = a->data;
++	unsigned idx = 0;
 +
 +#define x(_name, _bits)	ret._name = get_alloc_field(a, &d, idx++);
-+		BCH_ALLOC_FIELDS()
++	BCH_ALLOC_FIELDS()
 +#undef  x
-+	}
 +	return ret;
 +}
 +
-+void bch2_alloc_pack(struct bkey_i_alloc *dst,
-+		     const struct bkey_alloc_unpacked src)
++static void bch2_alloc_pack(struct bkey_i_alloc *dst,
++			    const struct bkey_alloc_unpacked src)
 +{
 +	unsigned idx = 0;
 +	void *d = dst->v.data;
@@ -2934,45 +2928,97 @@ index 000000000000..a61b25cc719c
 +			       get_alloc_field(a.v, &d, i));
 +}
 +
-+static inline struct bkey_alloc_unpacked
-+alloc_mem_to_key(struct bucket *g, struct bucket_mark m)
++static void __alloc_read_key(struct bucket *g, const struct bch_alloc *a)
 +{
-+	return (struct bkey_alloc_unpacked) {
-+		.gen		= m.gen,
-+		.oldest_gen	= g->oldest_gen,
-+		.data_type	= m.data_type,
-+		.dirty_sectors	= m.dirty_sectors,
-+		.cached_sectors	= m.cached_sectors,
-+		.read_time	= g->io_time[READ],
-+		.write_time	= g->io_time[WRITE],
-+	};
++	const void *d = a->data;
++	unsigned idx = 0, data_type, dirty_sectors, cached_sectors;
++	struct bucket_mark m;
++
++	g->io_time[READ]	= get_alloc_field(a, &d, idx++);
++	g->io_time[WRITE]	= get_alloc_field(a, &d, idx++);
++	data_type		= get_alloc_field(a, &d, idx++);
++	dirty_sectors		= get_alloc_field(a, &d, idx++);
++	cached_sectors		= get_alloc_field(a, &d, idx++);
++	g->oldest_gen		= get_alloc_field(a, &d, idx++);
++
++	bucket_cmpxchg(g, m, ({
++		m.gen			= a->gen;
++		m.data_type		= data_type;
++		m.dirty_sectors		= dirty_sectors;
++		m.cached_sectors	= cached_sectors;
++	}));
++
++	g->gen_valid		= 1;
 +}
 +
-+int bch2_alloc_read(struct bch_fs *c, struct journal_keys *journal_keys)
++static void __alloc_write_key(struct bkey_i_alloc *a, struct bucket *g,
++			      struct bucket_mark m)
 +{
++	unsigned idx = 0;
++	void *d = a->v.data;
++
++	a->v.fields	= 0;
++	a->v.gen	= m.gen;
++
++	d = a->v.data;
++	put_alloc_field(a, &d, idx++, g->io_time[READ]);
++	put_alloc_field(a, &d, idx++, g->io_time[WRITE]);
++	put_alloc_field(a, &d, idx++, m.data_type);
++	put_alloc_field(a, &d, idx++, m.dirty_sectors);
++	put_alloc_field(a, &d, idx++, m.cached_sectors);
++	put_alloc_field(a, &d, idx++, g->oldest_gen);
++
++	set_bkey_val_bytes(&a->k, (void *) d - (void *) &a->v);
++}
++
++static void bch2_alloc_read_key(struct bch_fs *c, struct bkey_s_c k)
++{
++	struct bch_dev *ca;
++	struct bkey_s_c_alloc a;
++
++	if (k.k->type != KEY_TYPE_alloc)
++		return;
++
++	a = bkey_s_c_to_alloc(k);
++	ca = bch_dev_bkey_exists(c, a.k->p.inode);
++
++	if (a.k->p.offset >= ca->mi.nbuckets)
++		return;
++
++	percpu_down_read_preempt_disable(&c->mark_lock);
++	__alloc_read_key(bucket(ca, a.k->p.offset), a.v);
++	percpu_up_read_preempt_enable(&c->mark_lock);
++}
++
++int bch2_alloc_read(struct bch_fs *c, struct list_head *journal_replay_list)
++{
++	struct journal_replay *r;
 +	struct btree_trans trans;
 +	struct btree_iter *iter;
 +	struct bkey_s_c k;
 +	struct bch_dev *ca;
-+	struct journal_key *j;
 +	unsigned i;
 +	int ret;
 +
 +	bch2_trans_init(&trans, c);
 +
-+	for_each_btree_key(&trans, iter, BTREE_ID_ALLOC, POS_MIN, 0, k, ret)
-+		bch2_mark_key(c, k, true, 0, NULL, 0, 0);
-+
-+	ret = bch2_trans_exit(&trans) ?: ret;
-+	if (ret) {
-+		bch_err(c, "error reading alloc info: %i", ret);
-+		return ret;
++	for_each_btree_key(&trans, iter, BTREE_ID_ALLOC, POS_MIN, 0, k) {
++		bch2_alloc_read_key(c, k);
++		bch2_trans_cond_resched(&trans);
 +	}
 +
-+	for_each_journal_key(*journal_keys, j)
-+		if (j->btree_id == BTREE_ID_ALLOC)
-+			bch2_mark_key(c, bkey_i_to_s_c(j->k),
-+				      true, 0, NULL, 0, 0);
++	ret = bch2_trans_exit(&trans);
++	if (ret)
++		return ret;
++
++	list_for_each_entry(r, journal_replay_list, list) {
++		struct bkey_i *k, *n;
++		struct jset_entry *entry;
++
++		for_each_jset_key(k, n, entry, &r->j)
++			if (entry->btree_id == BTREE_ID_ALLOC)
++				bch2_alloc_read_key(c, bkey_i_to_s_c(k));
++	}
 +
 +	percpu_down_write(&c->mark_lock);
 +	bch2_dev_usage_from_buckets(c);
@@ -3040,32 +3086,86 @@ index 000000000000..a61b25cc719c
 +	return ret;
 +}
 +
-+int bch2_alloc_write(struct bch_fs *c, unsigned flags, bool *wrote)
++static int __bch2_alloc_write_key(struct btree_trans *trans, struct bch_dev *ca,
++				  size_t b, struct btree_iter *iter,
++				  u64 *journal_seq, unsigned flags)
 +{
-+	struct btree_trans trans;
-+	struct btree_iter *iter;
-+	struct bucket_array *buckets;
-+	struct bch_dev *ca;
++	struct bch_fs *c = trans->c;
++#if 0
++	__BKEY_PADDED(k, BKEY_ALLOC_VAL_U64s_MAX) alloc_key;
++#else
++	/* hack: */
++	__BKEY_PADDED(k, 8) alloc_key;
++#endif
++	struct bkey_i_alloc *a = bkey_alloc_init(&alloc_key.k);
 +	struct bucket *g;
 +	struct bucket_mark m, new;
-+	struct bkey_alloc_unpacked old_u, new_u;
-+	__BKEY_PADDED(k, 8) alloc_key; /* hack: */
-+	struct bkey_i_alloc *a;
-+	struct bkey_s_c k;
-+	unsigned i;
-+	size_t b;
-+	int ret = 0;
++	int ret;
 +
 +	BUG_ON(BKEY_ALLOC_VAL_U64s_MAX > 8);
 +
-+	bch2_trans_init(&trans, c);
++	a->k.p = POS(ca->dev_idx, b);
 +
-+	iter = bch2_trans_get_iter(&trans, BTREE_ID_ALLOC, POS_MIN,
-+				   BTREE_ITER_SLOTS|BTREE_ITER_INTENT);
++	bch2_btree_iter_set_pos(iter, a->k.p);
++
++	ret = bch2_btree_iter_traverse(iter);
++	if (ret)
++		return ret;
++
++	percpu_down_read_preempt_disable(&c->mark_lock);
++	g = bucket(ca, b);
++	m = READ_ONCE(g->mark);
++
++	if (!m.dirty) {
++		percpu_up_read_preempt_enable(&c->mark_lock);
++		return 0;
++	}
++
++	__alloc_write_key(a, g, m);
++	percpu_up_read_preempt_enable(&c->mark_lock);
++
++	bch2_trans_update(trans, BTREE_INSERT_ENTRY(iter, &a->k_i));
++
++	ret = bch2_trans_commit(trans, NULL, journal_seq,
++				   BTREE_INSERT_NOCHECK_RW|
++				   BTREE_INSERT_NOFAIL|
++				   BTREE_INSERT_USE_RESERVE|
++				   BTREE_INSERT_USE_ALLOC_RESERVE|
++				   BTREE_INSERT_NOMARK|
++				   flags);
++	if (ret)
++		return ret;
++
++	new = m;
++	new.dirty = false;
++	atomic64_cmpxchg(&g->_mark.v, m.v.counter, new.v.counter);
++
++	if (ca->buckets_written)
++		set_bit(b, ca->buckets_written);
++
++	return 0;
++}
++
++int bch2_alloc_write(struct bch_fs *c, bool nowait, bool *wrote)
++{
++	struct bch_dev *ca;
++	unsigned i;
++	int ret = 0;
++
++	*wrote = false;
 +
 +	for_each_rw_member(ca, c, i) {
++		struct btree_trans trans;
++		struct btree_iter *iter;
++		struct bucket_array *buckets;
++		size_t b;
++
++		bch2_trans_init(&trans, c);
++
++		iter = bch2_trans_get_iter(&trans, BTREE_ID_ALLOC, POS_MIN,
++					   BTREE_ITER_SLOTS|BTREE_ITER_INTENT);
++
 +		down_read(&ca->bucket_lock);
-+restart:
 +		buckets = bucket_array(ca);
 +
 +		for (b = buckets->first_bucket;
@@ -3074,77 +3174,25 @@ index 000000000000..a61b25cc719c
 +			if (!buckets->b[b].mark.dirty)
 +				continue;
 +
-+			bch2_btree_iter_set_pos(iter, POS(i, b));
-+			k = bch2_btree_iter_peek_slot(iter);
-+			ret = bkey_err(k);
-+			if (ret)
-+				goto err;
-+
-+			old_u = bch2_alloc_unpack(k);
-+
-+			percpu_down_read_preempt_disable(&c->mark_lock);
-+			g	= bucket(ca, b);
-+			m	= READ_ONCE(g->mark);
-+			new_u	= alloc_mem_to_key(g, m);
-+			percpu_up_read_preempt_enable(&c->mark_lock);
-+
-+			if (!m.dirty)
-+				continue;
-+
-+			if ((flags & BTREE_INSERT_LAZY_RW) &&
-+			    percpu_ref_is_zero(&c->writes)) {
-+				up_read(&ca->bucket_lock);
-+				bch2_trans_unlock(&trans);
-+
-+				ret = bch2_fs_read_write_early(c);
-+				down_read(&ca->bucket_lock);
-+
-+				if (ret)
-+					goto err;
-+				goto restart;
-+			}
-+
-+			a = bkey_alloc_init(&alloc_key.k);
-+			a->k.p = iter->pos;
-+			bch2_alloc_pack(a, new_u);
-+
-+			bch2_trans_update(&trans, BTREE_INSERT_ENTRY(iter, &a->k_i));
-+			ret = bch2_trans_commit(&trans, NULL, NULL,
-+						BTREE_INSERT_NOFAIL|
-+						BTREE_INSERT_NOMARK|
-+						flags);
-+err:
-+			if (ret && !test_bit(BCH_FS_EMERGENCY_RO, &c->flags)) {
-+				bch_err(c, "error %i writing alloc info", ret);
-+				printk(KERN_CONT "dev %llu bucket %llu\n",
-+				       iter->pos.inode, iter->pos.offset);
-+				printk(KERN_CONT "gen %u -> %u\n", old_u.gen, new_u.gen);
-+#define x(_name, _bits)		printk(KERN_CONT #_name " %u -> %u\n", old_u._name, new_u._name);
-+				BCH_ALLOC_FIELDS()
-+#undef  x
-+			}
++			ret = __bch2_alloc_write_key(&trans, ca, b, iter, NULL,
++						     nowait
++						     ? BTREE_INSERT_NOWAIT
++						     : 0);
 +			if (ret)
 +				break;
-+
-+			new = m;
-+			new.dirty = false;
-+			atomic64_cmpxchg(&g->_mark.v, m.v.counter, new.v.counter);
-+
-+			if (ca->buckets_written)
-+				set_bit(b, ca->buckets_written);
 +
 +			bch2_trans_cond_resched(&trans);
 +			*wrote = true;
 +		}
 +		up_read(&ca->bucket_lock);
 +
++		bch2_trans_exit(&trans);
++
 +		if (ret) {
 +			percpu_ref_put(&ca->io_ref);
 +			break;
 +		}
 +	}
-+
-+	bch2_trans_exit(&trans);
 +
 +	return ret;
 +}
@@ -3280,9 +3328,6 @@ index 000000000000..a61b25cc719c
 +	unsigned long gc_count = c->gc_count;
 +	int ret = 0;
 +
-+	ca->allocator_state = ALLOCATOR_BLOCKED;
-+	closure_wake_up(&c->freelist_wait);
-+
 +	while (1) {
 +		set_current_state(TASK_INTERRUPTIBLE);
 +		if (kthread_should_stop()) {
@@ -3305,9 +3350,6 @@ index 000000000000..a61b25cc719c
 +	}
 +
 +	__set_current_state(TASK_RUNNING);
-+	ca->allocator_state = ALLOCATOR_RUNNING;
-+	closure_wake_up(&c->freelist_wait);
-+
 +	return ret;
 +}
 +
@@ -3381,16 +3423,16 @@ index 000000000000..a61b25cc719c
 +				   struct alloc_heap_entry l,
 +				   struct alloc_heap_entry r)
 +{
-+	return  cmp_int(l.key, r.key) ?:
-+		cmp_int(r.nr, l.nr) ?:
-+		cmp_int(l.bucket, r.bucket);
++	return (l.key > r.key) - (l.key < r.key) ?:
++		(l.nr < r.nr)  - (l.nr  > r.nr) ?:
++		(l.bucket > r.bucket) - (l.bucket < r.bucket);
 +}
 +
 +static inline int bucket_idx_cmp(const void *_l, const void *_r)
 +{
 +	const struct alloc_heap_entry *l = _l, *r = _r;
 +
-+	return cmp_int(l->bucket, r->bucket);
++	return (l->bucket > r->bucket) - (l->bucket < r->bucket);
 +}
 +
 +static void find_reclaimable_buckets_lru(struct bch_fs *c, struct bch_dev *ca)
@@ -3604,7 +3646,6 @@ index 000000000000..a61b25cc719c
 +	struct bch_fs *c = trans->c;
 +	struct bkey_i_alloc *a;
 +	struct bkey_alloc_unpacked u;
-+	struct bucket *g;
 +	struct bucket_mark m;
 +	struct bkey_s_c k;
 +	bool invalidating_cached_data;
@@ -3624,6 +3665,7 @@ index 000000000000..a61b25cc719c
 +	BUG_ON(!fifo_push(&ca->free_inc, b));
 +
 +	bch2_mark_alloc_bucket(c, ca, b, true, gc_pos_alloc(c, NULL), 0);
++	m = bucket(ca, b)->mark;
 +
 +	spin_unlock(&c->freelist_lock);
 +	percpu_up_read_preempt_enable(&c->mark_lock);
@@ -3637,25 +3679,26 @@ index 000000000000..a61b25cc719c
 +	if (ret)
 +		return ret;
 +
-+	/*
-+	 * The allocator has to start before journal replay is finished - thus,
-+	 * we have to trust the in memory bucket @m, not the version in the
-+	 * btree:
-+	 */
-+	percpu_down_read_preempt_disable(&c->mark_lock);
-+	g = bucket(ca, b);
-+	m = READ_ONCE(g->mark);
-+	u = alloc_mem_to_key(g, m);
-+	percpu_up_read_preempt_enable(&c->mark_lock);
++	if (k.k && k.k->type == KEY_TYPE_alloc)
++		u = bch2_alloc_unpack(bkey_s_c_to_alloc(k).v);
++	else
++		memset(&u, 0, sizeof(u));
 +
 +	invalidating_cached_data = m.cached_sectors != 0;
 +
-+	u.gen++;
++	//BUG_ON(u.dirty_sectors);
 +	u.data_type	= 0;
 +	u.dirty_sectors	= 0;
 +	u.cached_sectors = 0;
 +	u.read_time	= c->bucket_clock[READ].hand;
 +	u.write_time	= c->bucket_clock[WRITE].hand;
++
++	/*
++	 * The allocator has to start before journal replay is finished - thus,
++	 * we have to trust the in memory bucket @m, not the version in the
++	 * btree:
++	 */
++	u.gen		= m.gen + 1;
 +
 +	a = bkey_alloc_init(&alloc_key.k);
 +	a->k.p = iter->pos;
@@ -3806,14 +3849,14 @@ index 000000000000..a61b25cc719c
 +				fifo_pop(&ca->free_inc, bucket);
 +
 +				closure_wake_up(&c->freelist_wait);
-+				ca->allocator_state = ALLOCATOR_RUNNING;
++				ca->allocator_blocked_full = false;
 +
 +				spin_unlock(&c->freelist_lock);
 +				goto out;
 +			}
 +
-+		if (ca->allocator_state != ALLOCATOR_BLOCKED_FULL) {
-+			ca->allocator_state = ALLOCATOR_BLOCKED_FULL;
++		if (!ca->allocator_blocked_full) {
++			ca->allocator_blocked_full = true;
 +			closure_wake_up(&c->freelist_wait);
 +		}
 +
@@ -3871,7 +3914,6 @@ index 000000000000..a61b25cc719c
 +	int ret;
 +
 +	set_freezable();
-+	ca->allocator_state = ALLOCATOR_RUNNING;
 +
 +	while (1) {
 +		cond_resched();
@@ -3930,6 +3972,9 @@ index 000000000000..a61b25cc719c
 +			if (!nr ||
 +			    (nr < ALLOC_SCAN_BATCH(ca) &&
 +			     !fifo_full(&ca->free[RESERVE_MOVINGGC]))) {
++				ca->allocator_blocked = true;
++				closure_wake_up(&c->freelist_wait);
++
 +				ret = wait_buckets_available(c, ca);
 +				if (ret) {
 +					up_read(&c->gc_lock);
@@ -3938,6 +3983,7 @@ index 000000000000..a61b25cc719c
 +			}
 +		} while (!nr);
 +
++		ca->allocator_blocked = false;
 +		up_read(&c->gc_lock);
 +
 +		pr_debug("%zu buckets to invalidate", nr);
@@ -3950,8 +3996,6 @@ index 000000000000..a61b25cc719c
 +
 +stop:
 +	pr_debug("alloc thread stopping (ret %i)", ret);
-+	ca->allocator_state = ALLOCATOR_STOPPED;
-+	closure_wake_up(&c->freelist_wait);
 +	return 0;
 +}
 +
@@ -4143,8 +4187,7 @@ index 000000000000..a61b25cc719c
 +void bch2_dev_allocator_quiesce(struct bch_fs *c, struct bch_dev *ca)
 +{
 +	if (ca->alloc_thread)
-+		closure_wait_event(&c->freelist_wait,
-+				   ca->allocator_state != ALLOCATOR_RUNNING);
++		closure_wait_event(&c->freelist_wait, ca->allocator_blocked_full);
 +}
 +
 +/* stop allocator thread: */
@@ -4369,10 +4412,7 @@ index 000000000000..a61b25cc719c
 +		 * XXX: it's possible for this to deadlock waiting on journal reclaim,
 +		 * since we're holding btree writes. What then?
 +		 */
-+		ret = bch2_alloc_write(c,
-+				       BTREE_INSERT_NOCHECK_RW|
-+				       BTREE_INSERT_USE_ALLOC_RESERVE|
-+				       BTREE_INSERT_NOWAIT, &wrote);
++		ret = bch2_alloc_write(c, true, &wrote);
 +
 +		/*
 +		 * If bch2_alloc_write() did anything, it may have used some
@@ -4415,10 +4455,10 @@ index 000000000000..a61b25cc719c
 +}
 diff --git a/fs/bcachefs/alloc_background.h b/fs/bcachefs/alloc_background.h
 new file mode 100644
-index 000000000000..b5462646f57e
+index 000000000000..65e9b373a350
 --- /dev/null
 +++ b/fs/bcachefs/alloc_background.h
-@@ -0,0 +1,74 @@
+@@ -0,0 +1,71 @@
 +#ifndef _BCACHEFS_ALLOC_BACKGROUND_H
 +#define _BCACHEFS_ALLOC_BACKGROUND_H
 +
@@ -4433,9 +4473,7 @@ index 000000000000..b5462646f57e
 +#undef  x
 +};
 +
-+struct bkey_alloc_unpacked bch2_alloc_unpack(struct bkey_s_c);
-+void bch2_alloc_pack(struct bkey_i_alloc *,
-+		     const struct bkey_alloc_unpacked);
++struct bkey_alloc_unpacked bch2_alloc_unpack(const struct bch_alloc *);
 +
 +#define ALLOC_SCAN_BATCH(ca)		max_t(size_t, 1, (ca)->mi.nbuckets >> 9)
 +
@@ -4447,8 +4485,7 @@ index 000000000000..b5462646f57e
 +	.val_to_text	= bch2_alloc_to_text,		\
 +}
 +
-+struct journal_keys;
-+int bch2_alloc_read(struct bch_fs *, struct journal_keys *);
++int bch2_alloc_read(struct bch_fs *, struct list_head *);
 +int bch2_alloc_replay_key(struct bch_fs *, struct bkey_i *);
 +
 +static inline void bch2_wake_allocator(struct bch_dev *ca)
@@ -4488,7 +4525,7 @@ index 000000000000..b5462646f57e
 +void bch2_dev_allocator_stop(struct bch_dev *);
 +int bch2_dev_allocator_start(struct bch_dev *);
 +
-+int bch2_alloc_write(struct bch_fs *, unsigned, bool *);
++int bch2_alloc_write(struct bch_fs *, bool, bool *);
 +int bch2_fs_allocator_start(struct bch_fs *);
 +void bch2_fs_allocator_background_init(struct bch_fs *);
 +
@@ -5776,10 +5813,10 @@ index 000000000000..66457fc722fd
 +#endif /* _BCACHEFS_ALLOC_TYPES_H */
 diff --git a/fs/bcachefs/bcachefs.h b/fs/bcachefs/bcachefs.h
 new file mode 100644
-index 000000000000..d6dc3bd457d3
+index 000000000000..6a68376d12cc
 --- /dev/null
 +++ b/fs/bcachefs/bcachefs.h
-@@ -0,0 +1,845 @@
+@@ -0,0 +1,838 @@
 +#ifndef _BCACHEFS_H
 +#define _BCACHEFS_H
 +
@@ -6226,12 +6263,8 @@ index 000000000000..d6dc3bd457d3
 +	 * XXX: this should be an enum for allocator state, so as to include
 +	 * error state
 +	 */
-+	enum {
-+		ALLOCATOR_STOPPED,
-+		ALLOCATOR_RUNNING,
-+		ALLOCATOR_BLOCKED,
-+		ALLOCATOR_BLOCKED_FULL,
-+	}			allocator_state;
++	bool			allocator_blocked;
++	bool			allocator_blocked_full;
 +
 +	alloc_heap		alloc_heap;
 +
@@ -6424,10 +6457,7 @@ index 000000000000..d6dc3bd457d3
 +
 +	struct percpu_rw_semaphore	mark_lock;
 +
-+	seqcount_t			usage_lock;
-+	struct bch_fs_usage		*usage_base;
 +	struct bch_fs_usage __percpu	*usage[2];
-+	struct bch_fs_usage __percpu	*usage_gc;
 +
 +	/* single element mempool: */
 +	struct mutex		usage_scratch_lock;
@@ -6620,17 +6650,17 @@ index 000000000000..d6dc3bd457d3
 +{
 +	struct timespec64 now;
 +
-+	ktime_get_coarse_real_ts64(&now);
++	ktime_get_real_ts64(&now);
 +	return timespec_to_bch2_time(c, now);
 +}
 +
 +#endif /* _BCACHEFS_H */
 diff --git a/fs/bcachefs/bcachefs_format.h b/fs/bcachefs/bcachefs_format.h
 new file mode 100644
-index 000000000000..be6acec19671
+index 000000000000..d390ac860d18
 --- /dev/null
 +++ b/fs/bcachefs/bcachefs_format.h
-@@ -0,0 +1,1570 @@
+@@ -0,0 +1,1569 @@
 +#ifndef _BCACHEFS_FORMAT_H
 +#define _BCACHEFS_FORMAT_H
 +
@@ -7928,7 +7958,6 @@ index 000000000000..be6acec19671
 +
 +enum bch_sb_compat {
 +	BCH_COMPAT_FEAT_ALLOC_INFO	= 0,
-+	BCH_COMPAT_FEAT_ALLOC_METADATA	= 1,
 +};
 +
 +/* options: */
@@ -8522,7 +8551,7 @@ index 000000000000..fb595dffbcc3
 +#endif /* _BCACHEFS_IOCTL_H */
 diff --git a/fs/bcachefs/bkey.c b/fs/bcachefs/bkey.c
 new file mode 100644
-index 000000000000..f1ddd189f0c8
+index 000000000000..40ce33a40d79
 --- /dev/null
 +++ b/fs/bcachefs/bkey.c
 @@ -0,0 +1,1159 @@
@@ -9548,7 +9577,7 @@ index 000000000000..f1ddd189f0c8
 +		r_v = *r;
 +	}
 +
-+	return cmp_int(l_v, r_v);
++	return (l_v > r_v) - (l_v < r_v);
 +}
 +#endif
 +
@@ -9687,7 +9716,7 @@ index 000000000000..f1ddd189f0c8
 +#endif
 diff --git a/fs/bcachefs/bkey.h b/fs/bcachefs/bkey.h
 new file mode 100644
-index 000000000000..b52628be5495
+index 000000000000..1539709937df
 --- /dev/null
 +++ b/fs/bcachefs/bkey.h
 @@ -0,0 +1,594 @@
@@ -9901,8 +9930,8 @@ index 000000000000..b52628be5495
 +
 +static __always_inline int bversion_cmp(struct bversion l, struct bversion r)
 +{
-+	return  cmp_int(l.hi, r.hi) ?:
-+		cmp_int(l.lo, r.lo);
++	return  (l.hi > r.hi) - (l.hi < r.hi) ?:
++		(l.lo > r.lo) - (l.lo < r.lo);
 +}
 +
 +#define ZERO_VERSION	((struct bversion) { .hi = 0, .lo = 0 })
@@ -13205,7 +13234,7 @@ index 000000000000..4d182518abe6
 +}
 diff --git a/fs/bcachefs/bset.h b/fs/bcachefs/bset.h
 new file mode 100644
-index 000000000000..74b962a05b36
+index 000000000000..8bc2fdfdfe14
 --- /dev/null
 +++ b/fs/bcachefs/bset.h
 @@ -0,0 +1,627 @@
@@ -13660,7 +13689,7 @@ index 000000000000..74b962a05b36
 +{
 +	return bkey_cmp_packed(b, l, r)
 +		?: (int) bkey_deleted(r) - (int) bkey_deleted(l)
-+		?: cmp_int(l, r);
++		?: (l > r) - (l < r);
 +}
 +
 +static inline int btree_node_iter_cmp(struct btree *b,
@@ -14879,10 +14908,10 @@ index 000000000000..08e6f2a68ecb
 +#endif /* _BCACHEFS_BTREE_CACHE_H */
 diff --git a/fs/bcachefs/btree_gc.c b/fs/bcachefs/btree_gc.c
 new file mode 100644
-index 000000000000..9f0de5cd25ab
+index 000000000000..3feea91e6aab
 --- /dev/null
 +++ b/fs/bcachefs/btree_gc.c
-@@ -0,0 +1,1225 @@
+@@ -0,0 +1,1202 @@
 +/*
 + * Copyright (C) 2010 Kent Overstreet <kent.overstreet@gmail.com>
 + * Copyright (C) 2014 Datera Inc.
@@ -14903,9 +14932,9 @@ index 000000000000..9f0de5cd25ab
 +#include "error.h"
 +#include "extents.h"
 +#include "journal.h"
++#include "journal_io.h"
 +#include "keylist.h"
 +#include "move.h"
-+#include "recovery.h"
 +#include "replicas.h"
 +#include "super-io.h"
 +
@@ -15092,16 +15121,24 @@ index 000000000000..9f0de5cd25ab
 +	struct btree_iter *iter;
 +	struct btree *b;
 +	struct range_checks r;
-+	unsigned depth = metadata_only			? 1
-+		: expensive_debug_checks(c)		? 0
-+		: !btree_node_type_needs_gc(btree_id)	? 1
-+		: 0;
++	unsigned depth = btree_node_type_needs_gc(btree_id) ? 0 : 1;
 +	u8 max_stale;
 +	int ret = 0;
 +
 +	bch2_trans_init(&trans, c);
 +
 +	gc_pos_set(c, gc_pos_btree(btree_id, POS_MIN, 0));
++
++	/*
++	 * if expensive_debug_checks is on, run range_checks on all leaf nodes:
++	 *
++	 * and on startup, we have to read every btree node (XXX: only if it was
++	 * an unclean shutdown)
++	 */
++	if (metadata_only)
++		depth = 1;
++	else if (initial || expensive_debug_checks(c))
++		depth = 0;
 +
 +	btree_node_range_checks_init(&r, depth);
 +
@@ -15155,40 +15192,11 @@ index 000000000000..9f0de5cd25ab
 +		(int) btree_id_to_gc_phase(r);
 +}
 +
-+static int mark_journal_key(struct bch_fs *c, enum btree_id id,
-+			    struct bkey_i *insert)
-+{
-+	struct btree_trans trans;
-+	struct btree_iter *iter;
-+	struct bkey_s_c k;
-+	u8 max_stale;
-+	int ret = 0;
-+
-+	ret = bch2_gc_mark_key(c, bkey_i_to_s_c(insert), &max_stale, true);
-+	if (ret)
-+		return ret;
-+
-+	bch2_trans_init(&trans, c);
-+
-+	for_each_btree_key(&trans, iter, id, bkey_start_pos(&insert->k),
-+			   BTREE_ITER_SLOTS, k, ret) {
-+		percpu_down_read_preempt_disable(&c->mark_lock);
-+		ret = bch2_mark_overwrite(&trans, iter, k, insert, NULL,
-+					 BCH_BUCKET_MARK_GC|
-+					 BCH_BUCKET_MARK_NOATOMIC);
-+		percpu_up_read_preempt_enable(&c->mark_lock);
-+
-+		if (!ret)
-+			break;
-+	}
-+
-+	return bch2_trans_exit(&trans) ?: ret;
-+}
-+
-+static int bch2_gc_btrees(struct bch_fs *c, struct journal_keys *journal_keys,
++static int bch2_gc_btrees(struct bch_fs *c, struct list_head *journal,
 +			  bool initial, bool metadata_only)
 +{
 +	enum btree_id ids[BTREE_ID_NR];
++	u8 max_stale;
 +	unsigned i;
 +
 +	for (i = 0; i < BTREE_ID_NR; i++)
@@ -15203,16 +15211,22 @@ index 000000000000..9f0de5cd25ab
 +		if (ret)
 +			return ret;
 +
-+		if (journal_keys && !metadata_only &&
++		if (journal && !metadata_only &&
 +		    btree_node_type_needs_gc(type)) {
-+			struct journal_key *j;
++			struct bkey_i *k, *n;
++			struct jset_entry *j;
++			struct journal_replay *r;
 +			int ret;
 +
-+			for_each_journal_key(*journal_keys, j)
-+				if (j->btree_id == id) {
-+					ret = mark_journal_key(c, id, j->k);
-+					if (ret)
-+						return ret;
++			list_for_each_entry(r, journal, list)
++				for_each_jset_key(k, n, j, &r->j) {
++					if (type == __btree_node_type(j->level, j->btree_id)) {
++						ret = bch2_gc_mark_key(c,
++							bkey_i_to_s_c(k),
++							&max_stale, initial);
++						if (ret)
++							return ret;
++					}
 +				}
 +		}
 +	}
@@ -15377,8 +15391,8 @@ index 000000000000..9f0de5cd25ab
 +		ca->usage[1] = NULL;
 +	}
 +
-+	free_percpu(c->usage_gc);
-+	c->usage_gc = NULL;
++	free_percpu(c->usage[1]);
++	c->usage[1] = NULL;
 +}
 +
 +static int bch2_gc_done(struct bch_fs *c,
@@ -15474,16 +15488,14 @@ index 000000000000..9f0de5cd25ab
 +		}
 +	};
 +
-+	bch2_fs_usage_acc_to_base(c, 0);
-+	bch2_fs_usage_acc_to_base(c, 1);
-+
 +	bch2_dev_usage_from_buckets(c);
 +
 +	{
 +		unsigned nr = fs_usage_u64s(c);
-+		struct bch_fs_usage *dst = c->usage_base;
++		struct bch_fs_usage *dst = (void *)
++			bch2_acc_percpu_u64s((void *) c->usage[0], nr);
 +		struct bch_fs_usage *src = (void *)
-+			bch2_acc_percpu_u64s((void *) c->usage_gc, nr);
++			bch2_acc_percpu_u64s((void *) c->usage[1], nr);
 +
 +		copy_fs_field(hidden,		"hidden");
 +		copy_fs_field(btree,		"btree");
@@ -15536,11 +15548,11 @@ index 000000000000..9f0de5cd25ab
 +	 */
 +	gc_pos_set(c, gc_phase(GC_PHASE_START));
 +
-+	BUG_ON(c->usage_gc);
++	BUG_ON(c->usage[1]);
 +
-+	c->usage_gc = __alloc_percpu_gfp(fs_usage_u64s(c) * sizeof(u64),
++	c->usage[1] = __alloc_percpu_gfp(fs_usage_u64s(c) * sizeof(u64),
 +					 sizeof(u64), GFP_KERNEL);
-+	if (!c->usage_gc)
++	if (!c->usage[1])
 +		return -ENOMEM;
 +
 +	for_each_member_device(ca, c, i) {
@@ -15607,7 +15619,7 @@ index 000000000000..9f0de5cd25ab
 + *    move around - if references move backwards in the ordering GC
 + *    uses, GC could skip past them
 + */
-+int bch2_gc(struct bch_fs *c, struct journal_keys *journal_keys,
++int bch2_gc(struct bch_fs *c, struct list_head *journal,
 +	    bool initial, bool metadata_only)
 +{
 +	struct bch_dev *ca;
@@ -15628,7 +15640,7 @@ index 000000000000..9f0de5cd25ab
 +
 +	bch2_mark_superblocks(c);
 +
-+	ret = bch2_gc_btrees(c, journal_keys, initial, metadata_only);
++	ret = bch2_gc_btrees(c, journal, initial, metadata_only);
 +	if (ret)
 +		goto out;
 +
@@ -15659,16 +15671,10 @@ index 000000000000..9f0de5cd25ab
 +		ret = -EINVAL;
 +	}
 +
-+	if (!ret) {
-+		bch2_journal_block(&c->journal);
++	percpu_down_write(&c->mark_lock);
 +
-+		percpu_down_write(&c->mark_lock);
++	if (!ret)
 +		ret = bch2_gc_done(c, initial, metadata_only);
-+
-+		bch2_journal_unblock(&c->journal);
-+	} else {
-+		percpu_down_write(&c->mark_lock);
-+	}
 +
 +	/* Indicates that gc is no longer in progress: */
 +	__gc_pos_set(c, gc_phase(GC_PHASE_NOT_RUNNING));
@@ -16110,19 +16116,17 @@ index 000000000000..9f0de5cd25ab
 +}
 diff --git a/fs/bcachefs/btree_gc.h b/fs/bcachefs/btree_gc.h
 new file mode 100644
-index 000000000000..6522ebaf4a29
+index 000000000000..9e067deb8c0f
 --- /dev/null
 +++ b/fs/bcachefs/btree_gc.h
-@@ -0,0 +1,119 @@
+@@ -0,0 +1,117 @@
 +#ifndef _BCACHEFS_BTREE_GC_H
 +#define _BCACHEFS_BTREE_GC_H
 +
 +#include "btree_types.h"
 +
 +void bch2_coalesce(struct bch_fs *);
-+
-+struct journal_keys;
-+int bch2_gc(struct bch_fs *, struct journal_keys *, bool, bool);
++int bch2_gc(struct bch_fs *, struct list_head *, bool, bool);
 +void bch2_gc_thread_stop(struct bch_fs *);
 +int bch2_gc_thread_start(struct bch_fs *);
 +void bch2_mark_dev_superblock(struct bch_fs *, struct bch_dev *, unsigned);
@@ -18088,10 +18092,10 @@ index 000000000000..4de1fb736ae5
 +#endif /* _BCACHEFS_BTREE_IO_H */
 diff --git a/fs/bcachefs/btree_iter.c b/fs/bcachefs/btree_iter.c
 new file mode 100644
-index 000000000000..49ddf05cc9a9
+index 000000000000..33cbc2ff5c9a
 --- /dev/null
 +++ b/fs/bcachefs/btree_iter.c
-@@ -0,0 +1,1956 @@
+@@ -0,0 +1,1958 @@
 +
 +#include "bcachefs.h"
 +#include "bkey_methods.h"
@@ -19096,7 +19100,7 @@ index 000000000000..49ddf05cc9a9
 +			goto retry_all;
 +	}
 +
-+	ret = hweight64(trans->iters_live) > 1 ? -EINTR : 0;
++	ret = btree_trans_has_multiple_iters(trans) ? -EINTR : 0;
 +out:
 +	bch2_btree_cache_cannibalize_unlock(c);
 +	return ret;
@@ -19193,6 +19197,8 @@ index 000000000000..49ddf05cc9a9
 +	ret = __bch2_btree_iter_traverse(iter);
 +	if (unlikely(ret))
 +		ret = __btree_iter_traverse_all(iter->trans, iter, ret);
++
++	BUG_ON(ret == -EINTR && !btree_trans_has_multiple_iters(iter->trans));
 +
 +	return ret;
 +}
@@ -20050,10 +20056,10 @@ index 000000000000..49ddf05cc9a9
 +}
 diff --git a/fs/bcachefs/btree_iter.h b/fs/bcachefs/btree_iter.h
 new file mode 100644
-index 000000000000..a46a6a4ed5ee
+index 000000000000..c05b2dac1726
 --- /dev/null
 +++ b/fs/bcachefs/btree_iter.h
-@@ -0,0 +1,331 @@
+@@ -0,0 +1,327 @@
 +#ifndef _BCACHEFS_BTREE_ITER_H
 +#define _BCACHEFS_BTREE_ITER_H
 +
@@ -20295,16 +20301,12 @@ index 000000000000..a46a6a4ed5ee
 +		: bch2_btree_iter_next(iter);
 +}
 +
-+#define for_each_btree_key(_trans, _iter, _btree_id,			\
-+			   _start, _flags, _k, _ret)			\
-+	for ((_ret) = PTR_ERR_OR_ZERO((_iter) =				\
-+			bch2_trans_get_iter((_trans), (_btree_id),	\
-+					    (_start), (_flags))) ?:	\
-+		      PTR_ERR_OR_ZERO(((_k) =				\
-+			__bch2_btree_iter_peek(_iter, _flags)).k);	\
-+	     !ret && (_k).k;						\
-+	     (_ret) = PTR_ERR_OR_ZERO(((_k) =				\
-+			__bch2_btree_iter_next(_iter, _flags)).k))
++#define for_each_btree_key(_trans, _iter, _btree_id,  _start, _flags, _k)\
++	for (iter = bch2_trans_get_iter((_trans), (_btree_id),		\
++					(_start), (_flags)),		\
++	     (_k) = __bch2_btree_iter_peek(_iter, _flags);		\
++	     !IS_ERR_OR_NULL((_k).k);					\
++	     (_k) = __bch2_btree_iter_next(_iter, _flags))
 +
 +#define for_each_btree_key_continue(_iter, _flags, _k)			\
 +	for ((_k) = __bch2_btree_iter_peek(_iter, _flags);		\
@@ -20615,10 +20617,10 @@ index 000000000000..e9686197a908
 +
 diff --git a/fs/bcachefs/btree_types.h b/fs/bcachefs/btree_types.h
 new file mode 100644
-index 000000000000..ae273ab7aa1a
+index 000000000000..a995efc73fdc
 --- /dev/null
 +++ b/fs/bcachefs/btree_types.h
-@@ -0,0 +1,524 @@
+@@ -0,0 +1,520 @@
 +#ifndef _BCACHEFS_BTREE_TYPES_H
 +#define _BCACHEFS_BTREE_TYPES_H
 +
@@ -20627,7 +20629,6 @@ index 000000000000..ae273ab7aa1a
 +#include <linux/six.h>
 +
 +#include "bkey_methods.h"
-+#include "buckets_types.h"
 +#include "journal_types.h"
 +
 +struct open_bucket;
@@ -20882,7 +20883,6 @@ index 000000000000..ae273ab7aa1a
 +	};
 +
 +	bool			deferred;
-+	bool			triggered;
 +};
 +
 +#define BTREE_ITER_MAX		64
@@ -20920,8 +20920,6 @@ index 000000000000..ae273ab7aa1a
 +
 +	struct btree_iter	iters_onstack[2];
 +	struct btree_insert_entry updates_onstack[6];
-+
-+	struct replicas_delta_list fs_usage_deltas;
 +};
 +
 +#define BTREE_FLAG(flag)						\
@@ -21145,10 +21143,10 @@ index 000000000000..ae273ab7aa1a
 +#endif /* _BCACHEFS_BTREE_TYPES_H */
 diff --git a/fs/bcachefs/btree_update.h b/fs/bcachefs/btree_update.h
 new file mode 100644
-index 000000000000..be11efdcbe04
+index 000000000000..944b6c24305d
 --- /dev/null
 +++ b/fs/bcachefs/btree_update.h
-@@ -0,0 +1,176 @@
+@@ -0,0 +1,161 @@
 +#ifndef _BCACHEFS_BTREE_UPDATE_H
 +#define _BCACHEFS_BTREE_UPDATE_H
 +
@@ -21193,11 +21191,7 @@ index 000000000000..be11efdcbe04
 +	__BTREE_INSERT_USE_ALLOC_RESERVE,
 +	__BTREE_INSERT_JOURNAL_REPLAY,
 +	__BTREE_INSERT_JOURNAL_RESERVED,
-+	__BTREE_INSERT_NOMARK_INSERT,
-+	__BTREE_INSERT_NOMARK_OVERWRITES,
 +	__BTREE_INSERT_NOMARK,
-+	__BTREE_INSERT_MARK_INMEM,
-+	__BTREE_INSERT_NO_CLEAR_REPLICAS,
 +	__BTREE_INSERT_NOWAIT,
 +	__BTREE_INSERT_GC_LOCK_HELD,
 +	__BCH_HASH_SET_MUST_CREATE,
@@ -21230,19 +21224,8 @@ index 000000000000..be11efdcbe04
 +
 +#define BTREE_INSERT_JOURNAL_RESERVED	(1 << __BTREE_INSERT_JOURNAL_RESERVED)
 +
-+/* Don't mark new key, just overwrites: */
-+#define BTREE_INSERT_NOMARK_INSERT	(1 << __BTREE_INSERT_NOMARK_INSERT)
-+
-+/* Don't mark overwrites, just new key: */
-+#define BTREE_INSERT_NOMARK_OVERWRITES	(1 << __BTREE_INSERT_NOMARK_OVERWRITES)
-+
-+/* Don't call mark new key at all: */
++/* Don't call bch2_mark_key: */
 +#define BTREE_INSERT_NOMARK		(1 << __BTREE_INSERT_NOMARK)
-+
-+/* Don't mark transactionally: */
-+#define BTREE_INSERT_MARK_INMEM		(1 << __BTREE_INSERT_MARK_INMEM)
-+
-+#define BTREE_INSERT_NO_CLEAR_REPLICAS	(1 << __BTREE_INSERT_NO_CLEAR_REPLICAS)
 +
 +/* Don't block on allocation failure (for new btree nodes: */
 +#define BTREE_INSERT_NOWAIT		(1 << __BTREE_INSERT_NOWAIT)
@@ -21327,7 +21310,7 @@ index 000000000000..be11efdcbe04
 +#endif /* _BCACHEFS_BTREE_UPDATE_H */
 diff --git a/fs/bcachefs/btree_update_interior.c b/fs/bcachefs/btree_update_interior.c
 new file mode 100644
-index 000000000000..fb6bf79a1a8a
+index 000000000000..19ba667be9bc
 --- /dev/null
 +++ b/fs/bcachefs/btree_update_interior.c
 @@ -0,0 +1,2206 @@
@@ -22417,7 +22400,7 @@ index 000000000000..fb6bf79a1a8a
 +		bch2_btree_node_free_index(as, NULL,
 +					   bkey_i_to_s_c(&old->key),
 +					   fs_usage);
-+	bch2_fs_usage_apply(c, fs_usage, &as->reserve->disk_res, 0);
++	bch2_fs_usage_apply(c, fs_usage, &as->reserve->disk_res);
 +
 +	bch2_fs_usage_scratch_put(c, fs_usage);
 +	percpu_up_read(&c->mark_lock);
@@ -22522,7 +22505,7 @@ index 000000000000..fb6bf79a1a8a
 +					   bkey_disassemble(b, k, &tmp),
 +					   fs_usage);
 +
-+	bch2_fs_usage_apply(c, fs_usage, &as->reserve->disk_res, 0);
++	bch2_fs_usage_apply(c, fs_usage, &as->reserve->disk_res);
 +
 +	bch2_fs_usage_scratch_put(c, fs_usage);
 +	percpu_up_read(&c->mark_lock);
@@ -23336,7 +23319,7 @@ index 000000000000..fb6bf79a1a8a
 +		bch2_btree_node_free_index(as, NULL,
 +					   bkey_i_to_s_c(&b->key),
 +					   fs_usage);
-+		bch2_fs_usage_apply(c, fs_usage, &as->reserve->disk_res, 0);
++		bch2_fs_usage_apply(c, fs_usage, &as->reserve->disk_res);
 +
 +		bch2_fs_usage_scratch_put(c, fs_usage);
 +		percpu_up_read(&c->mark_lock);
@@ -23885,10 +23868,10 @@ index 000000000000..6ae17ffa4101
 +#endif /* _BCACHEFS_BTREE_UPDATE_INTERIOR_H */
 diff --git a/fs/bcachefs/btree_update_leaf.c b/fs/bcachefs/btree_update_leaf.c
 new file mode 100644
-index 000000000000..d052ca541965
+index 000000000000..ce1fc29da90c
 --- /dev/null
 +++ b/fs/bcachefs/btree_update_leaf.c
-@@ -0,0 +1,1067 @@
+@@ -0,0 +1,1006 @@
 +
 +#include "bcachefs.h"
 +#include "btree_update.h"
@@ -23945,7 +23928,7 @@ index 000000000000..d052ca541965
 +static inline int btree_trans_cmp(struct btree_insert_entry l,
 +				  struct btree_insert_entry r)
 +{
-+	return cmp_int(l.deferred, r.deferred) ?:
++	return (l.deferred > r.deferred) - (l.deferred < r.deferred) ?:
 +		btree_iter_cmp(l.iter, r.iter);
 +}
 +
@@ -24415,22 +24398,6 @@ index 000000000000..d052ca541965
 +		btree_insert_key_deferred(trans, insert);
 +}
 +
-+static inline bool update_triggers_transactional(struct btree_trans *trans,
-+						 struct btree_insert_entry *i)
-+{
-+	return likely(!(trans->flags & BTREE_INSERT_MARK_INMEM)) &&
-+		(i->iter->btree_id == BTREE_ID_EXTENTS ||
-+		 i->iter->btree_id == BTREE_ID_INODES);
-+}
-+
-+static inline bool update_has_triggers(struct btree_trans *trans,
-+				       struct btree_insert_entry *i)
-+{
-+	return likely(!(trans->flags & BTREE_INSERT_NOMARK)) &&
-+		!i->deferred &&
-+		btree_node_type_needs_gc(i->iter->btree_id);
-+}
-+
 +/*
 + * Get journal reservation, take write locks, and attempt to do btree update(s):
 + */
@@ -24443,25 +24410,27 @@ index 000000000000..d052ca541965
 +	struct btree_iter *linked;
 +	int ret;
 +
-+	if (likely(!(trans->flags & BTREE_INSERT_NO_CLEAR_REPLICAS))) {
-+		memset(&trans->fs_usage_deltas.fs_usage, 0,
-+		       sizeof(trans->fs_usage_deltas.fs_usage));
-+		trans->fs_usage_deltas.top = trans->fs_usage_deltas.d;
-+	}
-+
 +	trans_for_each_update_iter(trans, i)
 +		BUG_ON(i->iter->uptodate >= BTREE_ITER_NEED_RELOCK);
 +
-+	trans_for_each_update_iter(trans, i)
-+		if (update_has_triggers(trans, i) &&
-+		    update_triggers_transactional(trans, i)) {
-+			ret = bch2_trans_mark_update(trans, i,
-+						&trans->fs_usage_deltas);
-+			if (ret)
-+				return ret;
++	btree_trans_lock_write(c, trans);
++
++	trans_for_each_update_iter(trans, i) {
++		if (i->deferred ||
++		    !btree_node_type_needs_gc(i->iter->btree_id))
++			continue;
++
++		if (!fs_usage) {
++			percpu_down_read(&c->mark_lock);
++			fs_usage = bch2_fs_usage_scratch_get(c);
 +		}
 +
-+	btree_trans_lock_write(c, trans);
++		if (!bch2_bkey_replicas_marked_locked(c,
++				bkey_i_to_s_c(i->k), true)) {
++			ret = BTREE_INSERT_NEED_MARK_REPLICAS;
++			goto out;
++		}
++	}
 +
 +	if (race_fault()) {
 +		ret = -EINTR;
@@ -24477,23 +24446,6 @@ index 000000000000..d052ca541965
 +	ret = btree_trans_check_can_insert(trans, stopped_at);
 +	if (ret)
 +		goto out;
-+
-+	trans_for_each_update_iter(trans, i) {
-+		if (i->deferred ||
-+		    !btree_node_type_needs_gc(i->iter->btree_id))
-+			continue;
-+
-+		if (!fs_usage) {
-+			percpu_down_read(&c->mark_lock);
-+			fs_usage = bch2_fs_usage_scratch_get(c);
-+		}
-+
-+		if (!bch2_bkey_replicas_marked_locked(c,
-+			bkey_i_to_s_c(i->k), true)) {
-+			ret = BTREE_INSERT_NEED_MARK_REPLICAS;
-+			goto out;
-+		}
-+	}
 +
 +	/*
 +	 * Don't get journal reservation until after we know insert will
@@ -24524,22 +24476,16 @@ index 000000000000..d052ca541965
 +	}
 +
 +	trans_for_each_update_iter(trans, i)
-+		if (update_has_triggers(trans, i) &&
-+		    !update_triggers_transactional(trans, i))
-+			bch2_mark_update(trans, i, fs_usage, 0);
-+
-+	if (fs_usage) {
-+		bch2_replicas_delta_list_apply(c, fs_usage,
-+					       &trans->fs_usage_deltas);
++		bch2_mark_update(trans, i, fs_usage, 0);
++	if (fs_usage)
 +		bch2_trans_fs_usage_apply(trans, fs_usage);
-+	}
 +
-+	if (likely(!(trans->flags & BTREE_INSERT_NOMARK)) &&
-+	    unlikely(c->gc_pos.phase))
++	if (unlikely(c->gc_pos.phase)) {
 +		trans_for_each_update_iter(trans, i)
 +			if (gc_visited(c, gc_pos_btree_node(i->iter->l[0].b)))
 +				bch2_mark_update(trans, i, NULL,
 +						 BCH_BUCKET_MARK_GC);
++	}
 +
 +	trans_for_each_update(trans, i)
 +		do_btree_insert_one(trans, i);
@@ -24567,19 +24513,6 @@ index 000000000000..d052ca541965
 +{
 +	struct bch_fs *c = trans->c;
 +	unsigned flags = trans->flags;
-+	struct btree_insert_entry *src, *dst;
-+
-+	src = dst = trans->updates;
-+
-+	while (src < trans->updates + trans->nr_updates) {
-+		if (!src->triggered) {
-+			*dst = *src;
-+			dst++;
-+		}
-+		src++;
-+	}
-+
-+	trans->nr_updates = dst - trans->updates;
 +
 +	/*
 +	 * BTREE_INSERT_NOUNLOCK means don't unlock _after_ successful btree
@@ -24737,7 +24670,6 @@ index 000000000000..d052ca541965
 +{
 +	struct bch_fs *c = trans->c;
 +	struct btree_insert_entry *i;
-+	unsigned orig_mem_top = trans->mem_top;
 +	int ret = 0;
 +
 +	if (!trans->nr_updates)
@@ -24815,16 +24747,8 @@ index 000000000000..d052ca541965
 +	return ret;
 +err:
 +	ret = bch2_trans_commit_error(trans, i, ret);
-+
-+	/* can't loop if it was passed in and we changed it: */
-+	if (unlikely(trans->flags & BTREE_INSERT_NO_CLEAR_REPLICAS) && !ret)
-+		ret = -EINTR;
-+
-+	if (!ret) {
-+		/* free memory used by triggers, they'll be reexecuted: */
-+		trans->mem_top = orig_mem_top;
++	if (!ret)
 +		goto retry;
-+	}
 +
 +	goto out;
 +}
@@ -24907,7 +24831,6 @@ index 000000000000..d052ca541965
 +	int ret = 0;
 +
 +	bch2_trans_init(&trans, c);
-+	bch2_trans_preload_iters(&trans);
 +
 +	iter = bch2_trans_get_iter(&trans, id, start, BTREE_ITER_INTENT);
 +
@@ -24953,15 +24876,14 @@ index 000000000000..d052ca541965
 +	}
 +
 +	bch2_trans_exit(&trans);
-+	BUG_ON(ret == -EINTR);
 +	return ret;
 +}
 diff --git a/fs/bcachefs/buckets.c b/fs/bcachefs/buckets.c
 new file mode 100644
-index 000000000000..58f25894d48a
+index 000000000000..4fa131a113eb
 --- /dev/null
 +++ b/fs/bcachefs/buckets.c
-@@ -0,0 +1,1873 @@
+@@ -0,0 +1,1380 @@
 +/*
 + * Code for manipulating bucket marks for garbage collection.
 + *
@@ -25083,10 +25005,8 @@ index 000000000000..58f25894d48a
 +	unsigned i;
 +
 +	percpu_down_write(&c->mark_lock);
-+	usage = c->usage_base;
-+
-+	bch2_fs_usage_acc_to_base(c, 0);
-+	bch2_fs_usage_acc_to_base(c, 1);
++	usage = (void *) bch2_acc_percpu_u64s((void *) c->usage[0],
++					      fs_usage_u64s(c));
 +
 +	for (i = 0; i < BCH_REPLICAS_MAX; i++)
 +		usage->reserved += usage->persistent_reserved[i];
@@ -25154,40 +25074,12 @@ index 000000000000..58f25894d48a
 +	return ret;
 +}
 +
-+static inline struct bch_fs_usage *fs_usage_ptr(struct bch_fs *c,
-+						unsigned journal_seq,
-+						bool gc)
-+{
-+	return this_cpu_ptr(gc
-+			    ? c->usage_gc
-+			    : c->usage[journal_seq & 1]);
-+}
-+
-+u64 bch2_fs_usage_read_one(struct bch_fs *c, u64 *v)
-+{
-+	ssize_t offset = v - (u64 *) c->usage_base;
-+	unsigned seq;
-+	u64 ret;
-+
-+	BUG_ON(offset < 0 || offset >= fs_usage_u64s(c));
-+	percpu_rwsem_assert_held(&c->mark_lock);
-+
-+	do {
-+		seq = read_seqcount_begin(&c->usage_lock);
-+		ret = *v +
-+			percpu_u64_get((u64 __percpu *) c->usage[0] + offset) +
-+			percpu_u64_get((u64 __percpu *) c->usage[1] + offset);
-+	} while (read_seqcount_retry(&c->usage_lock, seq));
-+
-+	return ret;
-+}
-+
 +struct bch_fs_usage *bch2_fs_usage_read(struct bch_fs *c)
 +{
 +	struct bch_fs_usage *ret;
-+	unsigned seq, v, u64s = fs_usage_u64s(c);
++	unsigned v, u64s = fs_usage_u64s(c);
 +retry:
-+	ret = kmalloc(u64s * sizeof(u64), GFP_NOFS);
++	ret = kzalloc(u64s * sizeof(u64), GFP_NOFS);
 +	if (unlikely(!ret))
 +		return NULL;
 +
@@ -25201,68 +25093,9 @@ index 000000000000..58f25894d48a
 +		goto retry;
 +	}
 +
-+	do {
-+		seq = read_seqcount_begin(&c->usage_lock);
-+		memcpy(ret, c->usage_base, u64s * sizeof(u64));
-+		acc_u64s_percpu((u64 *) ret, (u64 __percpu *) c->usage[0], u64s);
-+		acc_u64s_percpu((u64 *) ret, (u64 __percpu *) c->usage[1], u64s);
-+	} while (read_seqcount_retry(&c->usage_lock, seq));
++	acc_u64s_percpu((u64 *) ret, (u64 __percpu *) c->usage[0], u64s);
 +
 +	return ret;
-+}
-+
-+void bch2_fs_usage_acc_to_base(struct bch_fs *c, unsigned idx)
-+{
-+	unsigned u64s = fs_usage_u64s(c);
-+
-+	BUG_ON(idx >= 2);
-+
-+	write_seqcount_begin(&c->usage_lock);
-+
-+	acc_u64s_percpu((u64 *) c->usage_base,
-+			(u64 __percpu *) c->usage[idx], u64s);
-+	percpu_memset(c->usage[idx], 0, u64s * sizeof(u64));
-+
-+	write_seqcount_end(&c->usage_lock);
-+}
-+
-+void bch2_fs_usage_to_text(struct printbuf *out,
-+			   struct bch_fs *c,
-+			   struct bch_fs_usage *fs_usage)
-+{
-+	unsigned i;
-+
-+	pr_buf(out, "capacity:\t\t\t%llu\n", c->capacity);
-+
-+	pr_buf(out, "hidden:\t\t\t\t%llu\n",
-+	       fs_usage->hidden);
-+	pr_buf(out, "data:\t\t\t\t%llu\n",
-+	       fs_usage->data);
-+	pr_buf(out, "cached:\t\t\t\t%llu\n",
-+	       fs_usage->cached);
-+	pr_buf(out, "reserved:\t\t\t%llu\n",
-+	       fs_usage->reserved);
-+	pr_buf(out, "nr_inodes:\t\t\t%llu\n",
-+	       fs_usage->nr_inodes);
-+	pr_buf(out, "online reserved:\t\t%llu\n",
-+	       fs_usage->online_reserved);
-+
-+	for (i = 0;
-+	     i < ARRAY_SIZE(fs_usage->persistent_reserved);
-+	     i++) {
-+		pr_buf(out, "%u replicas:\n", i + 1);
-+		pr_buf(out, "\treserved:\t\t%llu\n",
-+		       fs_usage->persistent_reserved[i]);
-+	}
-+
-+	for (i = 0; i < c->replicas.nr; i++) {
-+		struct bch_replicas_entry *e =
-+			cpu_replicas_entry(&c->replicas, i);
-+
-+		pr_buf(out, "\t");
-+		bch2_replicas_entry_to_text(out, e);
-+		pr_buf(out, ":\t%llu\n", fs_usage->replicas[i]);
-+	}
 +}
 +
 +#define RESERVE_FACTOR	6
@@ -25294,17 +25127,17 @@ index 000000000000..58f25894d48a
 +	u64 data, reserved;
 +
 +	ret.capacity = c->capacity -
-+		bch2_fs_usage_read_one(c, &c->usage_base->hidden);
++		percpu_u64_get(&c->usage[0]->hidden);
 +
-+	data		= bch2_fs_usage_read_one(c, &c->usage_base->data) +
-+		bch2_fs_usage_read_one(c, &c->usage_base->btree);
-+	reserved	= bch2_fs_usage_read_one(c, &c->usage_base->reserved) +
-+		bch2_fs_usage_read_one(c, &c->usage_base->online_reserved);
++	data		= percpu_u64_get(&c->usage[0]->data) +
++			  percpu_u64_get(&c->usage[0]->btree);
++	reserved	= percpu_u64_get(&c->usage[0]->reserved) +
++		percpu_u64_get(&c->usage[0]->online_reserved);
 +
 +	ret.used	= min(ret.capacity, data + reserve_factor(reserved));
 +	ret.free	= ret.capacity - ret.used;
 +
-+	ret.nr_inodes	= bch2_fs_usage_read_one(c, &c->usage_base->nr_inodes);
++	ret.nr_inodes	= percpu_u64_get(&c->usage[0]->nr_inodes);
 +
 +	return ret;
 +}
@@ -25353,8 +25186,7 @@ index 000000000000..58f25894d48a
 +
 +int bch2_fs_usage_apply(struct bch_fs *c,
 +			struct bch_fs_usage *fs_usage,
-+			struct disk_reservation *disk_res,
-+			unsigned journal_seq)
++			struct disk_reservation *disk_res)
 +{
 +	s64 added = fs_usage->data + fs_usage->reserved;
 +	s64 should_not_have_added;
@@ -25380,7 +25212,7 @@ index 000000000000..58f25894d48a
 +	}
 +
 +	preempt_disable();
-+	acc_u64s((u64 *) fs_usage_ptr(c, journal_seq, false),
++	acc_u64s((u64 *) this_cpu_ptr(c->usage[0]),
 +		 (u64 *) fs_usage, fs_usage_u64s(c));
 +	preempt_enable();
 +
@@ -25445,23 +25277,27 @@ index 000000000000..58f25894d48a
 +{
 +	struct bch_dev *ca;
 +	struct bucket_mark old = { .v.counter = 0 };
++	struct bch_fs_usage *fs_usage;
 +	struct bucket_array *buckets;
 +	struct bucket *g;
 +	unsigned i;
 +	int cpu;
 +
-+	c->usage_base->hidden = 0;
++	percpu_u64_set(&c->usage[0]->hidden, 0);
 +
 +	for_each_member_device(ca, c, i) {
 +		for_each_possible_cpu(cpu)
 +			memset(per_cpu_ptr(ca->usage[0], cpu), 0,
 +			       sizeof(*ca->usage[0]));
 +
++		preempt_disable();
++		fs_usage = this_cpu_ptr(c->usage[0]);
 +		buckets = bucket_array(ca);
 +
 +		for_each_bucket(g, buckets)
-+			bch2_dev_usage_update(c, ca, c->usage_base,
++			bch2_dev_usage_update(c, ca, fs_usage,
 +					      old, g->mark, false);
++		preempt_enable();
 +	}
 +}
 +
@@ -25525,7 +25361,7 @@ index 000000000000..58f25894d48a
 +				    size_t b, struct bucket_mark *ret,
 +				    bool gc)
 +{
-+	struct bch_fs_usage *fs_usage = fs_usage_ptr(c, 0, gc);
++	struct bch_fs_usage *fs_usage = this_cpu_ptr(c->usage[gc]);
 +	struct bucket *g = __bucket(ca, b, gc);
 +	struct bucket_mark old, new;
 +
@@ -25564,7 +25400,7 @@ index 000000000000..58f25894d48a
 +				    size_t b, bool owned_by_allocator,
 +				    bool gc)
 +{
-+	struct bch_fs_usage *fs_usage = fs_usage_ptr(c, 0, gc);
++	struct bch_fs_usage *fs_usage = this_cpu_ptr(c->usage[gc]);
 +	struct bucket *g = __bucket(ca, b, gc);
 +	struct bucket_mark old, new;
 +
@@ -25606,35 +25442,29 @@ index 000000000000..58f25894d48a
 +	if (flags & BCH_BUCKET_MARK_GC)
 +		return 0;
 +
++	u = bch2_alloc_unpack(bkey_s_c_to_alloc(k).v);
 +	ca = bch_dev_bkey_exists(c, k.k->p.inode);
-+
-+	if (k.k->p.offset >= ca->mi.nbuckets)
-+		return 0;
-+
 +	g = __bucket(ca, k.k->p.offset, gc);
-+	u = bch2_alloc_unpack(k);
++
++	/*
++	 * this should currently only be getting called from the bucket
++	 * invalidate path:
++	 */
++	BUG_ON(u.dirty_sectors);
++	BUG_ON(u.cached_sectors);
++	BUG_ON(!g->mark.owned_by_allocator);
 +
 +	old = bucket_data_cmpxchg(c, ca, fs_usage, g, m, ({
 +		m.gen			= u.gen;
 +		m.data_type		= u.data_type;
 +		m.dirty_sectors		= u.dirty_sectors;
 +		m.cached_sectors	= u.cached_sectors;
-+
-+		if (!(flags & BCH_BUCKET_MARK_GC)) {
-+			m.journal_seq_valid	= 1;
-+			m.journal_seq		= journal_seq;
-+		}
 +	}));
 +
 +	g->io_time[READ]	= u.read_time;
 +	g->io_time[WRITE]	= u.write_time;
 +	g->oldest_gen		= u.oldest_gen;
 +	g->gen_valid		= 1;
-+
-+	/*
-+	 * need to know if we're getting called from the invalidate path or
-+	 * not:
-+	 */
 +
 +	if (old.cached_sectors) {
 +		update_cached_sectors(c, fs_usage, ca->dev_idx,
@@ -25678,7 +25508,7 @@ index 000000000000..58f25894d48a
 +		old.dirty_sectors, sectors);
 +
 +	if (c)
-+		bch2_dev_usage_update(c, ca, fs_usage_ptr(c, 0, gc),
++		bch2_dev_usage_update(c, ca, this_cpu_ptr(c->usage[gc]),
 +				      old, new, gc);
 +
 +	return 0;
@@ -25721,34 +25551,11 @@ index 000000000000..58f25894d48a
 +	}
 +}
 +
-+static void bucket_set_stripe(struct bch_fs *c,
-+			      const struct bch_stripe *v,
-+			      bool enabled,
-+			      struct bch_fs_usage *fs_usage,
-+			      u64 journal_seq,
-+			      bool gc)
-+{
-+	unsigned i;
-+
-+	for (i = 0; i < v->nr_blocks; i++) {
-+		const struct bch_extent_ptr *ptr = v->ptrs + i;
-+		struct bch_dev *ca = bch_dev_bkey_exists(c, ptr->dev);
-+		struct bucket *g = PTR_BUCKET(ca, ptr, gc);
-+		struct bucket_mark new, old;
-+
-+		BUG_ON(ptr_stale(ca, ptr));
-+
-+		old = bucket_data_cmpxchg(c, ca, fs_usage, g, new, ({
-+			new.dirty			= true;
-+			new.stripe			= enabled;
-+			if (journal_seq) {
-+				new.journal_seq_valid	= 1;
-+				new.journal_seq		= journal_seq;
-+			}
-+		}));
-+	}
-+}
-+
++/*
++ * Checking against gc's position has to be done here, inside the cmpxchg()
++ * loop, to avoid racing with the start of gc clearing all the marks - GC does
++ * that with the gc pos seqlock held.
++ */
 +static bool bch2_mark_pointer(struct bch_fs *c,
 +			      struct extent_ptr_decoded p,
 +			      s64 sectors, enum bch_data_type data_type,
@@ -25758,7 +25565,8 @@ index 000000000000..58f25894d48a
 +{
 +	struct bucket_mark old, new;
 +	struct bch_dev *ca = bch_dev_bkey_exists(c, p.ptr.dev);
-+	struct bucket *g = PTR_BUCKET(ca, &p.ptr, gc);
++	size_t b = PTR_BUCKET_NR(ca, &p.ptr);
++	struct bucket *g = __bucket(ca, b, gc);
 +	bool overflow;
 +	u64 v;
 +
@@ -25927,6 +25735,35 @@ index 000000000000..58f25894d48a
 +	return 0;
 +}
 +
++static void bucket_set_stripe(struct bch_fs *c,
++			      const struct bch_stripe *v,
++			      bool enabled,
++			      struct bch_fs_usage *fs_usage,
++			      u64 journal_seq,
++			      bool gc)
++{
++	unsigned i;
++
++	for (i = 0; i < v->nr_blocks; i++) {
++		const struct bch_extent_ptr *ptr = v->ptrs + i;
++		struct bch_dev *ca = bch_dev_bkey_exists(c, ptr->dev);
++		size_t b = PTR_BUCKET_NR(ca, ptr);
++		struct bucket *g = __bucket(ca, b, gc);
++		struct bucket_mark new, old;
++
++		BUG_ON(ptr_stale(ca, ptr));
++
++		old = bucket_data_cmpxchg(c, ca, fs_usage, g, new, ({
++			new.dirty			= true;
++			new.stripe			= enabled;
++			if (journal_seq) {
++				new.journal_seq_valid	= 1;
++				new.journal_seq		= journal_seq;
++			}
++		}));
++	}
++}
++
 +static int bch2_mark_stripe(struct bch_fs *c, struct bkey_s_c k,
 +			    bool inserting,
 +			    struct bch_fs_usage *fs_usage,
@@ -25958,7 +25795,14 @@ index 000000000000..58f25894d48a
 +		m->nr_blocks	= s.v->nr_blocks;
 +		m->nr_redundant	= s.v->nr_redundant;
 +
-+		bch2_bkey_to_replicas(&m->r.e, k);
++		memset(&m->r, 0, sizeof(m->r));
++
++		m->r.e.data_type	= BCH_DATA_USER;
++		m->r.e.nr_devs		= s.v->nr_blocks;
++		m->r.e.nr_required	= s.v->nr_blocks - s.v->nr_redundant;
++
++		for (i = 0; i < s.v->nr_blocks; i++)
++			m->r.e.devs[i] = s.v->ptrs[i].dev;
 +
 +	/*
 +	 * XXX: account for stripes somehow here
@@ -26000,7 +25844,7 @@ index 000000000000..58f25894d48a
 +	preempt_disable();
 +
 +	if (!fs_usage || gc)
-+		fs_usage = fs_usage_ptr(c, journal_seq, gc);
++		fs_usage = this_cpu_ptr(c->usage[gc]);
 +
 +	switch (k.k->type) {
 +	case KEY_TYPE_alloc:
@@ -26061,102 +25905,73 @@ index 000000000000..58f25894d48a
 +	return ret;
 +}
 +
-+inline int bch2_mark_overwrite(struct btree_trans *trans,
-+			       struct btree_iter *iter,
-+			       struct bkey_s_c old,
-+			       struct bkey_i *new,
-+			       struct bch_fs_usage *fs_usage,
-+			       unsigned flags)
-+{
-+	struct bch_fs		*c = trans->c;
-+	struct btree		*b = iter->l[0].b;
-+	s64			sectors = 0;
-+
-+	if (btree_node_is_extents(b)
-+	    ? bkey_cmp(new->k.p, bkey_start_pos(old.k)) <= 0
-+	    : bkey_cmp(new->k.p, old.k->p))
-+		return 0;
-+
-+	if (btree_node_is_extents(b)) {
-+		switch (bch2_extent_overlap(&new->k, old.k)) {
-+		case BCH_EXTENT_OVERLAP_ALL:
-+			sectors = -((s64) old.k->size);
-+			break;
-+		case BCH_EXTENT_OVERLAP_BACK:
-+			sectors = bkey_start_offset(&new->k) -
-+				old.k->p.offset;
-+			break;
-+		case BCH_EXTENT_OVERLAP_FRONT:
-+			sectors = bkey_start_offset(old.k) -
-+				new->k.p.offset;
-+			break;
-+		case BCH_EXTENT_OVERLAP_MIDDLE:
-+			sectors = old.k->p.offset - new->k.p.offset;
-+			BUG_ON(sectors <= 0);
-+
-+			bch2_mark_key_locked(c, old, true, sectors,
-+				fs_usage, trans->journal_res.seq,
-+				flags);
-+
-+			sectors = bkey_start_offset(&new->k) -
-+				old.k->p.offset;
-+			break;
-+		}
-+
-+		BUG_ON(sectors >= 0);
-+	}
-+
-+	return bch2_mark_key_locked(c, old, false, sectors, fs_usage,
-+				    trans->journal_res.seq, flags) ?: 1;
-+}
-+
-+int bch2_mark_update(struct btree_trans *trans,
-+		     struct btree_insert_entry *insert,
-+		     struct bch_fs_usage *fs_usage,
-+		     unsigned flags)
++void bch2_mark_update(struct btree_trans *trans,
++		      struct btree_insert_entry *insert,
++		      struct bch_fs_usage *fs_usage,
++		      unsigned flags)
 +{
 +	struct bch_fs		*c = trans->c;
 +	struct btree_iter	*iter = insert->iter;
 +	struct btree		*b = iter->l[0].b;
 +	struct btree_node_iter	node_iter = iter->l[0].iter;
 +	struct bkey_packed	*_k;
-+	int ret = 0;
 +
 +	if (!btree_node_type_needs_gc(iter->btree_id))
-+		return 0;
++		return;
 +
-+	if (!(trans->flags & BTREE_INSERT_NOMARK_INSERT))
++	if (!(trans->flags & BTREE_INSERT_NOMARK))
 +		bch2_mark_key_locked(c, bkey_i_to_s_c(insert->k), true,
 +			bpos_min(insert->k->k.p, b->key.k.p).offset -
 +			bkey_start_offset(&insert->k->k),
 +			fs_usage, trans->journal_res.seq, flags);
 +
-+	if (unlikely(trans->flags & BTREE_INSERT_NOMARK_OVERWRITES))
-+		return 0;
-+
-+	/*
-+	 * For non extents, we only mark the new key, not the key being
-+	 * overwritten - unless we're actually deleting:
-+	 */
-+	if ((iter->btree_id == BTREE_ID_ALLOC ||
-+	     iter->btree_id == BTREE_ID_EC) &&
-+	    !bkey_deleted(&insert->k->k))
-+		return 0;
-+
 +	while ((_k = bch2_btree_node_iter_peek_filter(&node_iter, b,
 +						      KEY_TYPE_discard))) {
 +		struct bkey		unpacked;
-+		struct bkey_s_c		k = bkey_disassemble(b, _k, &unpacked);
++		struct bkey_s_c		k;
++		s64			sectors = 0;
 +
-+		ret = bch2_mark_overwrite(trans, iter, k, insert->k,
-+					  fs_usage, flags);
-+		if (ret <= 0)
++		k = bkey_disassemble(b, _k, &unpacked);
++
++		if (btree_node_is_extents(b)
++		    ? bkey_cmp(insert->k->k.p, bkey_start_pos(k.k)) <= 0
++		    : bkey_cmp(insert->k->k.p, k.k->p))
 +			break;
++
++		if (btree_node_is_extents(b)) {
++			switch (bch2_extent_overlap(&insert->k->k, k.k)) {
++			case BCH_EXTENT_OVERLAP_ALL:
++				sectors = -((s64) k.k->size);
++				break;
++			case BCH_EXTENT_OVERLAP_BACK:
++				sectors = bkey_start_offset(&insert->k->k) -
++					k.k->p.offset;
++				break;
++			case BCH_EXTENT_OVERLAP_FRONT:
++				sectors = bkey_start_offset(k.k) -
++					insert->k->k.p.offset;
++				break;
++			case BCH_EXTENT_OVERLAP_MIDDLE:
++				sectors = k.k->p.offset - insert->k->k.p.offset;
++				BUG_ON(sectors <= 0);
++
++				bch2_mark_key_locked(c, k, true, sectors,
++					fs_usage, trans->journal_res.seq,
++					flags);
++
++				sectors = bkey_start_offset(&insert->k->k) -
++					k.k->p.offset;
++				break;
++			}
++
++			BUG_ON(sectors >= 0);
++		}
++
++		bch2_mark_key_locked(c, k, false, sectors,
++			fs_usage, trans->journal_res.seq, flags);
 +
 +		bch2_btree_node_iter_advance(&node_iter, b);
 +	}
-+
-+	return ret;
 +}
 +
 +void bch2_trans_fs_usage_apply(struct btree_trans *trans,
@@ -26168,8 +25983,7 @@ index 000000000000..58f25894d48a
 +	u64 disk_res_sectors = trans->disk_res ? trans->disk_res->sectors : 0;
 +	char buf[200];
 +
-+	if (!bch2_fs_usage_apply(c, fs_usage, trans->disk_res,
-+				 trans->journal_res.seq) ||
++	if (!bch2_fs_usage_apply(c, fs_usage, trans->disk_res) ||
 +	    warned_disk_usage ||
 +	    xchg(&warned_disk_usage, 1))
 +		return;
@@ -26206,391 +26020,6 @@ index 000000000000..58f25894d48a
 +			bch2_btree_node_iter_advance(&node_iter, b);
 +		}
 +	}
-+}
-+
-+/* trans_mark: */
-+
-+static inline void update_replicas_list(struct replicas_delta_list *d,
-+					struct bch_replicas_entry *r,
-+					s64 sectors)
-+{
-+	d->top->delta = sectors;
-+	memcpy(&d->top->r, r, replicas_entry_bytes(r));
-+
-+	d->top = (void *) d->top + replicas_entry_bytes(r) + 8;
-+
-+	BUG_ON((void *) d->top > (void *) d->d + sizeof(d->pad));
-+}
-+
-+static inline void update_cached_sectors_list(struct replicas_delta_list *d,
-+					      unsigned dev, s64 sectors)
-+{
-+	struct bch_replicas_padded r;
-+
-+	bch2_replicas_entry_cached(&r.e, dev);
-+
-+	update_replicas_list(d, &r.e, sectors);
-+}
-+
-+void bch2_replicas_delta_list_apply(struct bch_fs *c,
-+				    struct bch_fs_usage *fs_usage,
-+				    struct replicas_delta_list *r)
-+{
-+	struct replicas_delta *d = r->d;
-+
-+	acc_u64s((u64 *) fs_usage,
-+		 (u64 *) &r->fs_usage, sizeof(*fs_usage) / sizeof(u64));
-+
-+	while (d != r->top) {
-+		BUG_ON((void *) d > (void *) r->top);
-+
-+		update_replicas(c, fs_usage, &d->r, d->delta);
-+
-+		d = (void *) d + replicas_entry_bytes(&d->r) + 8;
-+	}
-+}
-+
-+static int trans_get_key(struct btree_trans *trans,
-+			 enum btree_id btree_id, struct bpos pos,
-+			 struct btree_insert_entry **insert,
-+			 struct btree_iter **iter,
-+			 struct bkey_s_c *k)
-+{
-+	unsigned i;
-+	int ret;
-+
-+	*insert = NULL;
-+
-+	for (i = 0; i < trans->nr_updates; i++)
-+		if (!trans->updates[i].deferred &&
-+		    trans->updates[i].iter->btree_id == btree_id &&
-+		    !bkey_cmp(pos, trans->updates[i].iter->pos)) {
-+			*insert = &trans->updates[i];
-+			*iter	= (*insert)->iter;
-+			*k	= bkey_i_to_s_c((*insert)->k);
-+			return 0;
-+		}
-+
-+	*iter = __bch2_trans_get_iter(trans, btree_id, pos,
-+				   BTREE_ITER_SLOTS|BTREE_ITER_INTENT, 0);
-+	if (IS_ERR(*iter))
-+		return PTR_ERR(*iter);
-+
-+	*k = bch2_btree_iter_peek_slot(*iter);
-+	ret = bkey_err(*k);
-+	if (ret)
-+		bch2_trans_iter_put(trans, *iter);
-+	return ret;
-+}
-+
-+static int trans_update_key(struct btree_trans *trans,
-+			    struct btree_insert_entry **insert,
-+			    struct btree_iter *iter,
-+			    struct bkey_s_c k,
-+			    unsigned extra_u64s)
-+{
-+	struct bkey_i *new_k;
-+
-+	if (*insert)
-+		return 0;
-+
-+	new_k = bch2_trans_kmalloc(trans, bkey_bytes(k.k) +
-+				   extra_u64s * sizeof(u64));
-+	if (IS_ERR(new_k))
-+		return PTR_ERR(new_k);
-+
-+	*insert = bch2_trans_update(trans, ((struct btree_insert_entry) {
-+				.iter = iter,
-+				.k = new_k,
-+				.triggered = true,
-+	}));
-+
-+	bkey_reassemble((*insert)->k, k);
-+	return 0;
-+}
-+
-+static int bch2_trans_mark_pointer(struct btree_trans *trans,
-+			struct extent_ptr_decoded p,
-+			s64 sectors, enum bch_data_type data_type,
-+			struct replicas_delta_list *d)
-+{
-+	struct bch_fs *c = trans->c;
-+	struct bch_dev *ca = bch_dev_bkey_exists(c, p.ptr.dev);
-+	struct btree_insert_entry *insert;
-+	struct btree_iter *iter;
-+	struct bkey_s_c k;
-+	struct bkey_alloc_unpacked u;
-+	struct bkey_i_alloc *a;
-+	bool overflow;
-+	int ret;
-+
-+	ret = trans_get_key(trans, BTREE_ID_ALLOC,
-+			    POS(p.ptr.dev, PTR_BUCKET_NR(ca, &p.ptr)),
-+			    &insert, &iter, &k);
-+	if (ret)
-+		return ret;
-+
-+	if (k.k->type != KEY_TYPE_alloc) {
-+		bch_err_ratelimited(c, "pointer to nonexistent bucket %u:%zu",
-+				    p.ptr.dev,
-+				    PTR_BUCKET_NR(ca, &p.ptr));
-+		ret = -1;
-+		goto out;
-+	}
-+
-+	u = bch2_alloc_unpack(k);
-+
-+	if (gen_after(u.gen, p.ptr.gen)) {
-+		ret = 1;
-+		goto out;
-+	}
-+
-+	if (!p.ptr.cached)
-+		overflow = checked_add(u.dirty_sectors, sectors);
-+	else
-+		overflow = checked_add(u.cached_sectors, sectors);
-+
-+	u.data_type = u.dirty_sectors || u.cached_sectors
-+		? data_type : 0;
-+
-+	bch2_fs_inconsistent_on(overflow, c,
-+		"bucket sector count overflow: %u + %lli > U16_MAX",
-+		!p.ptr.cached
-+		? u.dirty_sectors
-+		: u.cached_sectors, sectors);
-+
-+	ret = trans_update_key(trans, &insert, iter, k, 1);
-+	if (ret)
-+		goto out;
-+
-+	a = bkey_alloc_init(insert->k);
-+	a->k.p = iter->pos;
-+	bch2_alloc_pack(a, u);
-+out:
-+	bch2_trans_iter_put(trans, iter);
-+	return ret;
-+}
-+
-+static int bch2_trans_mark_stripe_ptr(struct btree_trans *trans,
-+			struct bch_extent_stripe_ptr p,
-+			s64 sectors, enum bch_data_type data_type,
-+			struct replicas_delta_list *d)
-+{
-+	struct bch_replicas_padded r;
-+	struct btree_insert_entry *insert;
-+	struct btree_iter *iter;
-+	struct bkey_s_c k;
-+	struct bkey_s_stripe s;
-+	unsigned nr_data;
-+	s64 parity_sectors;
-+	int ret = 0;
-+
-+	BUG_ON(!sectors);
-+
-+	ret = trans_get_key(trans, BTREE_ID_EC, POS(0, p.idx),
-+			    &insert, &iter, &k);
-+	if (ret)
-+		return ret;
-+
-+	if (k.k->type != KEY_TYPE_stripe) {
-+		bch_err_ratelimited(trans->c,
-+				    "pointer to nonexistent stripe %llu",
-+				    (u64) p.idx);
-+		ret = -1;
-+		goto out;
-+	}
-+
-+	ret = trans_update_key(trans, &insert, iter, k, 1);
-+	if (ret)
-+		goto out;
-+
-+	s = bkey_i_to_s_stripe(insert->k);
-+
-+	nr_data = s.v->nr_blocks - s.v->nr_redundant;
-+
-+	parity_sectors = DIV_ROUND_UP(abs(sectors) * s.v->nr_redundant, nr_data);
-+
-+	if (sectors < 0)
-+		parity_sectors = -parity_sectors;
-+
-+	stripe_blockcount_set(s.v, p.block,
-+		stripe_blockcount_get(s.v, p.block) +
-+		sectors + parity_sectors);
-+
-+	bch2_bkey_to_replicas(&r.e, s.s_c);
-+
-+	update_replicas_list(d, &r.e, sectors);
-+out:
-+	bch2_trans_iter_put(trans, iter);
-+	return ret;
-+}
-+
-+static int bch2_trans_mark_extent(struct btree_trans *trans,
-+			struct bkey_s_c k,
-+			s64 sectors, enum bch_data_type data_type,
-+			struct replicas_delta_list *d)
-+{
-+	struct bkey_ptrs_c ptrs = bch2_bkey_ptrs_c(k);
-+	const union bch_extent_entry *entry;
-+	struct extent_ptr_decoded p;
-+	struct bch_replicas_padded r;
-+	s64 dirty_sectors = 0;
-+	bool stale;
-+	unsigned i;
-+	int ret;
-+
-+	r.e.data_type	= data_type;
-+	r.e.nr_devs	= 0;
-+	r.e.nr_required	= 1;
-+
-+	BUG_ON(!sectors);
-+
-+	bkey_for_each_ptr_decode(k.k, ptrs, p, entry) {
-+		s64 disk_sectors = data_type == BCH_DATA_BTREE
-+			? sectors
-+			: ptr_disk_sectors_delta(p, sectors);
-+
-+		ret = bch2_trans_mark_pointer(trans, p, disk_sectors,
-+					      data_type, d);
-+		if (ret < 0)
-+			return ret;
-+
-+		stale = ret > 0;
-+
-+		if (p.ptr.cached) {
-+			if (disk_sectors && !stale)
-+				update_cached_sectors_list(d, p.ptr.dev,
-+							   disk_sectors);
-+		} else if (!p.ec_nr) {
-+			dirty_sectors	       += disk_sectors;
-+			r.e.devs[r.e.nr_devs++]	= p.ptr.dev;
-+		} else {
-+			for (i = 0; i < p.ec_nr; i++) {
-+				ret = bch2_trans_mark_stripe_ptr(trans, p.ec[i],
-+						disk_sectors, data_type, d);
-+				if (ret)
-+					return ret;
-+			}
-+
-+			r.e.nr_required = 0;
-+		}
-+	}
-+
-+	if (dirty_sectors)
-+		update_replicas_list(d, &r.e, dirty_sectors);
-+
-+	return 0;
-+}
-+
-+int bch2_trans_mark_key(struct btree_trans *trans,
-+			struct bkey_s_c k,
-+			bool inserting, s64 sectors,
-+			struct replicas_delta_list *d)
-+{
-+	struct bch_fs *c = trans->c;
-+
-+	switch (k.k->type) {
-+	case KEY_TYPE_btree_ptr:
-+		return bch2_trans_mark_extent(trans, k, inserting
-+				?  c->opts.btree_node_size
-+				: -c->opts.btree_node_size,
-+				BCH_DATA_BTREE, d);
-+	case KEY_TYPE_extent:
-+		return bch2_trans_mark_extent(trans, k,
-+				sectors, BCH_DATA_USER, d);
-+	case KEY_TYPE_inode:
-+		if (inserting)
-+			d->fs_usage.nr_inodes++;
-+		else
-+			d->fs_usage.nr_inodes--;
-+		return 0;
-+	case KEY_TYPE_reservation: {
-+		unsigned replicas = bkey_s_c_to_reservation(k).v->nr_replicas;
-+
-+		sectors *= replicas;
-+		replicas = clamp_t(unsigned, replicas, 1,
-+				   ARRAY_SIZE(d->fs_usage.persistent_reserved));
-+
-+		d->fs_usage.reserved				+= sectors;
-+		d->fs_usage.persistent_reserved[replicas - 1]	+= sectors;
-+		return 0;
-+	}
-+	default:
-+		return 0;
-+	}
-+}
-+
-+int bch2_trans_mark_update(struct btree_trans *trans,
-+			   struct btree_insert_entry *insert,
-+			   struct replicas_delta_list *d)
-+{
-+	struct btree_iter	*iter = insert->iter;
-+	struct btree		*b = iter->l[0].b;
-+	struct btree_node_iter	node_iter = iter->l[0].iter;
-+	struct bkey_packed	*_k;
-+	int ret;
-+
-+	if (!btree_node_type_needs_gc(iter->btree_id))
-+		return 0;
-+
-+	ret = bch2_trans_mark_key(trans,
-+			bkey_i_to_s_c(insert->k), true,
-+			bpos_min(insert->k->k.p, b->key.k.p).offset -
-+			bkey_start_offset(&insert->k->k), d);
-+	if (ret)
-+		return ret;
-+
-+	while ((_k = bch2_btree_node_iter_peek_filter(&node_iter, b,
-+						      KEY_TYPE_discard))) {
-+		struct bkey		unpacked;
-+		struct bkey_s_c		k;
-+		s64			sectors = 0;
-+
-+		k = bkey_disassemble(b, _k, &unpacked);
-+
-+		if (btree_node_is_extents(b)
-+		    ? bkey_cmp(insert->k->k.p, bkey_start_pos(k.k)) <= 0
-+		    : bkey_cmp(insert->k->k.p, k.k->p))
-+			break;
-+
-+		if (btree_node_is_extents(b)) {
-+			switch (bch2_extent_overlap(&insert->k->k, k.k)) {
-+			case BCH_EXTENT_OVERLAP_ALL:
-+				sectors = -((s64) k.k->size);
-+				break;
-+			case BCH_EXTENT_OVERLAP_BACK:
-+				sectors = bkey_start_offset(&insert->k->k) -
-+					k.k->p.offset;
-+				break;
-+			case BCH_EXTENT_OVERLAP_FRONT:
-+				sectors = bkey_start_offset(k.k) -
-+					insert->k->k.p.offset;
-+				break;
-+			case BCH_EXTENT_OVERLAP_MIDDLE:
-+				sectors = k.k->p.offset - insert->k->k.p.offset;
-+				BUG_ON(sectors <= 0);
-+
-+				ret = bch2_trans_mark_key(trans, k, true,
-+							  sectors, d);
-+				if (ret)
-+					return ret;
-+
-+				sectors = bkey_start_offset(&insert->k->k) -
-+					k.k->p.offset;
-+				break;
-+			}
-+
-+			BUG_ON(sectors >= 0);
-+		}
-+
-+		ret = bch2_trans_mark_key(trans, k, false, sectors, d);
-+		if (ret)
-+			return ret;
-+
-+		bch2_btree_node_iter_advance(&node_iter, b);
-+	}
-+
-+	return 0;
 +}
 +
 +/* Disk reservations: */
@@ -26837,10 +26266,10 @@ index 000000000000..58f25894d48a
 +}
 diff --git a/fs/bcachefs/buckets.h b/fs/bcachefs/buckets.h
 new file mode 100644
-index 000000000000..a32c25d8f298
+index 000000000000..1033398e6c4b
 --- /dev/null
 +++ b/fs/bcachefs/buckets.h
-@@ -0,0 +1,324 @@
+@@ -0,0 +1,305 @@
 +/*
 + * Code for manipulating bucket marks for garbage collection.
 + *
@@ -26942,7 +26371,7 @@ index 000000000000..a32c25d8f298
 +	struct bucket_mark m;
 +
 +	rcu_read_lock();
-+	m = READ_ONCE(PTR_BUCKET(ca, ptr, 0)->mark);
++	m = READ_ONCE(bucket(ca, PTR_BUCKET_NR(ca, ptr))->mark);
 +	rcu_read_unlock();
 +
 +	return m;
@@ -27064,14 +26493,7 @@ index 000000000000..a32c25d8f298
 +void bch2_fs_usage_scratch_put(struct bch_fs *, struct bch_fs_usage *);
 +struct bch_fs_usage *bch2_fs_usage_scratch_get(struct bch_fs *);
 +
-+u64 bch2_fs_usage_read_one(struct bch_fs *, u64 *);
-+
 +struct bch_fs_usage *bch2_fs_usage_read(struct bch_fs *);
-+
-+void bch2_fs_usage_acc_to_base(struct bch_fs *, unsigned);
-+
-+void bch2_fs_usage_to_text(struct printbuf *,
-+			   struct bch_fs *, struct bch_fs_usage *);
 +
 +u64 bch2_fs_sectors_used(struct bch_fs *, struct bch_fs_usage *);
 +
@@ -27101,22 +26523,10 @@ index 000000000000..a32c25d8f298
 +		  bool, s64, struct bch_fs_usage *,
 +		  u64, unsigned);
 +int bch2_fs_usage_apply(struct bch_fs *, struct bch_fs_usage *,
-+			struct disk_reservation *, unsigned);
++			struct disk_reservation *);
 +
-+int bch2_mark_overwrite(struct btree_trans *, struct btree_iter *,
-+			struct bkey_s_c, struct bkey_i *,
-+			struct bch_fs_usage *, unsigned);
-+int bch2_mark_update(struct btree_trans *, struct btree_insert_entry *,
-+		     struct bch_fs_usage *, unsigned);
-+
-+void bch2_replicas_delta_list_apply(struct bch_fs *,
-+				    struct bch_fs_usage *,
-+				    struct replicas_delta_list *);
-+int bch2_trans_mark_key(struct btree_trans *, struct bkey_s_c,
-+			bool, s64, struct replicas_delta_list *);
-+int bch2_trans_mark_update(struct btree_trans *,
-+			   struct btree_insert_entry *,
-+			   struct replicas_delta_list *);
++void bch2_mark_update(struct btree_trans *, struct btree_insert_entry *,
++		      struct bch_fs_usage *, unsigned);
 +void bch2_trans_fs_usage_apply(struct btree_trans *, struct bch_fs_usage *);
 +
 +/* disk reservations: */
@@ -27167,10 +26577,10 @@ index 000000000000..a32c25d8f298
 +#endif /* _BUCKETS_H */
 diff --git a/fs/bcachefs/buckets_types.h b/fs/bcachefs/buckets_types.h
 new file mode 100644
-index 000000000000..974daa7ef2d3
+index 000000000000..2a1fd7a7ec20
 --- /dev/null
 +++ b/fs/bcachefs/buckets_types.h
-@@ -0,0 +1,127 @@
+@@ -0,0 +1,114 @@
 +#ifndef _BUCKETS_TYPES_H
 +#define _BUCKETS_TYPES_H
 +
@@ -27267,19 +26677,6 @@ index 000000000000..974daa7ef2d3
 +	u64			nr_inodes;
 +};
 +
-+struct replicas_delta {
-+	s64			delta;
-+	struct bch_replicas_entry r;
-+};
-+
-+struct replicas_delta_list {
-+	struct bch_fs_usage	fs_usage;
-+
-+	struct replicas_delta	*top;
-+	struct replicas_delta	d[0];
-+	u8			pad[256];
-+};
-+
 +/*
 + * A reservation for space on disk:
 + */
@@ -27300,7 +26697,7 @@ index 000000000000..974daa7ef2d3
 +#endif /* _BUCKETS_TYPES_H */
 diff --git a/fs/bcachefs/chardev.c b/fs/bcachefs/chardev.c
 new file mode 100644
-index 000000000000..595d4797eb4f
+index 000000000000..82d90cdea003
 --- /dev/null
 +++ b/fs/bcachefs/chardev.c
 @@ -0,0 +1,670 @@
@@ -27463,7 +26860,7 @@ index 000000000000..595d4797eb4f
 +	if (arg.flags || arg.pad)
 +		return -EINVAL;
 +
-+	return bch2_fs_start(c);
++	return bch2_fs_start(c) ? -EIO : 0;
 +}
 +
 +static long bch2_ioctl_stop(struct bch_fs *c)
@@ -30260,10 +29657,10 @@ index 000000000000..b5de1a7072d4
 +#endif /* _BCACHEFS_DEBUG_H */
 diff --git a/fs/bcachefs/dirent.c b/fs/bcachefs/dirent.c
 new file mode 100644
-index 000000000000..b379780e703f
+index 000000000000..14a9a2c0ef02
 --- /dev/null
 +++ b/fs/bcachefs/dirent.c
-@@ -0,0 +1,403 @@
+@@ -0,0 +1,406 @@
 +
 +#include "bcachefs.h"
 +#include "bkey_methods.h"
@@ -30598,10 +29995,14 @@ index 000000000000..b379780e703f
 +{
 +	struct btree_iter *iter;
 +	struct bkey_s_c k;
-+	int ret;
++	int ret = 0;
 +
-+	for_each_btree_key(trans, iter, BTREE_ID_DIRENTS,
-+			   POS(dir_inum, 0), 0, k, ret) {
++	iter = bch2_trans_get_iter(trans, BTREE_ID_DIRENTS,
++				   POS(dir_inum, 0), 0);
++	if (IS_ERR(iter))
++		return PTR_ERR(iter);
++
++	for_each_btree_key_continue(iter, 0, k) {
 +		if (k.k->p.inode > dir_inum)
 +			break;
 +
@@ -30630,7 +30031,6 @@ index 000000000000..b379780e703f
 +	struct bkey_s_c k;
 +	struct bkey_s_c_dirent dirent;
 +	unsigned len;
-+	int ret;
 +
 +	if (!dir_emit_dots(file, ctx))
 +		return 0;
@@ -30638,7 +30038,7 @@ index 000000000000..b379780e703f
 +	bch2_trans_init(&trans, c);
 +
 +	for_each_btree_key(&trans, iter, BTREE_ID_DIRENTS,
-+			   POS(inode->v.i_ino, ctx->pos), 0, k, ret) {
++			   POS(inode->v.i_ino, ctx->pos), 0, k) {
 +		if (k.k->type != KEY_TYPE_dirent)
 +			continue;
 +
@@ -30663,9 +30063,9 @@ index 000000000000..b379780e703f
 +
 +		ctx->pos = k.k->p.offset + 1;
 +	}
-+	ret = bch2_trans_exit(&trans) ?: ret;
++	bch2_trans_exit(&trans);
 +
-+	return ret;
++	return 0;
 +}
 diff --git a/fs/bcachefs/dirent.h b/fs/bcachefs/dirent.h
 new file mode 100644
@@ -31315,10 +30715,10 @@ index 000000000000..b90b0ef5c85f
 +#endif /* _BCACHEFS_DISK_GROUPS_H */
 diff --git a/fs/bcachefs/ec.c b/fs/bcachefs/ec.c
 new file mode 100644
-index 000000000000..a31d6cb23f6d
+index 000000000000..91b86d9d8f5f
 --- /dev/null
 +++ b/fs/bcachefs/ec.c
-@@ -0,0 +1,1333 @@
+@@ -0,0 +1,1340 @@
 +
 +/* erasure coding */
 +
@@ -31332,8 +30732,8 @@ index 000000000000..a31d6cb23f6d
 +#include "ec.h"
 +#include "error.h"
 +#include "io.h"
++#include "journal_io.h"
 +#include "keylist.h"
-+#include "recovery.h"
 +#include "super-io.h"
 +#include "util.h"
 +
@@ -31857,17 +31257,14 @@ index 000000000000..a31d6cb23f6d
 +			       struct btree_iter *iter)
 +{
 +	size_t idx = iter->pos.offset;
-+	int ret = 0;
 +
 +	if (!__ec_stripe_mem_alloc(c, idx, GFP_NOWAIT))
-+		return ret;
++		return 0;
 +
 +	bch2_btree_trans_unlock(iter->trans);
-+	ret = -EINTR;
 +
 +	if (!__ec_stripe_mem_alloc(c, idx, GFP_KERNEL))
-+		return ret;
-+
++		return -EINTR;
 +	return -ENOMEM;
 +}
 +
@@ -32002,8 +31399,10 @@ index 000000000000..a31d6cb23f6d
 +	bch2_trans_begin(&trans);
 +
 +	/* XXX: start pos hint */
-+	for_each_btree_key(&trans, iter, BTREE_ID_EC, POS_MIN,
-+			   BTREE_ITER_SLOTS|BTREE_ITER_INTENT, k, ret) {
++	iter = bch2_trans_get_iter(&trans, BTREE_ID_EC, POS_MIN,
++				   BTREE_ITER_SLOTS|BTREE_ITER_INTENT);
++
++	for_each_btree_key_continue(iter, BTREE_ITER_SLOTS|BTREE_ITER_INTENT, k) {
 +		if (bkey_cmp(k.k->p, POS(0, U32_MAX)) > 0)
 +			break;
 +
@@ -32011,24 +31410,24 @@ index 000000000000..a31d6cb23f6d
 +			goto found_slot;
 +	}
 +
-+	if (!ret)
-+		ret = -ENOSPC;
-+	goto err;
++	ret = -ENOSPC;
++	goto out;
 +found_slot:
 +	ret = ec_stripe_mem_alloc(c, iter);
++
++	if (ret == -EINTR)
++		goto retry;
 +	if (ret)
-+		goto err;
++		return ret;
 +
 +	stripe->k.p = iter->pos;
 +
 +	bch2_trans_update(&trans, BTREE_INSERT_ENTRY(iter, &stripe->k_i));
 +
 +	ret = bch2_trans_commit(&trans, NULL, NULL,
-+				BTREE_INSERT_ATOMIC|
-+				BTREE_INSERT_NOFAIL);
-+err:
-+	if (ret == -EINTR)
-+		goto retry;
++				BTREE_INSERT_NOFAIL|
++				BTREE_INSERT_USE_RESERVE);
++out:
 +	bch2_trans_exit(&trans);
 +
 +	return ret;
@@ -32065,7 +31464,6 @@ index 000000000000..a31d6cb23f6d
 +	int ret = 0, dev, idx;
 +
 +	bch2_trans_init(&trans, c);
-+	bch2_trans_preload_iters(&trans);
 +
 +	iter = bch2_trans_get_iter(&trans, BTREE_ID_EXTENTS,
 +				   bkey_start_pos(pos),
@@ -32273,7 +31671,7 @@ index 000000000000..a31d6cb23f6d
 +	unsigned l = *((const unsigned *) _l);
 +	unsigned r = *((const unsigned *) _r);
 +
-+	return cmp_int(l, r);
++	return (l > r) - (l < r);
 +}
 +
 +/* pick most common bucket size: */
@@ -32516,7 +31914,7 @@ index 000000000000..a31d6cb23f6d
 +				 BTREE_INSERT_NOFAIL|flags);
 +}
 +
-+int bch2_stripes_write(struct bch_fs *c, unsigned flags, bool *wrote)
++int bch2_stripes_write(struct bch_fs *c, bool *wrote)
 +{
 +	struct btree_trans trans;
 +	struct btree_iter *iter;
@@ -32538,7 +31936,7 @@ index 000000000000..a31d6cb23f6d
 +			continue;
 +
 +		ret = __bch2_stripe_write_key(&trans, iter, m, giter.pos,
-+					      new_key, flags);
++					new_key, BTREE_INSERT_NOCHECK_RW);
 +		if (ret)
 +			break;
 +
@@ -32552,9 +31950,14 @@ index 000000000000..a31d6cb23f6d
 +	return ret;
 +}
 +
-+int bch2_stripes_read(struct bch_fs *c, struct journal_keys *journal_keys)
++static void bch2_stripe_read_key(struct bch_fs *c, struct bkey_s_c k)
 +{
-+	struct journal_key *i;
++	bch2_mark_key(c, k, true, 0, NULL, 0, 0);
++}
++
++int bch2_stripes_read(struct bch_fs *c, struct list_head *journal_replay_list)
++{
++	struct journal_replay *r;
 +	struct btree_trans trans;
 +	struct btree_iter *iter;
 +	struct bkey_s_c k;
@@ -32566,19 +31969,23 @@ index 000000000000..a31d6cb23f6d
 +
 +	bch2_trans_init(&trans, c);
 +
-+	for_each_btree_key(&trans, iter, BTREE_ID_EC, POS_MIN, 0, k, ret)
-+		bch2_mark_key(c, k, true, 0, NULL, 0, 0);
-+
-+	ret = bch2_trans_exit(&trans) ?: ret;
-+	if (ret) {
-+		bch_err(c, "error reading stripes: %i", ret);
-+		return ret;
++	for_each_btree_key(&trans, iter, BTREE_ID_EC, POS_MIN, 0, k) {
++		bch2_stripe_read_key(c, k);
++		bch2_trans_cond_resched(&trans);
 +	}
 +
-+	for_each_journal_key(*journal_keys, i)
-+		if (i->btree_id == BTREE_ID_EC)
-+			bch2_mark_key(c, bkey_i_to_s_c(i->k),
-+				      true, 0, NULL, 0, 0);
++	ret = bch2_trans_exit(&trans);
++	if (ret)
++		return ret;
++
++	list_for_each_entry(r, journal_replay_list, list) {
++		struct bkey_i *k, *n;
++		struct jset_entry *entry;
++
++		for_each_jset_key(k, n, entry, &r->j)
++			if (entry->btree_id == BTREE_ID_EC)
++				bch2_stripe_read_key(c, bkey_i_to_s_c(k));
++	}
 +
 +	return 0;
 +}
@@ -32654,10 +32061,10 @@ index 000000000000..a31d6cb23f6d
 +}
 diff --git a/fs/bcachefs/ec.h b/fs/bcachefs/ec.h
 new file mode 100644
-index 000000000000..6c00ec5cdbc7
+index 000000000000..2817833086f0
 --- /dev/null
 +++ b/fs/bcachefs/ec.h
-@@ -0,0 +1,163 @@
+@@ -0,0 +1,162 @@
 +#ifndef _BCACHEFS_EC_H
 +#define _BCACHEFS_EC_H
 +
@@ -32809,9 +32216,8 @@ index 000000000000..6c00ec5cdbc7
 +
 +void bch2_ec_flush_new_stripes(struct bch_fs *);
 +
-+struct journal_keys;
-+int bch2_stripes_read(struct bch_fs *, struct journal_keys *);
-+int bch2_stripes_write(struct bch_fs *, unsigned, bool *);
++int bch2_stripes_read(struct bch_fs *, struct list_head *);
++int bch2_stripes_write(struct bch_fs *, bool *);
 +
 +int bch2_ec_mem_alloc(struct bch_fs *, bool);
 +
@@ -33271,10 +32677,10 @@ index 000000000000..588e763f0440
 +#endif /* _BCACHEFS_ERROR_H */
 diff --git a/fs/bcachefs/extents.c b/fs/bcachefs/extents.c
 new file mode 100644
-index 000000000000..f8f29251a5e7
+index 000000000000..aa2fc7793b17
 --- /dev/null
 +++ b/fs/bcachefs/extents.c
-@@ -0,0 +1,1762 @@
+@@ -0,0 +1,1722 @@
 +/*
 + * Copyright (C) 2010 Kent Overstreet <kent.overstreet@gmail.com>
 + *
@@ -34149,54 +33555,15 @@ index 000000000000..f8f29251a5e7
 +	bch2_btree_iter_verify(iter, l->b);
 +}
 +
-+static unsigned bch2_bkey_nr_alloc_ptrs(struct bkey_s_c k)
-+{
-+	struct bkey_ptrs_c ptrs = bch2_bkey_ptrs_c(k);
-+	const union bch_extent_entry *entry;
-+	unsigned ret = 0;
-+
-+	bkey_extent_entry_for_each(ptrs, entry) {
-+		switch (__extent_entry_type(entry)) {
-+		case BCH_EXTENT_ENTRY_ptr:
-+		case BCH_EXTENT_ENTRY_stripe_ptr:
-+			ret++;
-+		}
-+	}
-+
-+	return ret;
-+}
-+
 +static inline struct bpos
-+bch2_extent_atomic_end(struct bkey_i *insert, struct btree_iter *iter)
++bch2_extent_atomic_end(struct bkey_i *k, struct btree_iter *iter)
 +{
 +	struct btree *b = iter->l[0].b;
-+	struct btree_node_iter	node_iter = iter->l[0].iter;
-+	struct bkey_packed	*_k;
-+	unsigned		nr_alloc_ptrs =
-+		bch2_bkey_nr_alloc_ptrs(bkey_i_to_s_c(insert));
 +
 +	BUG_ON(iter->uptodate > BTREE_ITER_NEED_PEEK);
-+	BUG_ON(bkey_cmp(bkey_start_pos(&insert->k), b->data->min_key) < 0);
++	BUG_ON(bkey_cmp(bkey_start_pos(&k->k), b->data->min_key) < 0);
 +
-+	while ((_k = bch2_btree_node_iter_peek_filter(&node_iter, b,
-+						      KEY_TYPE_discard))) {
-+		struct bkey	unpacked;
-+		struct bkey_s_c	k = bkey_disassemble(b, _k, &unpacked);
-+
-+		if (bkey_cmp(insert->k.p, bkey_start_pos(k.k)) <= 0)
-+			break;
-+
-+		nr_alloc_ptrs += bch2_bkey_nr_alloc_ptrs(k);
-+
-+		if (nr_alloc_ptrs > 20) {
-+			BUG_ON(bkey_cmp(k.k->p, bkey_start_pos(&insert->k)) <= 0);
-+			return bpos_min(insert->k.p, k.k->p);
-+		}
-+
-+		bch2_btree_node_iter_advance(&node_iter, b);
-+	}
-+
-+	return bpos_min(insert->k.p, b->key.k.p);
++	return bpos_min(k->k.p, b->key.k.p);
 +}
 +
 +void bch2_extent_trim_atomic(struct bkey_i *k, struct btree_iter *iter)
@@ -34943,14 +34310,13 @@ index 000000000000..f8f29251a5e7
 +	struct bpos end = pos;
 +	struct bkey_s_c k;
 +	bool ret = true;
-+	int err;
 +
 +	end.offset += size;
 +
 +	bch2_trans_init(&trans, c);
 +
 +	for_each_btree_key(&trans, iter, BTREE_ID_EXTENTS, pos,
-+			   BTREE_ITER_SLOTS, k, err) {
++			   BTREE_ITER_SLOTS, k) {
 +		if (bkey_cmp(bkey_start_pos(k.k), end) >= 0)
 +			break;
 +
@@ -36081,7 +35447,7 @@ index 000000000000..0982af022ff9
 +#endif /* _BCACHEFS_FIFO_H */
 diff --git a/fs/bcachefs/fs-io.c b/fs/bcachefs/fs-io.c
 new file mode 100644
-index 000000000000..b2ea783fe38a
+index 000000000000..721215ee0042
 --- /dev/null
 +++ b/fs/bcachefs/fs-io.c
 @@ -0,0 +1,2883 @@
@@ -38237,7 +37603,7 @@ index 000000000000..b2ea783fe38a
 +
 +	bch2_trans_init(&trans, c);
 +
-+	for_each_btree_key(&trans, iter, BTREE_ID_EXTENTS, start, 0, k, ret) {
++	for_each_btree_key(&trans, iter, BTREE_ID_EXTENTS, start, 0, k) {
 +		if (bkey_cmp(bkey_start_pos(k.k), end) >= 0)
 +			break;
 +
@@ -38822,7 +38188,7 @@ index 000000000000..b2ea783fe38a
 +	bch2_trans_init(&trans, c);
 +
 +	for_each_btree_key(&trans, iter, BTREE_ID_EXTENTS,
-+			   POS(inode->v.i_ino, offset >> 9), 0, k, ret) {
++			   POS(inode->v.i_ino, offset >> 9), 0, k) {
 +		if (k.k->p.inode != inode->v.i_ino) {
 +			break;
 +		} else if (bkey_extent_is_data(k.k)) {
@@ -38832,7 +38198,7 @@ index 000000000000..b2ea783fe38a
 +			break;
 +	}
 +
-+	ret = bch2_trans_exit(&trans) ?: ret;
++	ret = bch2_trans_exit(&trans);
 +	if (ret)
 +		return ret;
 +
@@ -38896,7 +38262,7 @@ index 000000000000..b2ea783fe38a
 +
 +	for_each_btree_key(&trans, iter, BTREE_ID_EXTENTS,
 +			   POS(inode->v.i_ino, offset >> 9),
-+			   BTREE_ITER_SLOTS, k, ret) {
++			   BTREE_ITER_SLOTS, k) {
 +		if (k.k->p.inode != inode->v.i_ino) {
 +			next_hole = bch2_next_pagecache_hole(&inode->v,
 +					offset, MAX_LFS_FILESIZE);
@@ -38913,7 +38279,7 @@ index 000000000000..b2ea783fe38a
 +		}
 +	}
 +
-+	ret = bch2_trans_exit(&trans) ?: ret;
++	ret = bch2_trans_exit(&trans);
 +	if (ret)
 +		return ret;
 +
@@ -39025,10 +38391,10 @@ index 000000000000..30d1ea9d2b85
 +#endif /* _BCACHEFS_FS_IO_H */
 diff --git a/fs/bcachefs/fs-ioctl.c b/fs/bcachefs/fs-ioctl.c
 new file mode 100644
-index 000000000000..c707c46bde95
+index 000000000000..1dc9b06df9f5
 --- /dev/null
 +++ b/fs/bcachefs/fs-ioctl.c
-@@ -0,0 +1,297 @@
+@@ -0,0 +1,296 @@
 +#ifndef NO_BCACHEFS_FS
 +
 +#include "bcachefs.h"
@@ -39297,8 +38663,7 @@ index 000000000000..c707c46bde95
 +
 +		down_write(&sb->s_umount);
 +		sb->s_flags |= SB_RDONLY;
-+		if (bch2_fs_emergency_read_only(c))
-+			bch_err(c, "emergency read only due to ioctl");
++		bch2_fs_emergency_read_only(c);
 +		up_write(&sb->s_umount);
 +		return 0;
 +
@@ -39414,10 +38779,10 @@ index 000000000000..c7124ed3b620
 +#endif /* _BCACHEFS_FS_IOCTL_H */
 diff --git a/fs/bcachefs/fs.c b/fs/bcachefs/fs.c
 new file mode 100644
-index 000000000000..af58d00f3315
+index 000000000000..135f6e4109a9
 --- /dev/null
 +++ b/fs/bcachefs/fs.c
-@@ -0,0 +1,1822 @@
+@@ -0,0 +1,1819 @@
 +#ifndef NO_BCACHEFS_FS
 +
 +#include "bcachefs.h"
@@ -40546,7 +39911,7 @@ index 000000000000..af58d00f3315
 +	bch2_trans_init(&trans, c);
 +
 +	for_each_btree_key(&trans, iter, BTREE_ID_EXTENTS,
-+			   POS(ei->v.i_ino, start >> 9), 0, k, ret)
++			   POS(ei->v.i_ino, start >> 9), 0, k)
 +		if (bkey_extent_is_data(k.k) ||
 +		    k.k->type == KEY_TYPE_reservation) {
 +			if (bkey_cmp(bkey_start_pos(k.k),
@@ -40556,17 +39921,17 @@ index 000000000000..af58d00f3315
 +			if (have_extent) {
 +				ret = bch2_fill_extent(info, &tmp.k, 0);
 +				if (ret)
-+					break;
++					goto out;
 +			}
 +
 +			bkey_reassemble(&tmp.k, k);
 +			have_extent = true;
 +		}
 +
-+	if (!ret && have_extent)
++	if (have_extent)
 +		ret = bch2_fill_extent(info, &tmp.k, FIEMAP_EXTENT_LAST);
-+
-+	ret = bch2_trans_exit(&trans) ?: ret;
++out:
++	bch2_trans_exit(&trans);
 +	return ret < 0 ? ret : 0;
 +}
 +
@@ -41170,15 +40535,12 @@ index 000000000000..af58d00f3315
 +
 +	vinode = bch2_vfs_inode_get(c, BCACHEFS_ROOT_INO);
 +	if (IS_ERR(vinode)) {
-+		bch_err(c, "error mounting: error getting root inode %i",
-+			(int) PTR_ERR(vinode));
 +		ret = PTR_ERR(vinode);
 +		goto err_put_super;
 +	}
 +
 +	sb->s_root = d_make_root(vinode);
 +	if (!sb->s_root) {
-+		bch_err(c, "error mounting: error allocating root dentry");
 +		ret = -ENOMEM;
 +		goto err_put_super;
 +	}
@@ -41242,7 +40604,7 @@ index 000000000000..af58d00f3315
 +#endif /* NO_BCACHEFS_FS */
 diff --git a/fs/bcachefs/fs.h b/fs/bcachefs/fs.h
 new file mode 100644
-index 000000000000..374f7fd1ffbf
+index 000000000000..729c0317f60a
 --- /dev/null
 +++ b/fs/bcachefs/fs.h
 @@ -0,0 +1,147 @@
@@ -41280,7 +40642,7 @@ index 000000000000..374f7fd1ffbf
 +
 +static inline int ptrcmp(void *l, void *r)
 +{
-+	return cmp_int(l, r);
++	return (l > r) - (l < r);
 +}
 +
 +#define __bch2_lock_inodes(_lock, ...)					\
@@ -41395,10 +40757,10 @@ index 000000000000..374f7fd1ffbf
 +#endif /* _BCACHEFS_FS_H */
 diff --git a/fs/bcachefs/fsck.c b/fs/bcachefs/fsck.c
 new file mode 100644
-index 000000000000..998c10ab5ec6
+index 000000000000..b83f94c6a8d6
 --- /dev/null
 +++ b/fs/bcachefs/fsck.c
-@@ -0,0 +1,1483 @@
+@@ -0,0 +1,1528 @@
 +
 +#include "bcachefs.h"
 +#include "btree_update.h"
@@ -41421,10 +40783,8 @@ index 000000000000..998c10ab5ec6
 +	struct btree_iter *iter;
 +	struct bkey_s_c k;
 +	u64 sectors = 0;
-+	int ret;
 +
-+	for_each_btree_key(trans, iter, BTREE_ID_EXTENTS,
-+			   POS(inum, 0), 0, k, ret) {
++	for_each_btree_key(trans, iter, BTREE_ID_EXTENTS, POS(inum, 0), 0, k) {
 +		if (k.k->p.inode != inum)
 +			break;
 +
@@ -41432,9 +40792,7 @@ index 000000000000..998c10ab5ec6
 +			sectors += k.k->size;
 +	}
 +
-+	bch2_trans_iter_free(trans, iter);
-+
-+	return ret ?: sectors;
++	return bch2_trans_iter_free(trans, iter) ?: sectors;
 +}
 +
 +static int remove_dirent(struct btree_trans *trans,
@@ -41899,7 +41257,8 @@ index 000000000000..998c10ab5ec6
 +						BTREE_INSERT_NOFAIL|
 +						BTREE_INSERT_LAZY_RW);
 +			if (ret) {
-+				bch_err(c, "error in fsck: error %i updating inode", ret);
++				bch_err(c, "error in fs gc: error %i "
++					"updating inode", ret);
 +				goto err;
 +			}
 +
@@ -42345,7 +41704,7 @@ index 000000000000..998c10ab5ec6
 +			goto up;
 +
 +		for_each_btree_key(&trans, iter, BTREE_ID_DIRENTS,
-+				   POS(e->inum, e->offset + 1), 0, k, ret) {
++				   POS(e->inum, e->offset + 1), 0, k) {
 +			if (k.k->p.inode != e->inum)
 +				break;
 +
@@ -42388,7 +41747,7 @@ index 000000000000..998c10ab5ec6
 +			}
 +			goto next;
 +		}
-+		ret = bch2_trans_iter_free(&trans, iter) ?: ret;
++		ret = bch2_trans_iter_free(&trans, iter);
 +		if (ret) {
 +			bch_err(c, "btree error %i in fsck", ret);
 +			goto err;
@@ -42463,7 +41822,7 @@ index 000000000000..998c10ab5ec6
 +
 +	link = genradix_ptr_alloc(links, inum - range_start, GFP_KERNEL);
 +	if (!link) {
-+		bch_verbose(c, "allocation failed during fsck - will need another pass");
++		bch_verbose(c, "allocation failed during fs gc - will need another pass");
 +		*range_end = inum;
 +		return;
 +	}
@@ -42490,7 +41849,7 @@ index 000000000000..998c10ab5ec6
 +
 +	inc_link(c, links, range_start, range_end, BCACHEFS_ROOT_INO, false);
 +
-+	for_each_btree_key(&trans, iter, BTREE_ID_DIRENTS, POS_MIN, 0, k, ret) {
++	for_each_btree_key(&trans, iter, BTREE_ID_DIRENTS, POS_MIN, 0, k) {
 +		switch (k.k->type) {
 +		case KEY_TYPE_dirent:
 +			d = bkey_s_c_to_dirent(k);
@@ -42508,9 +41867,9 @@ index 000000000000..998c10ab5ec6
 +
 +		bch2_trans_cond_resched(&trans);
 +	}
-+	ret = bch2_trans_exit(&trans) ?: ret;
++	ret = bch2_trans_exit(&trans);
 +	if (ret)
-+		bch_err(c, "error in fsck: btree error %i while walking dirents", ret);
++		bch_err(c, "error in fs gc: btree error %i while walking dirents", ret);
 +
 +	return ret;
 +}
@@ -42651,7 +42010,8 @@ index 000000000000..998c10ab5ec6
 +
 +		ret = bch2_inode_rm(c, u.bi_inum);
 +		if (ret)
-+			bch_err(c, "error in fsck: error %i while deleting inode", ret);
++			bch_err(c, "error in fs gc: error %i "
++				"while deleting inode", ret);
 +		return ret;
 +	}
 +
@@ -42668,7 +42028,8 @@ index 000000000000..998c10ab5ec6
 +
 +		ret = bch2_inode_truncate(c, u.bi_inum, u.bi_size);
 +		if (ret) {
-+			bch_err(c, "error in fsck: error %i truncating inode", ret);
++			bch_err(c, "error in fs gc: error %i "
++				"truncating inode", ret);
 +			return ret;
 +		}
 +
@@ -42693,7 +42054,8 @@ index 000000000000..998c10ab5ec6
 +
 +		sectors = bch2_count_inode_sectors(trans, u.bi_inum);
 +		if (sectors < 0) {
-+			bch_err(c, "error in fsck: error %i recounting inode sectors",
++			bch_err(c, "error in fs gc: error %i "
++				"recounting inode sectors",
 +				(int) sectors);
 +			return sectors;
 +		}
@@ -42713,7 +42075,7 @@ index 000000000000..998c10ab5ec6
 +					BTREE_INSERT_NOFAIL|
 +					BTREE_INSERT_LAZY_RW);
 +		if (ret && ret != -EINTR)
-+			bch_err(c, "error in fsck: error %i "
++			bch_err(c, "error in fs gc: error %i "
 +				"updating inode", ret);
 +	}
 +fsck_err:
@@ -42784,7 +42146,7 @@ index 000000000000..998c10ab5ec6
 +	bch2_trans_exit(&trans);
 +
 +	if (ret2)
-+		bch_err(c, "error in fsck: btree error %i while walking inodes", ret2);
++		bch_err(c, "error in fs gc: btree error %i while walking inodes", ret2);
 +
 +	return ret ?: ret2;
 +}
@@ -42825,44 +42187,22 @@ index 000000000000..998c10ab5ec6
 +	return ret;
 +}
 +
-+/*
-+ * Checks for inconsistencies that shouldn't happen, unless we have a bug.
-+ * Doesn't fix them yet, mainly because they haven't yet been observed:
-+ */
-+int bch2_fsck_full(struct bch_fs *c)
-+{
-+	struct bch_inode_unpacked root_inode, lostfound_inode;
-+
-+	return  check_extents(c) ?:
-+		check_dirents(c) ?:
-+		check_xattrs(c) ?:
-+		check_root(c, &root_inode) ?:
-+		check_lostfound(c, &root_inode, &lostfound_inode) ?:
-+		check_directory_structure(c, &lostfound_inode) ?:
-+		check_inode_nlinks(c, &lostfound_inode);
-+}
-+
-+int bch2_fsck_inode_nlink(struct bch_fs *c)
-+{
-+	struct bch_inode_unpacked root_inode, lostfound_inode;
-+
-+	return  check_root(c, &root_inode) ?:
-+		check_lostfound(c, &root_inode, &lostfound_inode) ?:
-+		check_inode_nlinks(c, &lostfound_inode);
-+}
-+
-+int bch2_fsck_walk_inodes_only(struct bch_fs *c)
++noinline_for_stack
++static int check_inodes_fast(struct bch_fs *c)
 +{
 +	struct btree_trans trans;
 +	struct btree_iter *iter;
 +	struct bkey_s_c k;
 +	struct bkey_s_c_inode inode;
-+	int ret;
++	int ret = 0, ret2;
 +
 +	bch2_trans_init(&trans, c);
 +	bch2_trans_preload_iters(&trans);
 +
-+	for_each_btree_key(&trans, iter, BTREE_ID_INODES, POS_MIN, 0, k, ret) {
++	iter = bch2_trans_get_iter(&trans, BTREE_ID_INODES,
++				   POS_MIN, 0);
++
++	for_each_btree_key_continue(iter, 0, k) {
 +		if (k.k->type != KEY_TYPE_inode)
 +			continue;
 +
@@ -42878,22 +42218,87 @@ index 000000000000..998c10ab5ec6
 +				break;
 +		}
 +	}
-+	BUG_ON(ret == -EINTR);
 +
-+	return bch2_trans_exit(&trans) ?: ret;
++	ret2 = bch2_trans_exit(&trans);
++
++	return ret ?: ret2;
++}
++
++/*
++ * Checks for inconsistencies that shouldn't happen, unless we have a bug.
++ * Doesn't fix them yet, mainly because they haven't yet been observed:
++ */
++static int bch2_fsck_full(struct bch_fs *c)
++{
++	struct bch_inode_unpacked root_inode, lostfound_inode;
++	int ret;
++
++	bch_verbose(c, "starting fsck:");
++	ret =   check_extents(c) ?:
++		check_dirents(c) ?:
++		check_xattrs(c) ?:
++		check_root(c, &root_inode) ?:
++		check_lostfound(c, &root_inode, &lostfound_inode) ?:
++		check_directory_structure(c, &lostfound_inode) ?:
++		check_inode_nlinks(c, &lostfound_inode);
++
++	bch2_flush_fsck_errs(c);
++	bch_verbose(c, "fsck done");
++
++	return ret;
++}
++
++static int bch2_fsck_inode_nlink(struct bch_fs *c)
++{
++	struct bch_inode_unpacked root_inode, lostfound_inode;
++	int ret;
++
++	bch_verbose(c, "checking inode link counts:");
++	ret =   check_root(c, &root_inode) ?:
++		check_lostfound(c, &root_inode, &lostfound_inode) ?:
++		check_inode_nlinks(c, &lostfound_inode);
++
++	bch2_flush_fsck_errs(c);
++	bch_verbose(c, "done");
++
++	return ret;
++}
++
++static int bch2_fsck_walk_inodes_only(struct bch_fs *c)
++{
++	int ret;
++
++	bch_verbose(c, "walking inodes:");
++	ret = check_inodes_fast(c);
++
++	bch2_flush_fsck_errs(c);
++	bch_verbose(c, "done");
++
++	return ret;
++}
++
++int bch2_fsck(struct bch_fs *c)
++{
++	if (c->opts.fsck)
++		return bch2_fsck_full(c);
++
++	if (c->sb.clean)
++		return 0;
++
++	return c->sb.features & (1 << BCH_FEATURE_ATOMIC_NLINK)
++		? bch2_fsck_walk_inodes_only(c)
++		: bch2_fsck_inode_nlink(c);
 +}
 diff --git a/fs/bcachefs/fsck.h b/fs/bcachefs/fsck.h
 new file mode 100644
-index 000000000000..1f03079ce8d9
+index 000000000000..dc7ce68769fc
 --- /dev/null
 +++ b/fs/bcachefs/fsck.h
-@@ -0,0 +1,8 @@
+@@ -0,0 +1,6 @@
 +#ifndef _BCACHEFS_FSCK_H
 +#define _BCACHEFS_FSCK_H
 +
-+int bch2_fsck_full(struct bch_fs *);
-+int bch2_fsck_inode_nlink(struct bch_fs *);
-+int bch2_fsck_walk_inodes_only(struct bch_fs *);
++int bch2_fsck(struct bch_fs *);
 +
 +#endif /* _BCACHEFS_FSCK_H */
 diff --git a/fs/bcachefs/inode.c b/fs/bcachefs/inode.c
@@ -43522,10 +42927,10 @@ index 000000000000..e7e8507d9285
 +#endif /* _BCACHEFS_INODE_H */
 diff --git a/fs/bcachefs/io.c b/fs/bcachefs/io.c
 new file mode 100644
-index 000000000000..5df690f9afe4
+index 000000000000..cc8a3c51a4bb
 --- /dev/null
 +++ b/fs/bcachefs/io.c
-@@ -0,0 +1,1928 @@
+@@ -0,0 +1,1927 @@
 +/*
 + * Some low level IO code, and hacks for various block layer limitations
 + *
@@ -44836,7 +44241,7 @@ index 000000000000..5df690f9afe4
 +retry:
 +	for_each_btree_key(&trans, iter, BTREE_ID_EXTENTS,
 +			   POS(inode, bvec_iter.bi_sector),
-+			   BTREE_ITER_SLOTS, k, ret) {
++			   BTREE_ITER_SLOTS, k) {
 +		BKEY_PADDED(k) tmp;
 +		unsigned bytes;
 +
@@ -44867,8 +44272,8 @@ index 000000000000..5df690f9afe4
 +	 * If we get here, it better have been because there was an error
 +	 * reading a btree node
 +	 */
-+	BUG_ON(!ret);
-+	__bcache_io_error(c, "btree IO error: %i", ret);
++	BUG_ON(!btree_iter_err(iter));
++	__bcache_io_error(c, "btree IO error");
 +err:
 +	rbio->bio.bi_status = BLK_STS_IOERR;
 +out:
@@ -45374,7 +44779,6 @@ index 000000000000..5df690f9afe4
 +	unsigned flags = BCH_READ_RETRY_IF_STALE|
 +		BCH_READ_MAY_PROMOTE|
 +		BCH_READ_USER_MAPPED;
-+	int ret;
 +
 +	bch2_trans_init(&trans, c);
 +
@@ -45387,7 +44791,7 @@ index 000000000000..5df690f9afe4
 +
 +	for_each_btree_key(&trans, iter, BTREE_ID_EXTENTS,
 +			   POS(inode, rbio->bio.bi_iter.bi_sector),
-+			   BTREE_ITER_SLOTS, k, ret) {
++			   BTREE_ITER_SLOTS, k) {
 +		BKEY_PADDED(k) tmp;
 +		unsigned bytes;
 +
@@ -45419,8 +44823,8 @@ index 000000000000..5df690f9afe4
 +	 * If we get here, it better have been because there was an error
 +	 * reading a btree node
 +	 */
-+	BUG_ON(!ret);
-+	bcache_io_error(c, &rbio->bio, "btree IO error: %i", ret);
++	BUG_ON(!btree_iter_err(iter));
++	bcache_io_error(c, &rbio->bio, "btree IO error");
 +
 +	bch2_trans_exit(&trans);
 +	bch2_rbio_done(rbio);
@@ -45749,10 +45153,10 @@ index 000000000000..8ec846cc996f
 +#endif /* _BCACHEFS_IO_TYPES_H */
 diff --git a/fs/bcachefs/journal.c b/fs/bcachefs/journal.c
 new file mode 100644
-index 000000000000..3ec80437504e
+index 000000000000..d092dc0be543
 --- /dev/null
 +++ b/fs/bcachefs/journal.c
-@@ -0,0 +1,1254 @@
+@@ -0,0 +1,1268 @@
 +/*
 + * bcachefs journalling code, for btree insertions
 + *
@@ -45808,6 +45212,19 @@ index 000000000000..3ec80437504e
 +	memset(buf->data, 0, sizeof(*buf->data));
 +	buf->data->seq	= cpu_to_le64(journal_cur_seq(j));
 +	buf->data->u64s	= 0;
++}
++
++static inline bool journal_entry_empty(struct jset *j)
++{
++	struct jset_entry *i;
++
++	if (j->seq != j->last_seq)
++		return false;
++
++	vstruct_for_each(j, i)
++		if (i->type || i->u64s)
++			return false;
++	return true;
 +}
 +
 +void bch2_journal_halt(struct journal *j)
@@ -46743,9 +46160,9 @@ index 000000000000..3ec80437504e
 +	u64 last_seq = cur_seq, nr, seq;
 +
 +	if (!list_empty(journal_entries))
-+		last_seq = le64_to_cpu(list_first_entry(journal_entries,
-+							struct journal_replay,
-+							list)->j.seq);
++		last_seq = le64_to_cpu(list_last_entry(journal_entries,
++						       struct journal_replay,
++						       list)->j.last_seq);
 +
 +	nr = cur_seq - last_seq;
 +
@@ -46758,8 +46175,6 @@ index 000000000000..3ec80437504e
 +		}
 +	}
 +
-+	j->replay_journal_seq	= last_seq;
-+	j->replay_journal_seq_end = cur_seq;
 +	j->last_seq_ondisk	= last_seq;
 +	j->pin.front		= last_seq;
 +	j->pin.back		= cur_seq;
@@ -46768,7 +46183,7 @@ index 000000000000..3ec80437504e
 +	fifo_for_each_entry_ptr(p, &j->pin, seq) {
 +		INIT_LIST_HEAD(&p->list);
 +		INIT_LIST_HEAD(&p->flushed);
-+		atomic_set(&p->count, 1);
++		atomic_set(&p->count, 0);
 +		p->devs.nr = 0;
 +	}
 +
@@ -46777,7 +46192,10 @@ index 000000000000..3ec80437504e
 +
 +		BUG_ON(seq < last_seq || seq >= cur_seq);
 +
-+		journal_seq_pin(j, seq)->devs = i->devs;
++		p = journal_seq_pin(j, seq);
++
++		atomic_set(&p->count, 1);
++		p->devs = i->devs;
 +	}
 +
 +	spin_lock(&j->lock);
@@ -47009,10 +46427,10 @@ index 000000000000..3ec80437504e
 +}
 diff --git a/fs/bcachefs/journal.h b/fs/bcachefs/journal.h
 new file mode 100644
-index 000000000000..2e7bc8e4553c
+index 000000000000..7b1523ef4d02
 --- /dev/null
 +++ b/fs/bcachefs/journal.h
-@@ -0,0 +1,494 @@
+@@ -0,0 +1,481 @@
 +#ifndef _BCACHEFS_JOURNAL_H
 +#define _BCACHEFS_JOURNAL_H
 +
@@ -47241,19 +46659,6 @@ index 000000000000..2e7bc8e4553c
 +{
 +	bch2_journal_add_entry(j, res, BCH_JSET_ENTRY_btree_keys,
 +			       id, 0, k, k->k.u64s);
-+}
-+
-+static inline bool journal_entry_empty(struct jset *j)
-+{
-+	struct jset_entry *i;
-+
-+	if (j->seq != j->last_seq)
-+		return false;
-+
-+	vstruct_for_each(j, i)
-+		if (i->type == BCH_JSET_ENTRY_btree_keys && i->u64s)
-+			return false;
-+	return true;
 +}
 +
 +void __bch2_journal_buf_put(struct journal *, bool);
@@ -47509,12 +46914,15 @@ index 000000000000..2e7bc8e4553c
 +#endif /* _BCACHEFS_JOURNAL_H */
 diff --git a/fs/bcachefs/journal_io.c b/fs/bcachefs/journal_io.c
 new file mode 100644
-index 000000000000..56950049e892
+index 000000000000..af0701deebc7
 --- /dev/null
 +++ b/fs/bcachefs/journal_io.c
-@@ -0,0 +1,1124 @@
+@@ -0,0 +1,1255 @@
 +#include "bcachefs.h"
++#include "alloc_background.h"
 +#include "alloc_foreground.h"
++#include "btree_gc.h"
++#include "btree_update.h"
 +#include "buckets.h"
 +#include "checksum.h"
 +#include "error.h"
@@ -48154,6 +47562,18 @@ index 000000000000..56950049e892
 +	goto out;
 +}
 +
++void bch2_journal_entries_free(struct list_head *list)
++{
++
++	while (!list_empty(list)) {
++		struct journal_replay *i =
++			list_first_entry(list, struct journal_replay, list);
++		list_del(&i->list);
++		kvpfree(i, offsetof(struct journal_replay, j) +
++			vstruct_bytes(&i->j));
++	}
++}
++
 +int bch2_journal_read(struct bch_fs *c, struct list_head *list)
 +{
 +	struct journal_list jlist;
@@ -48230,6 +47650,121 @@ index 000000000000..56950049e892
 +			 keys, entries, le64_to_cpu(i->j.seq));
 +	}
 +fsck_err:
++	return ret;
++}
++
++/* journal replay: */
++
++static int bch2_extent_replay_key(struct bch_fs *c, struct bkey_i *k)
++{
++	struct btree_trans trans;
++	struct btree_iter *iter;
++	/*
++	 * We might cause compressed extents to be
++	 * split, so we need to pass in a
++	 * disk_reservation:
++	 */
++	struct disk_reservation disk_res =
++		bch2_disk_reservation_init(c, 0);
++	BKEY_PADDED(k) split;
++	int ret;
++
++	bch2_trans_init(&trans, c);
++
++	iter = bch2_trans_get_iter(&trans, BTREE_ID_EXTENTS,
++				   bkey_start_pos(&k->k),
++				   BTREE_ITER_INTENT);
++	do {
++		ret = bch2_btree_iter_traverse(iter);
++		if (ret)
++			break;
++
++		bkey_copy(&split.k, k);
++		bch2_cut_front(iter->pos, &split.k);
++		bch2_extent_trim_atomic(&split.k, iter);
++
++		ret = bch2_disk_reservation_add(c, &disk_res,
++				split.k.k.size *
++				bch2_bkey_nr_dirty_ptrs(bkey_i_to_s_c(&split.k)),
++				BCH_DISK_RESERVATION_NOFAIL);
++		BUG_ON(ret);
++
++		bch2_trans_update(&trans, BTREE_INSERT_ENTRY(iter, &split.k));
++		ret = bch2_trans_commit(&trans, &disk_res, NULL,
++					BTREE_INSERT_ATOMIC|
++					BTREE_INSERT_NOFAIL|
++					BTREE_INSERT_LAZY_RW|
++					BTREE_INSERT_JOURNAL_REPLAY);
++	} while ((!ret || ret == -EINTR) &&
++		 bkey_cmp(k->k.p, iter->pos));
++
++	bch2_disk_reservation_put(c, &disk_res);
++
++	/*
++	 * This isn't strictly correct - we should only be relying on the btree
++	 * node lock for synchronization with gc when we've got a write lock
++	 * held.
++	 *
++	 * but - there are other correctness issues if btree gc were to run
++	 * before journal replay finishes
++	 */
++	BUG_ON(c->gc_pos.phase);
++
++	bch2_mark_key(c, bkey_i_to_s_c(k), false, -((s64) k->k.size),
++		      NULL, 0, 0);
++	bch2_trans_exit(&trans);
++
++	return ret;
++}
++
++int bch2_journal_replay(struct bch_fs *c, struct list_head *list)
++{
++	struct journal *j = &c->journal;
++	struct bkey_i *k, *_n;
++	struct jset_entry *entry;
++	struct journal_replay *i, *n;
++	int ret = 0;
++
++	list_for_each_entry_safe(i, n, list, list) {
++		j->replay_journal_seq = le64_to_cpu(i->j.seq);
++
++		for_each_jset_key(k, _n, entry, &i->j) {
++			switch (entry->btree_id) {
++			case BTREE_ID_ALLOC:
++				ret = bch2_alloc_replay_key(c, k);
++				break;
++			case BTREE_ID_EXTENTS:
++				ret = bch2_extent_replay_key(c, k);
++				break;
++			default:
++				ret = bch2_btree_insert(c, entry->btree_id, k,
++						NULL, NULL,
++						BTREE_INSERT_NOFAIL|
++						BTREE_INSERT_LAZY_RW|
++						BTREE_INSERT_JOURNAL_REPLAY|
++						BTREE_INSERT_NOMARK);
++				break;
++			}
++
++			if (ret) {
++				bch_err(c, "journal replay: error %d while replaying key",
++					ret);
++				goto err;
++			}
++
++			cond_resched();
++		}
++
++		bch2_journal_pin_put(j, j->replay_journal_seq);
++	}
++
++	j->replay_journal_seq = 0;
++
++	bch2_journal_set_replay_done(j);
++	bch2_journal_flush_all_pins(j);
++	ret = bch2_journal_error(j);
++err:
++	bch2_journal_entries_free(list);
 +	return ret;
 +}
 +
@@ -48462,6 +47997,7 @@ index 000000000000..56950049e892
 +	return;
 +err:
 +	bch2_fatal_error(c);
++	bch2_journal_halt(j);
 +	spin_lock(&j->lock);
 +	goto out;
 +}
@@ -48507,8 +48043,7 @@ index 000000000000..56950049e892
 +	j->write_start_time = local_clock();
 +
 +	start	= vstruct_last(jset);
-+	end	= bch2_journal_super_entries_add_common(c, start,
-+						le64_to_cpu(jset->seq));
++	end	= bch2_journal_super_entries_add_common(c, start);
 +	u64s	= (u64 *) end - (u64 *) start;
 +	BUG_ON(u64s > j->entry_u64s_reserved);
 +
@@ -48573,6 +48108,7 @@ index 000000000000..56950049e892
 +	spin_unlock(&j->lock);
 +
 +	if (ret) {
++		bch2_journal_halt(j);
 +		bch_err(c, "Unable to allocate journal write");
 +		bch2_fatal_error(c);
 +		continue_at(cl, journal_write_done, system_highpri_wq);
@@ -48639,10 +48175,10 @@ index 000000000000..56950049e892
 +}
 diff --git a/fs/bcachefs/journal_io.h b/fs/bcachefs/journal_io.h
 new file mode 100644
-index 000000000000..1dc193c390a9
+index 000000000000..74dd57af6265
 --- /dev/null
 +++ b/fs/bcachefs/journal_io.h
-@@ -0,0 +1,41 @@
+@@ -0,0 +1,43 @@
 +#ifndef _BCACHEFS_JOURNAL_IO_H
 +#define _BCACHEFS_JOURNAL_IO_H
 +
@@ -48680,6 +48216,8 @@ index 000000000000..1dc193c390a9
 +		vstruct_for_each_safe(entry, k, _n)
 +
 +int bch2_journal_read(struct bch_fs *, struct list_head *);
++void bch2_journal_entries_free(struct list_head *);
++int bch2_journal_replay(struct bch_fs *, struct list_head *);
 +
 +void bch2_journal_write(struct closure *);
 +
@@ -49379,7 +48917,7 @@ index 000000000000..7ecfc8143597
 +#endif /* _BCACHEFS_JOURNAL_RECLAIM_H */
 diff --git a/fs/bcachefs/journal_seq_blacklist.c b/fs/bcachefs/journal_seq_blacklist.c
 new file mode 100644
-index 000000000000..93ee5e889389
+index 000000000000..2b71d066332d
 --- /dev/null
 +++ b/fs/bcachefs/journal_seq_blacklist.c
 @@ -0,0 +1,317 @@
@@ -49520,7 +49058,7 @@ index 000000000000..93ee5e889389
 +	const struct journal_seq_blacklist_table_entry *l = _l;
 +	const struct journal_seq_blacklist_table_entry *r = _r;
 +
-+	return cmp_int(l->start, r->start);
++	return (l->start > r->start) - (l->start < r->start);
 +}
 +
 +bool bch2_journal_seq_is_blacklisted(struct bch_fs *c, u64 seq,
@@ -49720,10 +49258,10 @@ index 000000000000..b1ad591dda09
 +#endif /* _BCACHEFS_JOURNAL_SEQ_BLACKLIST_H */
 diff --git a/fs/bcachefs/journal_types.h b/fs/bcachefs/journal_types.h
 new file mode 100644
-index 000000000000..dec9dd2a561a
+index 000000000000..922fb5ca460e
 --- /dev/null
 +++ b/fs/bcachefs/journal_types.h
-@@ -0,0 +1,275 @@
+@@ -0,0 +1,274 @@
 +#ifndef _BCACHEFS_JOURNAL_TYPES_H
 +#define _BCACHEFS_JOURNAL_TYPES_H
 +
@@ -49928,7 +49466,6 @@ index 000000000000..dec9dd2a561a
 +	}			pin;
 +
 +	u64			replay_journal_seq;
-+	u64			replay_journal_seq_end;
 +
 +	struct write_point	wp;
 +	spinlock_t		err_lock;
@@ -50471,10 +50008,10 @@ index 000000000000..9e809f972844
 +}
 diff --git a/fs/bcachefs/migrate.c b/fs/bcachefs/migrate.c
 new file mode 100644
-index 000000000000..822b3fce09b4
+index 000000000000..88761d34dc65
 --- /dev/null
 +++ b/fs/bcachefs/migrate.c
-@@ -0,0 +1,192 @@
+@@ -0,0 +1,189 @@
 +/*
 + * Code for moving data off a device.
 + */
@@ -50519,7 +50056,6 @@ index 000000000000..822b3fce09b4
 +	int ret = 0;
 +
 +	bch2_trans_init(&trans, c);
-+	bch2_trans_preload_iters(&trans);
 +
 +	iter = bch2_trans_get_iter(&trans, BTREE_ID_EXTENTS,
 +				   POS_MIN, BTREE_ITER_PREFETCH);
@@ -50572,8 +50108,6 @@ index 000000000000..822b3fce09b4
 +		if (ret)
 +			break;
 +	}
-+
-+	BUG_ON(ret == -EINTR);
 +
 +	bch2_trans_exit(&trans);
 +
@@ -50681,10 +50215,10 @@ index 000000000000..de2faab24e11
 +#endif /* _BCACHEFS_MIGRATE_H */
 diff --git a/fs/bcachefs/move.c b/fs/bcachefs/move.c
 new file mode 100644
-index 000000000000..946e616228c9
+index 000000000000..1e7448ba7529
 --- /dev/null
 +++ b/fs/bcachefs/move.c
-@@ -0,0 +1,838 @@
+@@ -0,0 +1,836 @@
 +
 +#include "bcachefs.h"
 +#include "alloc_foreground.h"
@@ -50749,7 +50283,6 @@ index 000000000000..946e616228c9
 +	int ret = 0;
 +
 +	bch2_trans_init(&trans, c);
-+	bch2_trans_preload_iters(&trans);
 +
 +	iter = bch2_trans_get_iter(&trans, BTREE_ID_EXTENTS,
 +				   bkey_start_pos(&bch2_keylist_front(keys)->k),
@@ -50872,7 +50405,6 @@ index 000000000000..946e616228c9
 +	}
 +out:
 +	bch2_trans_exit(&trans);
-+	BUG_ON(ret == -EINTR);
 +	return ret;
 +}
 +
@@ -51320,7 +50852,7 @@ index 000000000000..946e616228c9
 +	bch2_replicas_gc_start(c, (1 << BCH_DATA_USER)|(1 << BCH_DATA_CACHED));
 +
 +	for_each_btree_key(&trans, iter, BTREE_ID_EXTENTS, POS_MIN,
-+			   BTREE_ITER_PREFETCH, k, ret) {
++			   BTREE_ITER_PREFETCH, k) {
 +		ret = bch2_mark_bkey_replicas(c, k);
 +		if (ret)
 +			break;
@@ -51614,7 +51146,7 @@ index 000000000000..7703ce43dce9
 +#endif /* _BCACHEFS_MOVE_TYPES_H */
 diff --git a/fs/bcachefs/movinggc.c b/fs/bcachefs/movinggc.c
 new file mode 100644
-index 000000000000..c6a4f5b9af0e
+index 000000000000..12d33119149b
 --- /dev/null
 +++ b/fs/bcachefs/movinggc.c
 @@ -0,0 +1,310 @@
@@ -51673,7 +51205,7 @@ index 000000000000..c6a4f5b9af0e
 +				   struct copygc_heap_entry l,
 +				   struct copygc_heap_entry r)
 +{
-+	return cmp_int(l.sectors, r.sectors);
++	return (l.sectors > r.sectors) - (l.sectors < r.sectors);
 +}
 +
 +static int bucket_offset_cmp(const void *_l, const void *_r, size_t size)
@@ -51681,7 +51213,7 @@ index 000000000000..c6a4f5b9af0e
 +	const struct copygc_heap_entry *l = _l;
 +	const struct copygc_heap_entry *r = _r;
 +
-+	return cmp_int(l->offset, r->offset);
++	return (l->offset > r->offset) - (l->offset < r->offset);
 +}
 +
 +static bool __copygc_pred(struct bch_dev *ca,
@@ -51735,7 +51267,7 @@ index 000000000000..c6a4f5b9af0e
 +
 +	spin_lock(&ca->freelist_lock);
 +	ret = fifo_full(&ca->free[RESERVE_MOVINGGC]) ||
-+		ca->allocator_state != ALLOCATOR_RUNNING;
++		ca->allocator_blocked;
 +	spin_unlock(&ca->freelist_lock);
 +
 +	return ret;
@@ -52390,10 +51922,10 @@ index 000000000000..7bf0f84cb692
 +}
 diff --git a/fs/bcachefs/opts.h b/fs/bcachefs/opts.h
 new file mode 100644
-index 000000000000..a95e1447e85d
+index 000000000000..a20a09ee570e
 --- /dev/null
 +++ b/fs/bcachefs/opts.h
-@@ -0,0 +1,403 @@
+@@ -0,0 +1,408 @@
 +#ifndef _BCACHEFS_OPTS_H
 +#define _BCACHEFS_OPTS_H
 +
@@ -52628,11 +52160,16 @@ index 000000000000..a95e1447e85d
 +	  NO_SB_OPT,			false,				\
 +	  NULL,		"Super read only mode - no writes at all will be issued,\n"\
 +			"even if we have to replay the journal")	\
++	x(noreplay,			u8,				\
++	  OPT_MOUNT,							\
++	  OPT_BOOL(),							\
++	  NO_SB_OPT,			false,				\
++	  NULL,		"Don't replay the journal (only for internal tools)")\
 +	x(norecovery,			u8,				\
 +	  OPT_MOUNT,							\
 +	  OPT_BOOL(),							\
 +	  NO_SB_OPT,			false,				\
-+	  NULL,		"Don't replay the journal")			\
++	  NULL,		NULL)						\
 +	x(noexcl,			u8,				\
 +	  OPT_MOUNT,							\
 +	  OPT_BOOL(),							\
@@ -52799,7 +52336,7 @@ index 000000000000..a95e1447e85d
 +#endif /* _BCACHEFS_OPTS_H */
 diff --git a/fs/bcachefs/quota.c b/fs/bcachefs/quota.c
 new file mode 100644
-index 000000000000..2b0edb6826d1
+index 000000000000..5e7df0bb4ca2
 --- /dev/null
 +++ b/fs/bcachefs/quota.c
 @@ -0,0 +1,781 @@
@@ -53168,7 +52705,7 @@ index 000000000000..2b0edb6826d1
 +	bch2_trans_init(&trans, c);
 +
 +	for_each_btree_key(&trans, iter, BTREE_ID_QUOTAS, POS(type, 0),
-+			   BTREE_ITER_PREFETCH, k, ret) {
++			   BTREE_ITER_PREFETCH, k) {
 +		if (k.k->p.inode != type)
 +			break;
 +
@@ -53240,7 +52777,7 @@ index 000000000000..2b0edb6826d1
 +	bch2_trans_init(&trans, c);
 +
 +	for_each_btree_key(&trans, iter, BTREE_ID_INODES, POS_MIN,
-+			   BTREE_ITER_PREFETCH, k, ret) {
++			   BTREE_ITER_PREFETCH, k) {
 +		switch (k.k->type) {
 +		case KEY_TYPE_inode:
 +			ret = bch2_inode_unpack(bkey_s_c_to_inode(k), &u);
@@ -54121,10 +53658,10 @@ index 000000000000..aaf5b9ca133c
 +#endif /* _BCACHEFS_REBALANCE_TYPES_H */
 diff --git a/fs/bcachefs/recovery.c b/fs/bcachefs/recovery.c
 new file mode 100644
-index 000000000000..70fd9a27ae3d
+index 000000000000..a5651a9cadcf
 --- /dev/null
 +++ b/fs/bcachefs/recovery.c
-@@ -0,0 +1,1006 @@
+@@ -0,0 +1,626 @@
 +
 +#include "bcachefs.h"
 +#include "alloc_background.h"
@@ -54138,337 +53675,92 @@ index 000000000000..70fd9a27ae3d
 +#include "error.h"
 +#include "fsck.h"
 +#include "journal_io.h"
-+#include "journal_reclaim.h"
 +#include "journal_seq_blacklist.h"
 +#include "quota.h"
 +#include "recovery.h"
 +#include "replicas.h"
 +#include "super-io.h"
 +
-+#include <linux/sort.h>
 +#include <linux/stat.h>
 +
 +#define QSTR(n) { { { .len = strlen(n) } }, .name = n }
 +
-+/* sort and dedup all keys in the journal: */
-+
-+static void journal_entries_free(struct list_head *list)
++static struct bkey_i *btree_root_find(struct bch_fs *c,
++				      struct bch_sb_field_clean *clean,
++				      struct jset *j,
++				      enum btree_id id, unsigned *level)
 +{
++	struct bkey_i *k;
++	struct jset_entry *entry, *start, *end;
 +
-+	while (!list_empty(list)) {
-+		struct journal_replay *i =
-+			list_first_entry(list, struct journal_replay, list);
-+		list_del(&i->list);
-+		kvpfree(i, offsetof(struct journal_replay, j) +
-+			vstruct_bytes(&i->j));
-+	}
-+}
-+
-+static int journal_sort_key_cmp(const void *_l, const void *_r)
-+{
-+	const struct journal_key *l = _l;
-+	const struct journal_key *r = _r;
-+
-+	return cmp_int(l->btree_id, r->btree_id) ?:
-+		bkey_cmp(l->pos, r->pos) ?:
-+		cmp_int(l->journal_seq, r->journal_seq) ?:
-+		cmp_int(l->journal_offset, r->journal_offset);
-+}
-+
-+static int journal_sort_seq_cmp(const void *_l, const void *_r)
-+{
-+	const struct journal_key *l = _l;
-+	const struct journal_key *r = _r;
-+
-+	return cmp_int(l->journal_seq, r->journal_seq) ?:
-+		cmp_int(l->btree_id, r->btree_id) ?:
-+		bkey_cmp(l->pos, r->pos);
-+}
-+
-+static void journal_keys_sift(struct journal_keys *keys, struct journal_key *i)
-+{
-+	while (i + 1 < keys->d + keys->nr &&
-+	       journal_sort_key_cmp(i, i + 1) > 0) {
-+		swap(i[0], i[1]);
-+		i++;
-+	}
-+}
-+
-+static void journal_keys_free(struct journal_keys *keys)
-+{
-+	struct journal_key *i;
-+
-+	for_each_journal_key(*keys, i)
-+		if (i->allocated)
-+			kfree(i->k);
-+	kvfree(keys->d);
-+	keys->d = NULL;
-+	keys->nr = 0;
-+}
-+
-+static struct journal_keys journal_keys_sort(struct list_head *journal_entries)
-+{
-+	struct journal_replay *p;
-+	struct jset_entry *entry;
-+	struct bkey_i *k, *_n;
-+	struct journal_keys keys = { NULL }, keys_deduped = { NULL };
-+	struct journal_key *i;
-+	size_t nr_keys = 0;
-+
-+	list_for_each_entry(p, journal_entries, list)
-+		for_each_jset_key(k, _n, entry, &p->j)
-+			nr_keys++;
-+
-+	keys.journal_seq_base = keys_deduped.journal_seq_base =
-+		le64_to_cpu(list_first_entry(journal_entries,
-+					     struct journal_replay,
-+					     list)->j.seq);
-+
-+	keys.d = kvmalloc(sizeof(keys.d[0]) * nr_keys, GFP_KERNEL);
-+	if (!keys.d)
-+		goto err;
-+
-+	keys_deduped.d = kvmalloc(sizeof(keys.d[0]) * nr_keys * 2, GFP_KERNEL);
-+	if (!keys_deduped.d)
-+		goto err;
-+
-+	list_for_each_entry(p, journal_entries, list)
-+		for_each_jset_key(k, _n, entry, &p->j)
-+			keys.d[keys.nr++] = (struct journal_key) {
-+				.btree_id	= entry->btree_id,
-+				.pos		= bkey_start_pos(&k->k),
-+				.k		= k,
-+				.journal_seq	= le64_to_cpu(p->j.seq) -
-+					keys.journal_seq_base,
-+				.journal_offset	= k->_data - p->j._data,
-+			};
-+
-+	sort(keys.d, nr_keys, sizeof(keys.d[0]), journal_sort_key_cmp, NULL);
-+
-+	i = keys.d;
-+	while (i < keys.d + keys.nr) {
-+		if (i + 1 < keys.d + keys.nr &&
-+		    i[0].btree_id == i[1].btree_id &&
-+		    !bkey_cmp(i[0].pos, i[1].pos)) {
-+			if (bkey_cmp(i[0].k->k.p, i[1].k->k.p) <= 0) {
-+				i++;
-+			} else {
-+				bch2_cut_front(i[1].k->k.p, i[0].k);
-+				i[0].pos = i[1].k->k.p;
-+				journal_keys_sift(&keys, i);
-+			}
-+			continue;
-+		}
-+
-+		if (i + 1 < keys.d + keys.nr &&
-+		    i[0].btree_id == i[1].btree_id &&
-+		    bkey_cmp(i[0].k->k.p, bkey_start_pos(&i[1].k->k)) > 0) {
-+			if ((cmp_int(i[0].journal_seq, i[1].journal_seq) ?:
-+			     cmp_int(i[0].journal_offset, i[1].journal_offset)) < 0) {
-+				if (bkey_cmp(i[0].k->k.p, i[1].k->k.p) <= 0) {
-+					bch2_cut_back(bkey_start_pos(&i[1].k->k), &i[0].k->k);
-+				} else {
-+					struct bkey_i *split =
-+						kmalloc(bkey_bytes(i[0].k), GFP_KERNEL);
-+
-+					if (!split)
-+						goto err;
-+
-+					bkey_copy(split, i[0].k);
-+					bch2_cut_back(bkey_start_pos(&i[1].k->k), &split->k);
-+					keys_deduped.d[keys_deduped.nr++] = (struct journal_key) {
-+						.btree_id	= i[0].btree_id,
-+						.allocated	= true,
-+						.pos		= bkey_start_pos(&split->k),
-+						.k		= split,
-+						.journal_seq	= i[0].journal_seq,
-+						.journal_offset	= i[0].journal_offset,
-+					};
-+
-+					bch2_cut_front(i[1].k->k.p, i[0].k);
-+					i[0].pos = i[1].k->k.p;
-+					journal_keys_sift(&keys, i);
-+					continue;
-+				}
-+			} else {
-+				if (bkey_cmp(i[0].k->k.p, i[1].k->k.p) >= 0) {
-+					i[1] = i[0];
-+					i++;
-+					continue;
-+				} else {
-+					bch2_cut_front(i[0].k->k.p, i[1].k);
-+					i[1].pos = i[0].k->k.p;
-+					journal_keys_sift(&keys, i + 1);
-+					continue;
-+				}
-+			}
-+		}
-+
-+		keys_deduped.d[keys_deduped.nr++] = *i++;
-+	}
-+
-+	kvfree(keys.d);
-+	return keys_deduped;
-+err:
-+	journal_keys_free(&keys_deduped);
-+	kvfree(keys.d);
-+	return (struct journal_keys) { NULL };
-+}
-+
-+/* journal replay: */
-+
-+static void replay_now_at(struct journal *j, u64 seq)
-+{
-+	BUG_ON(seq < j->replay_journal_seq);
-+	BUG_ON(seq > j->replay_journal_seq_end);
-+
-+	while (j->replay_journal_seq < seq)
-+		bch2_journal_pin_put(j, j->replay_journal_seq++);
-+}
-+
-+static int bch2_extent_replay_key(struct bch_fs *c, struct bkey_i *k)
-+{
-+	struct btree_trans trans;
-+	struct btree_iter *iter, *split_iter;
-+	/*
-+	 * We might cause compressed extents to be split, so we need to pass in
-+	 * a disk_reservation:
-+	 */
-+	struct disk_reservation disk_res =
-+		bch2_disk_reservation_init(c, 0);
-+	struct bkey_i *split;
-+	bool split_compressed = false;
-+	int ret;
-+
-+	bch2_trans_init(&trans, c);
-+	bch2_trans_preload_iters(&trans);
-+retry:
-+	bch2_trans_begin(&trans);
-+
-+	iter = bch2_trans_get_iter(&trans, BTREE_ID_EXTENTS,
-+				   bkey_start_pos(&k->k),
-+				   BTREE_ITER_INTENT);
-+
-+	do {
-+		ret = bch2_btree_iter_traverse(iter);
-+		if (ret)
-+			goto err;
-+
-+		split_iter = bch2_trans_copy_iter(&trans, iter);
-+		ret = PTR_ERR_OR_ZERO(split_iter);
-+		if (ret)
-+			goto err;
-+
-+		split = bch2_trans_kmalloc(&trans, bkey_bytes(&k->k));
-+		ret = PTR_ERR_OR_ZERO(split);
-+		if (ret)
-+			goto err;
-+
-+		if (!split_compressed &&
-+		    bch2_extent_is_compressed(bkey_i_to_s_c(k)) &&
-+		    !bch2_extent_is_atomic(k, split_iter)) {
-+			ret = bch2_disk_reservation_add(c, &disk_res,
-+					k->k.size *
-+					bch2_bkey_nr_dirty_ptrs(bkey_i_to_s_c(k)),
-+					BCH_DISK_RESERVATION_NOFAIL);
-+			BUG_ON(ret);
-+
-+			split_compressed = true;
-+		}
-+
-+		bkey_copy(split, k);
-+		bch2_cut_front(split_iter->pos, split);
-+		bch2_extent_trim_atomic(split, split_iter);
-+
-+		bch2_trans_update(&trans, BTREE_INSERT_ENTRY(split_iter, split));
-+		bch2_btree_iter_set_pos(iter, split->k.p);
-+	} while (bkey_cmp(iter->pos, k->k.p) < 0);
-+
-+	if (split_compressed) {
-+		memset(&trans.fs_usage_deltas.fs_usage, 0,
-+		       sizeof(trans.fs_usage_deltas.fs_usage));
-+		trans.fs_usage_deltas.top = trans.fs_usage_deltas.d;
-+
-+		ret = bch2_trans_mark_key(&trans, bkey_i_to_s_c(k), false,
-+					  -((s64) k->k.size),
-+					  &trans.fs_usage_deltas) ?:
-+		      bch2_trans_commit(&trans, &disk_res, NULL,
-+					BTREE_INSERT_ATOMIC|
-+					BTREE_INSERT_NOFAIL|
-+					BTREE_INSERT_LAZY_RW|
-+					BTREE_INSERT_NOMARK_OVERWRITES|
-+					BTREE_INSERT_NO_CLEAR_REPLICAS);
++	if (clean) {
++		start = clean->start;
++		end = vstruct_end(&clean->field);
 +	} else {
-+		ret = bch2_trans_commit(&trans, &disk_res, NULL,
-+					BTREE_INSERT_ATOMIC|
-+					BTREE_INSERT_NOFAIL|
-+					BTREE_INSERT_LAZY_RW|
-+					BTREE_INSERT_JOURNAL_REPLAY|
-+					BTREE_INSERT_NOMARK);
++		start = j->start;
++		end = vstruct_last(j);
 +	}
 +
-+	if (ret)
-+		goto err;
-+err:
-+	if (ret == -EINTR)
-+		goto retry;
++	for (entry = start; entry < end; entry = vstruct_next(entry))
++		if (entry->type == BCH_JSET_ENTRY_btree_root &&
++		    entry->btree_id == id)
++			goto found;
 +
-+	bch2_disk_reservation_put(c, &disk_res);
++	return NULL;
++found:
++	if (!entry->u64s)
++		return ERR_PTR(-EINVAL);
 +
-+	return bch2_trans_exit(&trans) ?: ret;
++	k = entry->start;
++	*level = entry->level;
++	return k;
 +}
 +
-+static int bch2_journal_replay(struct bch_fs *c,
-+			       struct journal_keys keys)
++static int verify_superblock_clean(struct bch_fs *c,
++				   struct bch_sb_field_clean **cleanp,
++				   struct jset *j)
 +{
-+	struct journal *j = &c->journal;
-+	struct journal_key *i;
-+	int ret;
++	unsigned i;
++	struct bch_sb_field_clean *clean = *cleanp;
++	int ret = 0;
 +
-+	sort(keys.d, keys.nr, sizeof(keys.d[0]), journal_sort_seq_cmp, NULL);
++	if (!clean || !j)
++		return 0;
 +
-+	for_each_journal_key(keys, i) {
-+		replay_now_at(j, keys.journal_seq_base + i->journal_seq);
-+
-+		switch (i->btree_id) {
-+		case BTREE_ID_ALLOC:
-+			ret = bch2_alloc_replay_key(c, i->k);
-+			break;
-+		case BTREE_ID_EXTENTS:
-+			ret = bch2_extent_replay_key(c, i->k);
-+			break;
-+		default:
-+			ret = bch2_btree_insert(c, i->btree_id, i->k,
-+						NULL, NULL,
-+						BTREE_INSERT_NOFAIL|
-+						BTREE_INSERT_LAZY_RW|
-+						BTREE_INSERT_JOURNAL_REPLAY|
-+						BTREE_INSERT_NOMARK);
-+			break;
-+		}
-+
-+		if (ret) {
-+			bch_err(c, "journal replay: error %d while replaying key",
-+				ret);
-+			return ret;
-+		}
-+
-+		cond_resched();
++	if (mustfix_fsck_err_on(j->seq != clean->journal_seq, c,
++			"superblock journal seq (%llu) doesn't match journal (%llu) after clean shutdown",
++			le64_to_cpu(clean->journal_seq),
++			le64_to_cpu(j->seq))) {
++		kfree(clean);
++		*cleanp = NULL;
++		return 0;
 +	}
 +
-+	replay_now_at(j, j->replay_journal_seq_end);
-+	j->replay_journal_seq = 0;
++	mustfix_fsck_err_on(j->read_clock != clean->read_clock, c,
++			"superblock read clock doesn't match journal after clean shutdown");
++	mustfix_fsck_err_on(j->write_clock != clean->write_clock, c,
++			"superblock read clock doesn't match journal after clean shutdown");
 +
-+	bch2_journal_set_replay_done(j);
-+	bch2_journal_flush_all_pins(j);
-+	return bch2_journal_error(j);
-+}
++	for (i = 0; i < BTREE_ID_NR; i++) {
++		struct bkey_i *k1, *k2;
++		unsigned l1 = 0, l2 = 0;
 +
-+static bool journal_empty(struct list_head *journal)
-+{
-+	return list_empty(journal) ||
-+		journal_entry_empty(&list_last_entry(journal,
-+					struct journal_replay, list)->j);
++		k1 = btree_root_find(c, clean, NULL, i, &l1);
++		k2 = btree_root_find(c, NULL, j, i, &l2);
++
++		if (!k1 && !k2)
++			continue;
++
++		mustfix_fsck_err_on(!k1 || !k2 ||
++				    IS_ERR(k1) ||
++				    IS_ERR(k2) ||
++				    k1->k.u64s != k2->k.u64s ||
++				    memcmp(k1, k2, bkey_bytes(k1)) ||
++				    l1 != l2, c,
++			"superblock btree root doesn't match journal after clean shutdown");
++	}
++fsck_err:
++	return ret;
 +}
 +
 +static int
@@ -54501,7 +53793,40 @@ index 000000000000..70fd9a27ae3d
 +	return ret;
 +}
 +
-+/* journal replay early: */
++static struct bch_sb_field_clean *read_superblock_clean(struct bch_fs *c)
++{
++	struct bch_sb_field_clean *clean, *sb_clean;
++	int ret;
++
++	mutex_lock(&c->sb_lock);
++	sb_clean = bch2_sb_get_clean(c->disk_sb.sb);
++
++	if (fsck_err_on(!sb_clean, c,
++			"superblock marked clean but clean section not present")) {
++		SET_BCH_SB_CLEAN(c->disk_sb.sb, false);
++		c->sb.clean = false;
++		mutex_unlock(&c->sb_lock);
++		return NULL;
++	}
++
++	clean = kmemdup(sb_clean, vstruct_bytes(&sb_clean->field),
++			GFP_KERNEL);
++	if (!clean) {
++		mutex_unlock(&c->sb_lock);
++		return ERR_PTR(-ENOMEM);
++	}
++
++	if (le16_to_cpu(c->disk_sb.sb->version) <
++	    bcachefs_metadata_version_bkey_renumber)
++		bch2_sb_clean_renumber(clean, READ);
++
++	mutex_unlock(&c->sb_lock);
++
++	return clean;
++fsck_err:
++	mutex_unlock(&c->sb_lock);
++	return ERR_PTR(ret);
++}
 +
 +static int journal_replay_entry_early(struct bch_fs *c,
 +				      struct jset_entry *entry)
@@ -54529,11 +53854,13 @@ index 000000000000..70fd9a27ae3d
 +		switch (entry->btree_id) {
 +		case FS_USAGE_RESERVED:
 +			if (entry->level < BCH_REPLICAS_MAX)
-+				c->usage_base->persistent_reserved[entry->level] =
-+					le64_to_cpu(u->v);
++				percpu_u64_set(&c->usage[0]->
++					       persistent_reserved[entry->level],
++					       le64_to_cpu(u->v));
 +			break;
 +		case FS_USAGE_INODES:
-+			c->usage_base->nr_inodes = le64_to_cpu(u->v);
++			percpu_u64_set(&c->usage[0]->nr_inodes,
++				       le64_to_cpu(u->v));
 +			break;
 +		case FS_USAGE_KEY_VERSION:
 +			atomic64_set(&c->key_version,
@@ -54611,121 +53938,6 @@ index 000000000000..70fd9a27ae3d
 +	return 0;
 +}
 +
-+/* sb clean section: */
-+
-+static struct bkey_i *btree_root_find(struct bch_fs *c,
-+				      struct bch_sb_field_clean *clean,
-+				      struct jset *j,
-+				      enum btree_id id, unsigned *level)
-+{
-+	struct bkey_i *k;
-+	struct jset_entry *entry, *start, *end;
-+
-+	if (clean) {
-+		start = clean->start;
-+		end = vstruct_end(&clean->field);
-+	} else {
-+		start = j->start;
-+		end = vstruct_last(j);
-+	}
-+
-+	for (entry = start; entry < end; entry = vstruct_next(entry))
-+		if (entry->type == BCH_JSET_ENTRY_btree_root &&
-+		    entry->btree_id == id)
-+			goto found;
-+
-+	return NULL;
-+found:
-+	if (!entry->u64s)
-+		return ERR_PTR(-EINVAL);
-+
-+	k = entry->start;
-+	*level = entry->level;
-+	return k;
-+}
-+
-+static int verify_superblock_clean(struct bch_fs *c,
-+				   struct bch_sb_field_clean **cleanp,
-+				   struct jset *j)
-+{
-+	unsigned i;
-+	struct bch_sb_field_clean *clean = *cleanp;
-+	int ret = 0;
-+
-+	if (!c->sb.clean || !j)
-+		return 0;
-+
-+	if (mustfix_fsck_err_on(j->seq != clean->journal_seq, c,
-+			"superblock journal seq (%llu) doesn't match journal (%llu) after clean shutdown",
-+			le64_to_cpu(clean->journal_seq),
-+			le64_to_cpu(j->seq))) {
-+		kfree(clean);
-+		*cleanp = NULL;
-+		return 0;
-+	}
-+
-+	mustfix_fsck_err_on(j->read_clock != clean->read_clock, c,
-+			"superblock read clock doesn't match journal after clean shutdown");
-+	mustfix_fsck_err_on(j->write_clock != clean->write_clock, c,
-+			"superblock read clock doesn't match journal after clean shutdown");
-+
-+	for (i = 0; i < BTREE_ID_NR; i++) {
-+		struct bkey_i *k1, *k2;
-+		unsigned l1 = 0, l2 = 0;
-+
-+		k1 = btree_root_find(c, clean, NULL, i, &l1);
-+		k2 = btree_root_find(c, NULL, j, i, &l2);
-+
-+		if (!k1 && !k2)
-+			continue;
-+
-+		mustfix_fsck_err_on(!k1 || !k2 ||
-+				    IS_ERR(k1) ||
-+				    IS_ERR(k2) ||
-+				    k1->k.u64s != k2->k.u64s ||
-+				    memcmp(k1, k2, bkey_bytes(k1)) ||
-+				    l1 != l2, c,
-+			"superblock btree root doesn't match journal after clean shutdown");
-+	}
-+fsck_err:
-+	return ret;
-+}
-+
-+static struct bch_sb_field_clean *read_superblock_clean(struct bch_fs *c)
-+{
-+	struct bch_sb_field_clean *clean, *sb_clean;
-+	int ret;
-+
-+	mutex_lock(&c->sb_lock);
-+	sb_clean = bch2_sb_get_clean(c->disk_sb.sb);
-+
-+	if (fsck_err_on(!sb_clean, c,
-+			"superblock marked clean but clean section not present")) {
-+		SET_BCH_SB_CLEAN(c->disk_sb.sb, false);
-+		c->sb.clean = false;
-+		mutex_unlock(&c->sb_lock);
-+		return NULL;
-+	}
-+
-+	clean = kmemdup(sb_clean, vstruct_bytes(&sb_clean->field),
-+			GFP_KERNEL);
-+	if (!clean) {
-+		mutex_unlock(&c->sb_lock);
-+		return ERR_PTR(-ENOMEM);
-+	}
-+
-+	if (le16_to_cpu(c->disk_sb.sb->version) <
-+	    bcachefs_metadata_version_bkey_renumber)
-+		bch2_sb_clean_renumber(clean, READ);
-+
-+	mutex_unlock(&c->sb_lock);
-+
-+	return clean;
-+fsck_err:
-+	mutex_unlock(&c->sb_lock);
-+	return ERR_PTR(ret);
-+}
-+
 +static int read_btree_roots(struct bch_fs *c)
 +{
 +	unsigned i;
@@ -54771,14 +53983,42 @@ index 000000000000..70fd9a27ae3d
 +	return ret;
 +}
 +
++static bool journal_empty(struct list_head *journal)
++{
++	struct journal_replay *i;
++	struct jset_entry *entry;
++
++	if (list_empty(journal))
++		return true;
++
++	i = list_last_entry(journal, struct journal_replay, list);
++
++	if (i->j.last_seq != i->j.seq)
++		return false;
++
++	list_for_each_entry(i, journal, list) {
++		vstruct_for_each(&i->j, entry) {
++			if (entry->type == BCH_JSET_ENTRY_btree_root ||
++			    entry->type == BCH_JSET_ENTRY_usage ||
++			    entry->type == BCH_JSET_ENTRY_data_usage)
++				continue;
++
++			if (entry->type == BCH_JSET_ENTRY_btree_keys &&
++			    !entry->u64s)
++				continue;
++			return false;
++		}
++	}
++
++	return true;
++}
++
 +int bch2_fs_recovery(struct bch_fs *c)
 +{
 +	const char *err = "cannot allocate memory";
 +	struct bch_sb_field_clean *clean = NULL;
 +	u64 journal_seq;
-+	LIST_HEAD(journal_entries);
-+	struct journal_keys journal_keys = { NULL };
-+	bool wrote = false, write_sb = false;
++	LIST_HEAD(journal);
 +	int ret;
 +
 +	if (c->sb.clean)
@@ -54799,31 +54039,20 @@ index 000000000000..70fd9a27ae3d
 +	if (!c->sb.clean || c->opts.fsck) {
 +		struct jset *j;
 +
-+		ret = bch2_journal_read(c, &journal_entries);
++		ret = bch2_journal_read(c, &journal);
 +		if (ret)
 +			goto err;
 +
-+		if (mustfix_fsck_err_on(c->sb.clean && !journal_empty(&journal_entries), c,
-+				"filesystem marked clean but journal not empty")) {
-+			c->sb.compat &= ~(1ULL << BCH_COMPAT_FEAT_ALLOC_INFO);
-+			SET_BCH_SB_CLEAN(c->disk_sb.sb, false);
-+			c->sb.clean = false;
-+		}
++		fsck_err_on(c->sb.clean && !journal_empty(&journal), c,
++			    "filesystem marked clean but journal not empty");
 +
-+		if (!c->sb.clean && list_empty(&journal_entries)) {
++		if (!c->sb.clean && list_empty(&journal)){
 +			bch_err(c, "no journal entries found");
 +			ret = BCH_FSCK_REPAIR_IMPOSSIBLE;
 +			goto err;
 +		}
 +
-+		journal_keys = journal_keys_sort(&journal_entries);
-+		if (!journal_keys.d) {
-+			ret = -ENOMEM;
-+			goto err;
-+		}
-+
-+		j = &list_last_entry(&journal_entries,
-+				     struct journal_replay, list)->j;
++		j = &list_last_entry(&journal, struct journal_replay, list)->j;
 +
 +		ret = verify_superblock_clean(c, &clean, j);
 +		if (ret)
@@ -54834,14 +54063,14 @@ index 000000000000..70fd9a27ae3d
 +		journal_seq = le64_to_cpu(clean->journal_seq) + 1;
 +	}
 +
-+	ret = journal_replay_early(c, clean, &journal_entries);
++	ret = journal_replay_early(c, clean, &journal);
 +	if (ret)
 +		goto err;
 +
 +	if (!c->sb.clean) {
 +		ret = bch2_journal_seq_blacklist_add(c,
-+						     journal_seq,
-+						     journal_seq + 4);
++				journal_seq,
++				journal_seq + 4);
 +		if (ret) {
 +			bch_err(c, "error creating new journal seq blacklist entry");
 +			goto err;
@@ -54852,13 +54081,11 @@ index 000000000000..70fd9a27ae3d
 +
 +	ret = bch2_blacklist_table_initialize(c);
 +
-+	ret = verify_journal_entries_not_blacklisted_or_missing(c,
-+						&journal_entries);
++	ret = verify_journal_entries_not_blacklisted_or_missing(c, &journal);
 +	if (ret)
 +		goto err;
 +
-+	ret = bch2_fs_journal_start(&c->journal, journal_seq,
-+				    &journal_entries);
++	ret = bch2_fs_journal_start(&c->journal, journal_seq, &journal);
 +	if (ret)
 +		goto err;
 +
@@ -54866,43 +54093,25 @@ index 000000000000..70fd9a27ae3d
 +	if (ret)
 +		goto err;
 +
-+	bch_verbose(c, "starting alloc read");
 +	err = "error reading allocation information";
-+	ret = bch2_alloc_read(c, &journal_keys);
++	ret = bch2_alloc_read(c, &journal);
 +	if (ret)
 +		goto err;
-+	bch_verbose(c, "alloc read done");
 +
 +	bch_verbose(c, "starting stripes_read");
-+	err = "error reading stripes";
-+	ret = bch2_stripes_read(c, &journal_keys);
++	ret = bch2_stripes_read(c, &journal);
 +	if (ret)
 +		goto err;
 +	bch_verbose(c, "stripes_read done");
 +
 +	set_bit(BCH_FS_ALLOC_READ_DONE, &c->flags);
 +
-+	if ((c->sb.compat & (1ULL << BCH_COMPAT_FEAT_ALLOC_INFO)) &&
-+	    !(c->sb.compat & (1ULL << BCH_COMPAT_FEAT_ALLOC_METADATA))) {
-+		/*
-+		 * interior btree node updates aren't consistent with the
-+		 * journal; after an unclean shutdown we have to walk all
-+		 * pointers to metadata:
-+		 */
-+		bch_info(c, "starting metadata mark and sweep");
-+		err = "error in mark and sweep";
-+		ret = bch2_gc(c, NULL, true, true);
-+		if (ret)
-+			goto err;
-+		bch_verbose(c, "mark and sweep done");
-+	}
-+
 +	if (c->opts.fsck ||
 +	    !(c->sb.compat & (1ULL << BCH_COMPAT_FEAT_ALLOC_INFO)) ||
 +	    test_bit(BCH_FS_REBUILD_REPLICAS, &c->flags)) {
-+		bch_info(c, "starting mark and sweep");
-+		err = "error in mark and sweep";
-+		ret = bch2_gc(c, &journal_keys, true, false);
++		bch_verbose(c, "starting mark and sweep:");
++		err = "error in recovery";
++		ret = bch2_gc(c, &journal, true, false);
 +		if (ret)
 +			goto err;
 +		bch_verbose(c, "mark and sweep done");
@@ -54918,63 +54127,26 @@ index 000000000000..70fd9a27ae3d
 +	if (c->sb.encryption_type && !c->sb.clean)
 +		atomic64_add(1 << 16, &c->key_version);
 +
-+	if (c->opts.norecovery)
++	if (c->opts.noreplay)
 +		goto out;
 +
-+	bch_verbose(c, "starting journal replay");
++	bch_verbose(c, "starting journal replay:");
 +	err = "journal replay failed";
-+	ret = bch2_journal_replay(c, journal_keys);
++	ret = bch2_journal_replay(c, &journal);
 +	if (ret)
 +		goto err;
 +	bch_verbose(c, "journal replay done");
 +
-+	if (!c->opts.nochanges) {
-+		/*
-+		 * note that even when filesystem was clean there might be work
-+		 * to do here, if we ran gc (because of fsck) which recalculated
-+		 * oldest_gen:
-+		 */
-+		bch_verbose(c, "writing allocation info");
-+		err = "error writing out alloc info";
-+		ret = bch2_stripes_write(c, BTREE_INSERT_LAZY_RW, &wrote) ?:
-+			bch2_alloc_write(c, BTREE_INSERT_LAZY_RW, &wrote);
-+		if (ret) {
-+			bch_err(c, "error writing alloc info");
-+			goto err;
-+		}
-+		bch_verbose(c, "alloc write done");
-+	}
++	if (c->opts.norecovery)
++		goto out;
 +
-+	if (!c->sb.clean) {
-+		if (!(c->sb.features & (1 << BCH_FEATURE_ATOMIC_NLINK))) {
-+			bch_info(c, "checking inode link counts");
-+			err = "error in recovery";
-+			ret = bch2_fsck_inode_nlink(c);
-+			if (ret)
-+				goto err;
-+			bch_verbose(c, "check inodes done");
-+
-+		} else {
-+			bch_verbose(c, "checking for deleted inodes");
-+			err = "error in recovery";
-+			ret = bch2_fsck_walk_inodes_only(c);
-+			if (ret)
-+				goto err;
-+			bch_verbose(c, "check inodes done");
-+		}
-+	}
-+
-+	if (c->opts.fsck) {
-+		bch_info(c, "starting fsck");
-+		err = "error in fsck";
-+		ret = bch2_fsck_full(c);
-+		if (ret)
-+			goto err;
-+		bch_verbose(c, "fsck done");
-+	}
++	err = "error in fsck";
++	ret = bch2_fsck(c);
++	if (ret)
++		goto err;
 +
 +	if (enabled_qtypes(c)) {
-+		bch_verbose(c, "reading quotas");
++		bch_verbose(c, "reading quotas:");
 +		ret = bch2_fs_quota_read(c);
 +		if (ret)
 +			goto err;
@@ -54987,41 +54159,26 @@ index 000000000000..70fd9a27ae3d
 +			c->disk_sb.sb->version_min =
 +				le16_to_cpu(bcachefs_metadata_version_min);
 +		c->disk_sb.sb->version = le16_to_cpu(bcachefs_metadata_version_current);
-+		write_sb = true;
-+	}
-+
-+	if (!test_bit(BCH_FS_ERROR, &c->flags)) {
-+		c->disk_sb.sb->compat[0] |= 1ULL << BCH_COMPAT_FEAT_ALLOC_INFO;
-+		write_sb = true;
 +	}
 +
 +	if (c->opts.fsck &&
 +	    !test_bit(BCH_FS_ERROR, &c->flags)) {
 +		c->disk_sb.sb->features[0] |= 1ULL << BCH_FEATURE_ATOMIC_NLINK;
 +		SET_BCH_SB_HAS_ERRORS(c->disk_sb.sb, 0);
-+		write_sb = true;
 +	}
-+
-+	if (write_sb)
-+		bch2_write_super(c);
 +	mutex_unlock(&c->sb_lock);
 +
 +	if (c->journal_seq_blacklist_table &&
 +	    c->journal_seq_blacklist_table->nr > 128)
 +		queue_work(system_long_wq, &c->journal_seq_blacklist_gc_work);
 +out:
-+	ret = 0;
++	bch2_journal_entries_free(&journal);
++	kfree(clean);
++	return ret;
 +err:
 +fsck_err:
-+	bch2_flush_fsck_errs(c);
-+	journal_keys_free(&journal_keys);
-+	journal_entries_free(&journal_entries);
-+	kfree(clean);
-+	if (ret)
-+		bch_err(c, "Error in recovery: %s (%i)", err, ret);
-+	else
-+		bch_verbose(c, "ret %i", ret);
-+	return ret;
++	pr_err("Error in recovery: %s (%i)", err, ret);
++	goto out;
 +}
 +
 +int bch2_fs_initialize(struct bch_fs *c)
@@ -55133,28 +54290,12 @@ index 000000000000..70fd9a27ae3d
 +}
 diff --git a/fs/bcachefs/recovery.h b/fs/bcachefs/recovery.h
 new file mode 100644
-index 000000000000..c61b55f5406c
+index 000000000000..685507e8aa97
 --- /dev/null
 +++ b/fs/bcachefs/recovery.h
-@@ -0,0 +1,23 @@
+@@ -0,0 +1,7 @@
 +#ifndef _BCACHEFS_RECOVERY_H
 +#define _BCACHEFS_RECOVERY_H
-+
-+struct journal_keys {
-+	struct journal_key {
-+		enum btree_id	btree_id:8;
-+		unsigned	allocated:1;
-+		struct bpos	pos;
-+		struct bkey_i	*k;
-+		u32		journal_seq;
-+		u32		journal_offset;
-+	}			*d;
-+	size_t			nr;
-+	u64			journal_seq_base;
-+};
-+
-+#define for_each_journal_key(keys, i)				\
-+	for (i = (keys).d; i < (keys).d + (keys).nr; (i)++)
 +
 +int bch2_fs_recovery(struct bch_fs *);
 +int bch2_fs_initialize(struct bch_fs *);
@@ -55162,13 +54303,12 @@ index 000000000000..c61b55f5406c
 +#endif /* _BCACHEFS_RECOVERY_H */
 diff --git a/fs/bcachefs/replicas.c b/fs/bcachefs/replicas.c
 new file mode 100644
-index 000000000000..eb44119466d8
+index 000000000000..d0076bd4fc4e
 --- /dev/null
 +++ b/fs/bcachefs/replicas.c
-@@ -0,0 +1,1012 @@
+@@ -0,0 +1,997 @@
 +
 +#include "bcachefs.h"
-+#include "buckets.h"
 +#include "journal.h"
 +#include "replicas.h"
 +#include "super-io.h"
@@ -55180,7 +54320,7 @@ index 000000000000..eb44119466d8
 +
 +static inline int u8_cmp(u8 l, u8 r)
 +{
-+	return cmp_int(l, r);
++	return (l > r) - (l < r);
 +}
 +
 +static void verify_replicas_entry_sorted(struct bch_replicas_entry *e)
@@ -55269,8 +54409,8 @@ index 000000000000..eb44119466d8
 +		r->devs[r->nr_devs++] = ptr->dev;
 +}
 +
-+void bch2_bkey_to_replicas(struct bch_replicas_entry *e,
-+			   struct bkey_s_c k)
++static void bkey_to_replicas(struct bch_replicas_entry *e,
++			     struct bkey_s_c k)
 +{
 +	e->nr_devs = 0;
 +
@@ -55403,12 +54543,19 @@ index 000000000000..eb44119466d8
 +	return marked;
 +}
 +
-+static void __replicas_table_update(struct bch_fs_usage *dst,
++static void __replicas_table_update(struct bch_fs_usage __percpu *dst_p,
 +				    struct bch_replicas_cpu *dst_r,
-+				    struct bch_fs_usage *src,
++				    struct bch_fs_usage __percpu *src_p,
 +				    struct bch_replicas_cpu *src_r)
 +{
++	unsigned src_nr = sizeof(struct bch_fs_usage) / sizeof(u64) + src_r->nr;
++	struct bch_fs_usage *dst, *src = (void *)
++		bch2_acc_percpu_u64s((void *) src_p, src_nr);
 +	int src_idx, dst_idx;
++
++	preempt_disable();
++	dst = this_cpu_ptr(dst_p);
++	preempt_enable();
 +
 +	*dst = *src;
 +
@@ -55424,22 +54571,6 @@ index 000000000000..eb44119466d8
 +	}
 +}
 +
-+static void __replicas_table_update_pcpu(struct bch_fs_usage __percpu *dst_p,
-+				    struct bch_replicas_cpu *dst_r,
-+				    struct bch_fs_usage __percpu *src_p,
-+				    struct bch_replicas_cpu *src_r)
-+{
-+	unsigned src_nr = sizeof(struct bch_fs_usage) / sizeof(u64) + src_r->nr;
-+	struct bch_fs_usage *dst, *src = (void *)
-+		bch2_acc_percpu_u64s((void *) src_p, src_nr);
-+
-+	preempt_disable();
-+	dst = this_cpu_ptr(dst_p);
-+	preempt_enable();
-+
-+	__replicas_table_update(dst, dst_r, src, src_r);
-+}
-+
 +/*
 + * Resize filesystem accounting:
 + */
@@ -55448,48 +54579,34 @@ index 000000000000..eb44119466d8
 +{
 +	struct bch_fs_usage __percpu *new_usage[2] = { NULL, NULL };
 +	struct bch_fs_usage *new_scratch = NULL;
-+	struct bch_fs_usage __percpu *new_gc = NULL;
-+	struct bch_fs_usage *new_base = NULL;
 +	unsigned bytes = sizeof(struct bch_fs_usage) +
 +		sizeof(u64) * new_r->nr;
 +	int ret = -ENOMEM;
 +
-+	if (!(new_base = kzalloc(bytes, GFP_NOIO)) ||
-+	    !(new_usage[0] = __alloc_percpu_gfp(bytes, sizeof(u64),
++	if (!(new_usage[0] = __alloc_percpu_gfp(bytes, sizeof(u64),
 +						GFP_NOIO)) ||
-+	    !(new_usage[1] = __alloc_percpu_gfp(bytes, sizeof(u64),
-+						GFP_NOIO)) ||
-+	    !(new_scratch  = kmalloc(bytes, GFP_NOIO)) ||
-+	    (c->usage_gc &&
-+	     !(new_gc = __alloc_percpu_gfp(bytes, sizeof(u64), GFP_NOIO))))
++	    (c->usage[1] &&
++	     !(new_usage[1] = __alloc_percpu_gfp(bytes, sizeof(u64),
++						 GFP_NOIO))) ||
++	    !(new_scratch  = kmalloc(bytes, GFP_NOIO)))
 +		goto err;
 +
-+	if (c->usage_base)
-+		__replicas_table_update(new_base,		new_r,
-+					c->usage_base,		&c->replicas);
 +	if (c->usage[0])
-+		__replicas_table_update_pcpu(new_usage[0],	new_r,
-+					     c->usage[0],	&c->replicas);
++		__replicas_table_update(new_usage[0],	new_r,
++					c->usage[0],	&c->replicas);
 +	if (c->usage[1])
-+		__replicas_table_update_pcpu(new_usage[1],	new_r,
-+					     c->usage[1],	&c->replicas);
-+	if (c->usage_gc)
-+		__replicas_table_update_pcpu(new_gc,		new_r,
-+					     c->usage_gc,	&c->replicas);
++		__replicas_table_update(new_usage[1],	new_r,
++					c->usage[1],	&c->replicas);
 +
-+	swap(c->usage_base,	new_base);
 +	swap(c->usage[0],	new_usage[0]);
 +	swap(c->usage[1],	new_usage[1]);
 +	swap(c->usage_scratch,	new_scratch);
-+	swap(c->usage_gc,	new_gc);
 +	swap(c->replicas,	*new_r);
 +	ret = 0;
 +err:
-+	free_percpu(new_gc);
 +	kfree(new_scratch);
 +	free_percpu(new_usage[1]);
 +	free_percpu(new_usage[0]);
-+	kfree(new_base);
 +	return ret;
 +}
 +
@@ -55603,7 +54720,7 @@ index 000000000000..eb44119466d8
 +			return false;
 +	}
 +
-+	bch2_bkey_to_replicas(&search.e, k);
++	bkey_to_replicas(&search.e, k);
 +
 +	return bch2_replicas_marked_locked(c, &search.e, check_gc_replicas);
 +}
@@ -55636,7 +54753,7 @@ index 000000000000..eb44119466d8
 +			return ret;
 +	}
 +
-+	bch2_bkey_to_replicas(&search.e, k);
++	bkey_to_replicas(&search.e, k);
 +
 +	return bch2_mark_replicas(c, &search.e);
 +}
@@ -55648,7 +54765,9 @@ index 000000000000..eb44119466d8
 +	lockdep_assert_held(&c->replicas_gc_lock);
 +
 +	mutex_lock(&c->sb_lock);
-+	percpu_down_write(&c->mark_lock);
++
++	if (ret)
++		goto err;
 +
 +	/*
 +	 * this is kind of crappy; the replicas gc mechanism needs to be ripped
@@ -55659,20 +54778,26 @@ index 000000000000..eb44119466d8
 +		struct bch_replicas_entry *e =
 +			cpu_replicas_entry(&c->replicas, i);
 +		struct bch_replicas_cpu n;
++		u64 v;
 +
-+		if (!__replicas_has_entry(&c->replicas_gc, e) &&
-+		    (c->usage_base->replicas[i] ||
-+		     percpu_u64_get(&c->usage[0]->replicas[i]) ||
-+		     percpu_u64_get(&c->usage[1]->replicas[i]))) {
-+			n = cpu_replicas_add_entry(&c->replicas_gc, e);
-+			if (!n.entries) {
-+				ret = -ENOSPC;
-+				goto err;
-+			}
++		if (__replicas_has_entry(&c->replicas_gc, e))
++			continue;
 +
-+			swap(n, c->replicas_gc);
-+			kfree(n.entries);
++		v = percpu_u64_get(&c->usage[0]->replicas[i]);
++		if (!v)
++			continue;
++
++		n = cpu_replicas_add_entry(&c->replicas_gc, e);
++		if (!n.entries) {
++			ret = -ENOSPC;
++			goto err;
 +		}
++
++		percpu_down_write(&c->mark_lock);
++		swap(n, c->replicas_gc);
++		percpu_up_write(&c->mark_lock);
++
++		kfree(n.entries);
 +	}
 +
 +	if (bch2_cpu_replicas_to_sb_replicas(c, &c->replicas_gc)) {
@@ -55680,18 +54805,19 @@ index 000000000000..eb44119466d8
 +		goto err;
 +	}
 +
-+	ret = replicas_table_update(c, &c->replicas_gc);
++	bch2_write_super(c);
++
++	/* don't update in memory replicas until changes are persistent */
 +err:
++	percpu_down_write(&c->mark_lock);
++	if (!ret)
++		ret = replicas_table_update(c, &c->replicas_gc);
++
 +	kfree(c->replicas_gc.entries);
 +	c->replicas_gc.entries = NULL;
-+
 +	percpu_up_write(&c->mark_lock);
 +
-+	if (!ret)
-+		bch2_write_super(c);
-+
 +	mutex_unlock(&c->sb_lock);
-+
 +	return ret;
 +}
 +
@@ -55758,7 +54884,7 @@ index 000000000000..eb44119466d8
 +		BUG_ON(ret < 0);
 +	}
 +
-+	c->usage_base->replicas[idx] = sectors;
++	percpu_u64_set(&c->usage[0]->replicas[idx], sectors);
 +
 +	return 0;
 +}
@@ -56180,10 +55306,10 @@ index 000000000000..eb44119466d8
 +}
 diff --git a/fs/bcachefs/replicas.h b/fs/bcachefs/replicas.h
 new file mode 100644
-index 000000000000..2ffafad7c631
+index 000000000000..ad97e3bc6b93
 --- /dev/null
 +++ b/fs/bcachefs/replicas.h
-@@ -0,0 +1,96 @@
+@@ -0,0 +1,95 @@
 +#ifndef _BCACHEFS_REPLICAS_H
 +#define _BCACHEFS_REPLICAS_H
 +
@@ -56213,7 +55339,6 @@ index 000000000000..2ffafad7c631
 +
 +bool bch2_bkey_replicas_marked_locked(struct bch_fs *,
 +				      struct bkey_s_c, bool);
-+void bch2_bkey_to_replicas(struct bch_replicas_entry *, struct bkey_s_c);
 +bool bch2_bkey_replicas_marked(struct bch_fs *,
 +			       struct bkey_s_c, bool);
 +int bch2_mark_bkey_replicas(struct bch_fs *, struct bkey_s_c);
@@ -56568,10 +55693,10 @@ index 000000000000..7a4b2241f1e1
 +#endif /* _SIPHASH_H_ */
 diff --git a/fs/bcachefs/str_hash.h b/fs/bcachefs/str_hash.h
 new file mode 100644
-index 000000000000..fcbe42bc53c0
+index 000000000000..f928ca991043
 --- /dev/null
 +++ b/fs/bcachefs/str_hash.h
-@@ -0,0 +1,316 @@
+@@ -0,0 +1,325 @@
 +#ifndef _BCACHEFS_STR_HASH_H
 +#define _BCACHEFS_STR_HASH_H
 +
@@ -56708,11 +55833,14 @@ index 000000000000..fcbe42bc53c0
 +{
 +	struct btree_iter *iter;
 +	struct bkey_s_c k;
-+	int ret;
 +
-+	for_each_btree_key(trans, iter, desc.btree_id,
-+			   POS(inode, desc.hash_key(info, key)),
-+			   BTREE_ITER_SLOTS|flags, k, ret) {
++	iter = bch2_trans_get_iter(trans, desc.btree_id,
++				   POS(inode, desc.hash_key(info, key)),
++				   BTREE_ITER_SLOTS|flags);
++	if (IS_ERR(iter))
++		return iter;
++
++	for_each_btree_key_continue(iter, BTREE_ITER_SLOTS, k) {
 +		if (iter->pos.inode != inode)
 +			break;
 +
@@ -56727,7 +55855,7 @@ index 000000000000..fcbe42bc53c0
 +		}
 +	}
 +
-+	return ERR_PTR(ret ?: -ENOENT);
++	return IS_ERR(k.k) ? ERR_CAST(k.k) : ERR_PTR(-ENOENT);
 +}
 +
 +static __always_inline struct btree_iter *
@@ -56738,11 +55866,14 @@ index 000000000000..fcbe42bc53c0
 +{
 +	struct btree_iter *iter;
 +	struct bkey_s_c k;
-+	int ret;
 +
-+	for_each_btree_key(trans, iter, desc.btree_id,
-+			   POS(inode, desc.hash_key(info, key)),
-+			   BTREE_ITER_SLOTS|BTREE_ITER_INTENT, k, ret) {
++	iter = bch2_trans_get_iter(trans, desc.btree_id,
++				   POS(inode, desc.hash_key(info, key)),
++				   BTREE_ITER_SLOTS|BTREE_ITER_INTENT);
++	if (IS_ERR(iter))
++		return iter;
++
++	for_each_btree_key_continue(iter, BTREE_ITER_SLOTS, k) {
 +		if (iter->pos.inode != inode)
 +			break;
 +
@@ -56750,7 +55881,7 @@ index 000000000000..fcbe42bc53c0
 +			return iter;
 +	}
 +
-+	return ERR_PTR(ret ?: -ENOSPC);
++	return IS_ERR(k.k) ? ERR_CAST(k.k) : ERR_PTR(-ENOSPC);
 +}
 +
 +static __always_inline
@@ -56792,11 +55923,15 @@ index 000000000000..fcbe42bc53c0
 +	struct btree_iter *iter, *slot = NULL;
 +	struct bkey_s_c k;
 +	bool found = false;
-+	int ret;
++	int ret = 0;
 +
-+	for_each_btree_key(trans, iter, desc.btree_id,
-+			   POS(inode, desc.hash_bkey(info, bkey_i_to_s_c(insert))),
-+			   BTREE_ITER_SLOTS|BTREE_ITER_INTENT, k, ret) {
++	iter = bch2_trans_get_iter(trans, desc.btree_id,
++			POS(inode, desc.hash_bkey(info, bkey_i_to_s_c(insert))),
++			BTREE_ITER_SLOTS|BTREE_ITER_INTENT);
++	if (IS_ERR(iter))
++		return PTR_ERR(iter);
++
++	for_each_btree_key_continue(iter, BTREE_ITER_SLOTS, k) {
 +		if (iter->pos.inode != inode)
 +			break;
 +
@@ -56820,10 +55955,9 @@ index 000000000000..fcbe42bc53c0
 +	}
 +
 +	if (slot)
-+		bch2_trans_iter_free(trans, slot);
-+	bch2_trans_iter_free(trans, iter);
++		bch2_trans_iter_free(trans, iter);
 +
-+	return ret ?: -ENOSPC;
++	return bch2_trans_iter_free(trans, iter) ?: -ENOSPC;
 +found:
 +	found = true;
 +not_found:
@@ -56890,13 +56024,12 @@ index 000000000000..fcbe42bc53c0
 +#endif /* _BCACHEFS_STR_HASH_H */
 diff --git a/fs/bcachefs/super-io.c b/fs/bcachefs/super-io.c
 new file mode 100644
-index 000000000000..61eefd2dd1d2
+index 000000000000..83c74af4966e
 --- /dev/null
 +++ b/fs/bcachefs/super-io.c
-@@ -0,0 +1,1146 @@
+@@ -0,0 +1,1142 @@
 +
 +#include "bcachefs.h"
-+#include "buckets.h"
 +#include "checksum.h"
 +#include "disk_groups.h"
 +#include "ec.h"
@@ -57545,7 +56678,7 @@ index 000000000000..61eefd2dd1d2
 +	bio_reset(bio);
 +	bio_set_dev(bio, ca->disk_sb.bdev);
 +	bio->bi_iter.bi_sector	= le64_to_cpu(sb->layout.sb_offset[0]);
-+	bio->bi_iter.bi_size	= PAGE_SIZE;
++	bio->bi_iter.bi_size	= 4096;
 +	bio->bi_end_io		= write_super_endio;
 +	bio->bi_private		= ca;
 +	bio_set_op_attrs(bio, REQ_OP_READ, REQ_SYNC|REQ_META);
@@ -57841,7 +56974,7 @@ index 000000000000..61eefd2dd1d2
 +
 +	mutex_lock(&c->sb_lock);
 +	SET_BCH_SB_CLEAN(c->disk_sb.sb, false);
-+	c->disk_sb.sb->compat[0] &= ~(1ULL << BCH_COMPAT_FEAT_ALLOC_METADATA);
++	c->disk_sb.sb->compat[0] &= ~(1ULL << BCH_COMPAT_FEAT_ALLOC_INFO);
 +	ret = bch2_write_super(c);
 +	mutex_unlock(&c->sb_lock);
 +
@@ -57850,8 +56983,7 @@ index 000000000000..61eefd2dd1d2
 +
 +struct jset_entry *
 +bch2_journal_super_entries_add_common(struct bch_fs *c,
-+				      struct jset_entry *entry,
-+				      u64 journal_seq)
++				      struct jset_entry *entry)
 +{
 +	struct btree_root *r;
 +	unsigned i;
@@ -57874,16 +57006,10 @@ index 000000000000..61eefd2dd1d2
 +
 +	mutex_unlock(&c->btree_root_lock);
 +
-+	percpu_down_write(&c->mark_lock);
-+
-+	if (!journal_seq) {
-+		bch2_fs_usage_acc_to_base(c, 0);
-+		bch2_fs_usage_acc_to_base(c, 1);
-+	} else {
-+		bch2_fs_usage_acc_to_base(c, journal_seq & 1);
-+	}
++	percpu_down_read_preempt_disable(&c->mark_lock);
 +
 +	{
++		u64 nr_inodes = percpu_u64_get(&c->usage[0]->nr_inodes);
 +		struct jset_entry_usage *u =
 +			container_of(entry, struct jset_entry_usage, entry);
 +
@@ -57891,7 +57017,7 @@ index 000000000000..61eefd2dd1d2
 +		u->entry.u64s	= DIV_ROUND_UP(sizeof(*u), sizeof(u64)) - 1;
 +		u->entry.type	= BCH_JSET_ENTRY_usage;
 +		u->entry.btree_id = FS_USAGE_INODES;
-+		u->v		= cpu_to_le64(c->usage_base->nr_inodes);
++		u->v		= cpu_to_le64(nr_inodes);
 +
 +		entry = vstruct_next(entry);
 +	}
@@ -57912,13 +57038,17 @@ index 000000000000..61eefd2dd1d2
 +	for (i = 0; i < BCH_REPLICAS_MAX; i++) {
 +		struct jset_entry_usage *u =
 +			container_of(entry, struct jset_entry_usage, entry);
++		u64 sectors = percpu_u64_get(&c->usage[0]->persistent_reserved[i]);
++
++		if (!sectors)
++			continue;
 +
 +		memset(u, 0, sizeof(*u));
 +		u->entry.u64s	= DIV_ROUND_UP(sizeof(*u), sizeof(u64)) - 1;
 +		u->entry.type	= BCH_JSET_ENTRY_usage;
 +		u->entry.btree_id = FS_USAGE_RESERVED;
 +		u->entry.level	= i;
-+		u->v		= cpu_to_le64(c->usage_base->persistent_reserved[i]);
++		u->v		= sectors;
 +
 +		entry = vstruct_next(entry);
 +	}
@@ -57926,6 +57056,7 @@ index 000000000000..61eefd2dd1d2
 +	for (i = 0; i < c->replicas.nr; i++) {
 +		struct bch_replicas_entry *e =
 +			cpu_replicas_entry(&c->replicas, i);
++		u64 sectors = percpu_u64_get(&c->usage[0]->replicas[i]);
 +		struct jset_entry_data_usage *u =
 +			container_of(entry, struct jset_entry_data_usage, entry);
 +
@@ -57933,13 +57064,13 @@ index 000000000000..61eefd2dd1d2
 +		u->entry.u64s	= DIV_ROUND_UP(sizeof(*u) + e->nr_devs,
 +					       sizeof(u64)) - 1;
 +		u->entry.type	= BCH_JSET_ENTRY_data_usage;
-+		u->v		= cpu_to_le64(c->usage_base->replicas[i]);
++		u->v		= cpu_to_le64(sectors);
 +		memcpy(&u->r, e, replicas_entry_bytes(e));
 +
 +		entry = vstruct_next(entry);
 +	}
 +
-+	percpu_up_write(&c->mark_lock);
++	percpu_up_read_preempt_enable(&c->mark_lock);
 +
 +	return entry;
 +}
@@ -57957,7 +57088,6 @@ index 000000000000..61eefd2dd1d2
 +	SET_BCH_SB_CLEAN(c->disk_sb.sb, true);
 +
 +	c->disk_sb.sb->compat[0] |= 1ULL << BCH_COMPAT_FEAT_ALLOC_INFO;
-+	c->disk_sb.sb->compat[0] |= 1ULL << BCH_COMPAT_FEAT_ALLOC_METADATA;
 +
 +	u64s = sizeof(*sb_clean) / sizeof(u64) + c->journal.entry_u64s_reserved;
 +
@@ -57976,7 +57106,7 @@ index 000000000000..61eefd2dd1d2
 +	BUG_ON(le64_to_cpu(sb_clean->journal_seq) > S64_MAX);
 +
 +	entry = sb_clean->start;
-+	entry = bch2_journal_super_entries_add_common(c, entry, 0);
++	entry = bch2_journal_super_entries_add_common(c, entry);
 +	BUG_ON((void *) entry > vstruct_end(&sb_clean->field));
 +
 +	memset(entry, 0,
@@ -58042,7 +57172,7 @@ index 000000000000..61eefd2dd1d2
 +}
 diff --git a/fs/bcachefs/super-io.h b/fs/bcachefs/super-io.h
 new file mode 100644
-index 000000000000..cf25b44a077e
+index 000000000000..aa91b8216082
 --- /dev/null
 +++ b/fs/bcachefs/super-io.h
 @@ -0,0 +1,149 @@
@@ -58184,7 +57314,7 @@ index 000000000000..cf25b44a077e
 +
 +struct jset_entry *
 +bch2_journal_super_entries_add_common(struct bch_fs *,
-+				      struct jset_entry *, u64);
++				      struct jset_entry *);
 +
 +void bch2_sb_clean_renumber(struct bch_sb_field_clean *, int);
 +
@@ -58197,10 +57327,10 @@ index 000000000000..cf25b44a077e
 +#endif /* _BCACHEFS_SUPER_IO_H */
 diff --git a/fs/bcachefs/super.c b/fs/bcachefs/super.c
 new file mode 100644
-index 000000000000..0cbc7eedd728
+index 000000000000..9dc201ab095f
 --- /dev/null
 +++ b/fs/bcachefs/super.c
-@@ -0,0 +1,1994 @@
+@@ -0,0 +1,1952 @@
 +/*
 + * bcachefs setup/teardown code, and some metadata io - read a superblock and
 + * figure out what to do with it.
@@ -58430,16 +57560,17 @@ index 000000000000..0cbc7eedd728
 +		goto allocator_not_running;
 +
 +	do {
-+		wrote = false;
-+
-+		ret = bch2_stripes_write(c, BTREE_INSERT_NOCHECK_RW, &wrote) ?:
-+			bch2_alloc_write(c, BTREE_INSERT_NOCHECK_RW, &wrote);
-+
-+		if (ret && !test_bit(BCH_FS_EMERGENCY_RO, &c->flags))
-+			bch2_fs_inconsistent(c, "error writing out alloc info %i", ret);
-+
-+		if (ret)
++		ret = bch2_stripes_write(c, &wrote);
++		if (ret) {
++			bch2_fs_inconsistent(c, "error writing out stripes");
 +			break;
++		}
++
++		ret = bch2_alloc_write(c, false, &wrote);
++		if (ret) {
++			bch2_fs_inconsistent(c, "error writing out alloc info %i", ret);
++			break;
++		}
 +
 +		for_each_member_device(ca, c, i)
 +			bch2_dev_allocator_quiesce(c, ca);
@@ -58538,8 +57669,7 @@ index 000000000000..0cbc7eedd728
 +	if (!bch2_journal_error(&c->journal) &&
 +	    !test_bit(BCH_FS_ERROR, &c->flags) &&
 +	    !test_bit(BCH_FS_EMERGENCY_RO, &c->flags) &&
-+	    test_bit(BCH_FS_STARTED, &c->flags) &&
-+	    !c->opts.norecovery)
++	    test_bit(BCH_FS_STARTED, &c->flags))
 +		bch2_fs_mark_clean(c);
 +
 +	clear_bit(BCH_FS_RW, &c->flags);
@@ -58611,15 +57741,6 @@ index 000000000000..0cbc7eedd728
 +
 +	if (test_bit(BCH_FS_RW, &c->flags))
 +		return 0;
-+
-+	/*
-+	 * nochanges is used for fsck -n mode - we have to allow going rw
-+	 * during recovery for that to work:
-+	 */
-+	if (c->opts.norecovery ||
-+	    (c->opts.nochanges &&
-+	     (!early || c->opts.read_only)))
-+		return -EROFS;
 +
 +	ret = bch2_fs_mark_dirty(c);
 +	if (ret)
@@ -58700,9 +57821,7 @@ index 000000000000..0cbc7eedd728
 +	bch2_fs_compress_exit(c);
 +	percpu_free_rwsem(&c->mark_lock);
 +	kfree(c->usage_scratch);
-+	free_percpu(c->usage[1]);
 +	free_percpu(c->usage[0]);
-+	kfree(c->usage_base);
 +	free_percpu(c->pcpu);
 +	mempool_exit(&c->btree_iters_pool);
 +	mempool_exit(&c->btree_bounce_pool);
@@ -58896,8 +58015,6 @@ index 000000000000..0cbc7eedd728
 +
 +	seqcount_init(&c->gc_pos_lock);
 +
-+	seqcount_init(&c->usage_lock);
-+
 +	c->copy_gc_enabled		= 1;
 +	c->rebalance.enabled		= 1;
 +	c->promote_whole_extents	= true;
@@ -58929,6 +58046,9 @@ index 000000000000..0cbc7eedd728
 +
 +	c->block_bits		= ilog2(c->opts.block_size);
 +	c->btree_foreground_merge_threshold = BTREE_FOREGROUND_MERGE_THRESHOLD(c);
++
++	c->opts.nochanges	|= c->opts.noreplay;
++	c->opts.read_only	|= c->opts.nochanges;
 +
 +	if (bch2_fs_init_fault("fs_alloc"))
 +		goto err;
@@ -59007,41 +58127,7 @@ index 000000000000..0cbc7eedd728
 +	goto out;
 +}
 +
-+noinline_for_stack
-+static void print_mount_opts(struct bch_fs *c)
-+{
-+	enum bch_opt_id i;
-+	char buf[512];
-+	struct printbuf p = PBUF(buf);
-+	bool first = true;
-+
-+	strcpy(buf, "(null)");
-+
-+	if (c->opts.read_only) {
-+		pr_buf(&p, "ro");
-+		first = false;
-+	}
-+
-+	for (i = 0; i < bch2_opts_nr; i++) {
-+		const struct bch_option *opt = &bch2_opt_table[i];
-+		u64 v = bch2_opt_get_by_id(&c->opts, i);
-+
-+		if (!(opt->mode & OPT_MOUNT))
-+			continue;
-+
-+		if (v == bch2_opt_get_by_id(&bch2_opts_default, i))
-+			continue;
-+
-+		if (!first)
-+			pr_buf(&p, ",");
-+		first = false;
-+		bch2_opt_to_text(&p, c, opt, v, OPT_SHOW_MOUNT_STYLE);
-+	}
-+
-+	bch_info(c, "mounted with opts: %s", buf);
-+}
-+
-+int bch2_fs_start(struct bch_fs *c)
++const char *bch2_fs_start(struct bch_fs *c)
 +{
 +	const char *err = "cannot allocate memory";
 +	struct bch_sb_field_members *mi;
@@ -59080,27 +58166,26 @@ index 000000000000..0cbc7eedd728
 +		goto err;
 +
 +	err = "dynamic fault";
-+	ret = -EINVAL;
 +	if (bch2_fs_init_fault("fs_start"))
 +		goto err;
 +
-+	if (c->opts.read_only || c->opts.nochanges) {
++	if (c->opts.read_only) {
 +		bch2_fs_read_only(c);
 +	} else {
-+		err = "error going read write";
-+		ret = !test_bit(BCH_FS_RW, &c->flags)
-+			? bch2_fs_read_write(c)
-+			: bch2_fs_read_write_late(c);
-+		if (ret)
++		if (!test_bit(BCH_FS_RW, &c->flags)
++		    ? bch2_fs_read_write(c)
++		    : bch2_fs_read_write_late(c)) {
++			err = "error going read write";
 +			goto err;
++		}
 +	}
 +
 +	set_bit(BCH_FS_STARTED, &c->flags);
-+	print_mount_opts(c);
-+	ret = 0;
++
++	err = NULL;
 +out:
 +	mutex_unlock(&c->state_lock);
-+	return ret;
++	return err;
 +err:
 +	switch (ret) {
 +	case BCH_FSCK_ERRORS_NOT_FIXED:
@@ -59128,7 +58213,7 @@ index 000000000000..0cbc7eedd728
 +		break;
 +	}
 +
-+	BUG_ON(!ret);
++	BUG_ON(!err);
 +	goto out;
 +}
 +
@@ -59195,7 +58280,7 @@ index 000000000000..0cbc7eedd728
 +	free_percpu(ca->io_done);
 +	bioset_exit(&ca->replica_set);
 +	bch2_dev_buckets_free(ca);
-+	free_page((unsigned long) ca->sb_read_scratch);
++	kfree(ca->sb_read_scratch);
 +
 +	bch2_time_stats_exit(&ca->io_latency[WRITE]);
 +	bch2_time_stats_exit(&ca->io_latency[READ]);
@@ -59309,7 +58394,7 @@ index 000000000000..0cbc7eedd728
 +			    0, GFP_KERNEL) ||
 +	    percpu_ref_init(&ca->io_ref, bch2_dev_io_ref_complete,
 +			    PERCPU_REF_INIT_DEAD, GFP_KERNEL) ||
-+	    !(ca->sb_read_scratch = (void *) __get_free_page(GFP_KERNEL)) ||
++	    !(ca->sb_read_scratch = kmalloc(4096, GFP_KERNEL)) ||
 +	    bch2_dev_buckets_alloc(c, ca) ||
 +	    bioset_init(&ca->replica_set, 4,
 +			offsetof(struct bch_write_bio, bio), 0) ||
@@ -59708,8 +58793,13 @@ index 000000000000..0cbc7eedd728
 +static void dev_usage_clear(struct bch_dev *ca)
 +{
 +	struct bucket_array *buckets;
++	int cpu;
 +
-+	percpu_memset(ca->usage[0], 0, sizeof(*ca->usage[0]));
++	for_each_possible_cpu(cpu) {
++		struct bch_dev_usage *p =
++			per_cpu_ptr(ca->usage[0], cpu);
++		memset(p, 0, sizeof(*p));
++	}
 +
 +	down_read(&ca->bucket_lock);
 +	buckets = bucket_array(ca);
@@ -60060,9 +59150,9 @@ index 000000000000..0cbc7eedd728
 +		goto err_print;
 +
 +	if (!c->opts.nostart) {
-+		ret = bch2_fs_start(c);
-+		if (ret)
-+			goto err;
++		err = bch2_fs_start(c);
++		if (err)
++			goto err_print;
 +	}
 +out:
 +	kfree(sb);
@@ -60089,7 +59179,6 @@ index 000000000000..0cbc7eedd728
 +	const char *err;
 +	struct bch_fs *c;
 +	bool allocated_fs = false;
-+	int ret;
 +
 +	err = bch2_sb_validate(sb);
 +	if (err)
@@ -60122,9 +59211,8 @@ index 000000000000..0cbc7eedd728
 +	mutex_unlock(&c->sb_lock);
 +
 +	if (!c->opts.nostart && bch2_fs_may_start(c)) {
-+		err = "error starting filesystem";
-+		ret = bch2_fs_start(c);
-+		if (ret)
++		err = bch2_fs_start(c);
++		if (err)
 +			goto err;
 +	}
 +
@@ -60197,7 +59285,7 @@ index 000000000000..0cbc7eedd728
 +module_init(bcachefs_init);
 diff --git a/fs/bcachefs/super.h b/fs/bcachefs/super.h
 new file mode 100644
-index 000000000000..4598de9b9c5e
+index 000000000000..9bb672c44f4a
 --- /dev/null
 +++ b/fs/bcachefs/super.h
 @@ -0,0 +1,231 @@
@@ -60427,7 +59515,7 @@ index 000000000000..4598de9b9c5e
 +
 +void bch2_fs_stop(struct bch_fs *);
 +
-+int bch2_fs_start(struct bch_fs *);
++const char *bch2_fs_start(struct bch_fs *);
 +struct bch_fs *bch2_fs_open(char * const *, unsigned, struct bch_opts);
 +const char *bch2_fs_open_incremental(const char *path);
 +
@@ -60490,10 +59578,10 @@ index 000000000000..6277be42c914
 +#endif /* _BCACHEFS_SUPER_TYPES_H */
 diff --git a/fs/bcachefs/sysfs.c b/fs/bcachefs/sysfs.c
 new file mode 100644
-index 000000000000..c2744c7dd2ba
+index 000000000000..7069bea565c2
 --- /dev/null
 +++ b/fs/bcachefs/sysfs.c
-@@ -0,0 +1,1067 @@
+@@ -0,0 +1,1094 @@
 +/*
 + * bcache sysfs interfaces
 + *
@@ -60731,11 +59819,42 @@ index 000000000000..c2744c7dd2ba
 +{
 +	struct printbuf out = _PBUF(buf, PAGE_SIZE);
 +	struct bch_fs_usage *fs_usage = bch2_fs_usage_read(c);
++	unsigned i;
 +
 +	if (!fs_usage)
 +		return -ENOMEM;
 +
-+	bch2_fs_usage_to_text(&out, c, fs_usage);
++	pr_buf(&out, "capacity:\t\t\t%llu\n", c->capacity);
++
++	pr_buf(&out, "hidden:\t\t\t\t%llu\n",
++	       fs_usage->hidden);
++	pr_buf(&out, "data:\t\t\t\t%llu\n",
++	       fs_usage->data);
++	pr_buf(&out, "cached:\t\t\t\t%llu\n",
++	       fs_usage->cached);
++	pr_buf(&out, "reserved:\t\t\t%llu\n",
++	       fs_usage->reserved);
++	pr_buf(&out, "nr_inodes:\t\t\t%llu\n",
++	       fs_usage->nr_inodes);
++	pr_buf(&out, "online reserved:\t\t%llu\n",
++	       fs_usage->online_reserved);
++
++	for (i = 0;
++	     i < ARRAY_SIZE(fs_usage->persistent_reserved);
++	     i++) {
++		pr_buf(&out, "%u replicas:\n", i + 1);
++		pr_buf(&out, "\treserved:\t\t%llu\n",
++		       fs_usage->persistent_reserved[i]);
++	}
++
++	for (i = 0; i < c->replicas.nr; i++) {
++		struct bch_replicas_entry *e =
++			cpu_replicas_entry(&c->replicas, i);
++
++		pr_buf(&out, "\t");
++		bch2_replicas_entry_to_text(&out, e);
++		pr_buf(&out, ":\t%llu\n", fs_usage->replicas[i]);
++	}
 +
 +	percpu_up_read_preempt_enable(&c->mark_lock);
 +
@@ -60753,14 +59872,13 @@ index 000000000000..c2744c7dd2ba
 +	    nr_compressed_extents = 0,
 +	    compressed_sectors_compressed = 0,
 +	    compressed_sectors_uncompressed = 0;
-+	int ret;
 +
 +	if (!test_bit(BCH_FS_STARTED, &c->flags))
 +		return -EPERM;
 +
 +	bch2_trans_init(&trans, c);
 +
-+	for_each_btree_key(&trans, iter, BTREE_ID_EXTENTS, POS_MIN, 0, k, ret)
++	for_each_btree_key(&trans, iter, BTREE_ID_EXTENTS, POS_MIN, 0, k)
 +		if (k.k->type == KEY_TYPE_extent) {
 +			struct bkey_s_c_extent e = bkey_s_c_to_extent(k);
 +			const union bch_extent_entry *entry;
@@ -60782,10 +59900,7 @@ index 000000000000..c2744c7dd2ba
 +				break;
 +			}
 +		}
-+
-+	ret = bch2_trans_exit(&trans) ?: ret;
-+	if (ret)
-+		return ret;
++	bch2_trans_exit(&trans);
 +
 +	return scnprintf(buf, PAGE_SIZE,
 +			"uncompressed data:\n"
@@ -60970,7 +60085,7 @@ index 000000000000..c2744c7dd2ba
 +	if (attr == &sysfs_trigger_alloc_write) {
 +		bool wrote;
 +
-+		bch2_alloc_write(c, 0, &wrote);
++		bch2_alloc_write(c, false, &wrote);
 +	}
 +
 +	if (attr == &sysfs_prune_cache) {
@@ -61219,10 +60334,10 @@ index 000000000000..c2744c7dd2ba
 +
 +static int unsigned_cmp(const void *_l, const void *_r)
 +{
-+	const unsigned *l = _l;
-+	const unsigned *r = _r;
++	unsigned l = *((unsigned *) _l);
++	unsigned r = *((unsigned *) _r);
 +
-+	return cmp_int(*l, *r);
++	return (l > r) - (l < r);
 +}
 +
 +static ssize_t show_quantiles(struct bch_fs *c, struct bch_dev *ca,
@@ -61612,7 +60727,7 @@ index 000000000000..1ba759fd6e8c
 +#endif  /* _BCACHEFS_SYSFS_H_ */
 diff --git a/fs/bcachefs/tests.c b/fs/bcachefs/tests.c
 new file mode 100644
-index 000000000000..265db89af47b
+index 000000000000..a7b6fef21aef
 --- /dev/null
 +++ b/fs/bcachefs/tests.c
 @@ -0,0 +1,676 @@
@@ -61733,8 +60848,7 @@ index 000000000000..265db89af47b
 +
 +	i = 0;
 +
-+	for_each_btree_key(&trans, iter, BTREE_ID_DIRENTS,
-+			   POS_MIN, 0, k, ret)
++	for_each_btree_key(&trans, iter, BTREE_ID_DIRENTS, POS(0, 0), 0, k)
 +		BUG_ON(k.k->p.offset != i++);
 +
 +	BUG_ON(i != nr);
@@ -61779,8 +60893,7 @@ index 000000000000..265db89af47b
 +
 +	i = 0;
 +
-+	for_each_btree_key(&trans, iter, BTREE_ID_EXTENTS,
-+			   POS_MIN, 0, k, ret) {
++	for_each_btree_key(&trans, iter, BTREE_ID_EXTENTS, POS(0, 0), 0, k) {
 +		BUG_ON(bkey_start_offset(k.k) != i);
 +		i = k.k->p.offset;
 +	}
@@ -61828,8 +60941,7 @@ index 000000000000..265db89af47b
 +
 +	i = 0;
 +
-+	for_each_btree_key(&trans, iter, BTREE_ID_DIRENTS, POS_MIN,
-+			   0, k, ret) {
++	for_each_btree_key(&trans, iter, BTREE_ID_DIRENTS, POS(0, 0), 0, k) {
 +		BUG_ON(k.k->p.offset != i);
 +		i += 2;
 +	}
@@ -61841,8 +60953,8 @@ index 000000000000..265db89af47b
 +
 +	i = 0;
 +
-+	for_each_btree_key(&trans, iter, BTREE_ID_DIRENTS, POS_MIN,
-+			   BTREE_ITER_SLOTS, k, ret) {
++	for_each_btree_key(&trans, iter, BTREE_ID_DIRENTS, POS(0, 0),
++			   BTREE_ITER_SLOTS, k) {
 +		BUG_ON(bkey_deleted(k.k) != (i & 1));
 +		BUG_ON(k.k->p.offset != i++);
 +
@@ -61883,8 +60995,7 @@ index 000000000000..265db89af47b
 +
 +	i = 0;
 +
-+	for_each_btree_key(&trans, iter, BTREE_ID_EXTENTS, POS_MIN,
-+			   0, k, ret) {
++	for_each_btree_key(&trans, iter, BTREE_ID_EXTENTS, POS(0, 0), 0, k) {
 +		BUG_ON(bkey_start_offset(k.k) != i + 8);
 +		BUG_ON(k.k->size != 8);
 +		i += 16;
@@ -61897,8 +61008,8 @@ index 000000000000..265db89af47b
 +
 +	i = 0;
 +
-+	for_each_btree_key(&trans, iter, BTREE_ID_EXTENTS, POS_MIN,
-+			   BTREE_ITER_SLOTS, k, ret) {
++	for_each_btree_key(&trans, iter, BTREE_ID_EXTENTS, POS(0, 0),
++			   BTREE_ITER_SLOTS, k) {
 +		BUG_ON(bkey_deleted(k.k) != !(i % 16));
 +
 +		BUG_ON(bkey_start_offset(k.k) != i);
@@ -62122,8 +61233,10 @@ index 000000000000..265db89af47b
 +
 +	bch2_trans_init(&trans, c);
 +
-+	for_each_btree_key(&trans, iter, BTREE_ID_DIRENTS, POS_MIN,
-+			   BTREE_ITER_SLOTS|BTREE_ITER_INTENT, k) {
++	iter = bch2_trans_get_iter(&trans, BTREE_ID_DIRENTS, POS_MIN,
++				   BTREE_ITER_SLOTS|BTREE_ITER_INTENT);
++
++	for_each_btree_key_continue(iter, BTREE_ITER_SLOTS, k) {
 +		insert.k.p = iter->pos;
 +
 +		bch2_trans_update(&trans, BTREE_INSERT_ENTRY(iter, &insert.k_i));
@@ -62158,8 +61271,10 @@ index 000000000000..265db89af47b
 +
 +	bch2_trans_init(&trans, c);
 +
-+	for_each_btree_key(&trans, iter, BTREE_ID_DIRENTS, POS_MIN,
-+			   BTREE_ITER_INTENT, k) {
++	iter = bch2_trans_get_iter(&trans, BTREE_ID_DIRENTS, POS_MIN,
++				   BTREE_ITER_INTENT);
++
++	for_each_btree_key_continue(iter, 0, k) {
 +		struct bkey_i_cookie u;
 +
 +		bkey_reassemble(&u.k_i, k);
@@ -63262,10 +62377,10 @@ index 000000000000..fea80e248667
 +}
 diff --git a/fs/bcachefs/util.h b/fs/bcachefs/util.h
 new file mode 100644
-index 000000000000..f7a35880b0cf
+index 000000000000..7e1729a4b125
 --- /dev/null
 +++ b/fs/bcachefs/util.h
-@@ -0,0 +1,753 @@
+@@ -0,0 +1,743 @@
 +#ifndef _BCACHEFS_UTIL_H
 +#define _BCACHEFS_UTIL_H
 +
@@ -64006,17 +63121,7 @@ index 000000000000..f7a35880b0cf
 +		acc_u64s(acc, per_cpu_ptr(src, cpu), nr);
 +}
 +
-+static inline void percpu_memset(void __percpu *p, int c, size_t bytes)
-+{
-+	int cpu;
-+
-+	for_each_possible_cpu(cpu)
-+		memset(per_cpu_ptr(p, cpu), c, bytes);
-+}
-+
 +u64 *bch2_acc_percpu_u64s(u64 __percpu *, unsigned);
-+
-+#define cmp_int(l, r)		((l > r) - (l < r))
 +
 +#endif /* _BCACHEFS_UTIL_H */
 diff --git a/fs/bcachefs/vstructs.h b/fs/bcachefs/vstructs.h
@@ -64089,10 +63194,10 @@ index 000000000000..795664428876
 +#endif /* _VSTRUCTS_H */
 diff --git a/fs/bcachefs/xattr.c b/fs/bcachefs/xattr.c
 new file mode 100644
-index 000000000000..fd58829a2007
+index 000000000000..5ba52a3ff0b2
 --- /dev/null
 +++ b/fs/bcachefs/xattr.c
-@@ -0,0 +1,585 @@
+@@ -0,0 +1,588 @@
 +
 +#include "bcachefs.h"
 +#include "bkey_methods.h"
@@ -64292,54 +63397,55 @@ index 000000000000..fd58829a2007
 +	return ret;
 +}
 +
-+struct xattr_buf {
-+	char		*buf;
-+	size_t		len;
-+	size_t		used;
-+};
-+
-+static int __bch2_xattr_emit(const char *prefix,
-+			     const char *name, size_t name_len,
-+			     struct xattr_buf *buf)
++static void __bch2_xattr_emit(const char *prefix,
++			      const char *name, size_t name_len,
++			      char **buffer, size_t *buffer_size,
++			      ssize_t *ret)
 +{
 +	const size_t prefix_len = strlen(prefix);
 +	const size_t total_len = prefix_len + name_len + 1;
 +
-+	if (buf->buf) {
-+		if (buf->used + total_len > buf->len)
-+			return -ERANGE;
++	if (*buffer) {
++		if (total_len > *buffer_size) {
++			*ret = -ERANGE;
++			return;
++		}
 +
-+		memcpy(buf->buf + buf->used, prefix, prefix_len);
-+		memcpy(buf->buf + buf->used + prefix_len,
++		memcpy(*buffer, prefix, prefix_len);
++		memcpy(*buffer + prefix_len,
 +		       name, name_len);
-+		buf->buf[buf->used + prefix_len + name_len] = '\0';
++		(*buffer)[prefix_len + name_len] = '\0';
++
++		*buffer		+= total_len;
++		*buffer_size	-= total_len;
 +	}
 +
-+	buf->used += total_len;
-+	return 0;
++	*ret += total_len;
 +}
 +
-+static int bch2_xattr_emit(struct dentry *dentry,
++static void bch2_xattr_emit(struct dentry *dentry,
 +			    const struct bch_xattr *xattr,
-+			    struct xattr_buf *buf)
++			    char **buffer, size_t *buffer_size,
++			    ssize_t *ret)
 +{
 +	const struct xattr_handler *handler =
 +		bch2_xattr_type_to_handler(xattr->x_type);
 +
-+	return handler && (!handler->list || handler->list(dentry))
-+		? __bch2_xattr_emit(handler->prefix ?: handler->name,
-+				    xattr->x_name, xattr->x_name_len, buf)
-+		: 0;
++	if (handler && (!handler->list || handler->list(dentry)))
++		__bch2_xattr_emit(handler->prefix ?: handler->name,
++				  xattr->x_name, xattr->x_name_len,
++				  buffer, buffer_size, ret);
 +}
 +
-+static int bch2_xattr_list_bcachefs(struct bch_fs *c,
-+				    struct bch_inode_info *inode,
-+				    struct xattr_buf *buf,
-+				    bool all)
++static void bch2_xattr_list_bcachefs(struct bch_fs *c,
++				     struct bch_inode_info *inode,
++				     char **buffer,
++				     size_t *buffer_size,
++				     ssize_t *ret,
++				     bool all)
 +{
 +	const char *prefix = all ? "bcachefs_effective." : "bcachefs.";
 +	unsigned id;
-+	int ret = 0;
 +	u64 v;
 +
 +	for (id = 0; id < Inode_opt_nr; id++) {
@@ -64351,13 +63457,13 @@ index 000000000000..fd58829a2007
 +		    !(inode->ei_inode.bi_fields_set & (1 << id)))
 +			continue;
 +
-+		ret = __bch2_xattr_emit(prefix, bch2_inode_opts[id],
-+					strlen(bch2_inode_opts[id]), buf);
-+		if (ret)
++		__bch2_xattr_emit(prefix,
++				  bch2_inode_opts[id],
++				  strlen(bch2_inode_opts[id]),
++				  buffer, buffer_size, ret);
++		if (*ret < 0)
 +			break;
 +	}
-+
-+	return ret;
 +}
 +
 +ssize_t bch2_xattr_list(struct dentry *dentry, char *buffer, size_t buffer_size)
@@ -64367,14 +63473,13 @@ index 000000000000..fd58829a2007
 +	struct btree_trans trans;
 +	struct btree_iter *iter;
 +	struct bkey_s_c k;
-+	struct xattr_buf buf = { .buf = buffer, .len = buffer_size };
 +	u64 inum = dentry->d_inode->i_ino;
-+	int ret;
++	ssize_t ret = 0;
 +
 +	bch2_trans_init(&trans, c);
 +
 +	for_each_btree_key(&trans, iter, BTREE_ID_XATTRS,
-+			   POS(inum, 0), 0, k, ret) {
++			   POS(inum, 0), 0, k) {
 +		BUG_ON(k.k->p.inode < inum);
 +
 +		if (k.k->p.inode > inum)
@@ -64383,24 +63488,27 @@ index 000000000000..fd58829a2007
 +		if (k.k->type != KEY_TYPE_xattr)
 +			continue;
 +
-+		ret = bch2_xattr_emit(dentry, bkey_s_c_to_xattr(k).v, &buf);
-+		if (ret)
++		bch2_xattr_emit(dentry, bkey_s_c_to_xattr(k).v,
++				&buffer, &buffer_size, &ret);
++		if (ret < 0)
 +			break;
 +	}
-+	ret = bch2_trans_exit(&trans) ?: ret;
++	bch2_trans_exit(&trans);
 +
-+	if (ret)
++	if (ret < 0)
 +		return ret;
 +
-+	ret = bch2_xattr_list_bcachefs(c, inode, &buf, false);
-+	if (ret)
++	bch2_xattr_list_bcachefs(c, inode, &buffer,
++				 &buffer_size, &ret, false);
++	if (ret < 0)
 +		return ret;
 +
-+	ret = bch2_xattr_list_bcachefs(c, inode, &buf, true);
-+	if (ret)
++	bch2_xattr_list_bcachefs(c, inode, &buffer,
++				 &buffer_size, &ret, true);
++	if (ret < 0)
 +		return ret;
 +
-+	return buf.used;
++	return ret;
 +}
 +
 +static int bch2_xattr_get_handler(const struct xattr_handler *handler,
