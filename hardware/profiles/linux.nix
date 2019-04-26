@@ -19,9 +19,13 @@
       "vm.dirty_writeback_centisecs=6000"
     ];
 
-    kernelPatches = lib.optionals (config.boot.kernelPackages.kernel.version == pkgs.linux_testing.version) [
+    kernelPatches = let
+      bcachefsSupport = config.boot.kernelPackages == pkgs.linuxPackages_testing_bcachefs;
+      needBcachefsSupport = builtins.elem "bcachefs" config.boot.supportedFilesystems;
+    in [
       (import ../../patches/kernel/harden-kernel.nix)
       (import ../../patches/kernel/disable-amateur-radio-support.nix)
-    ];
+    ] ++ lib.optional (!bcachefsSupport && needBcachefsSupport)
+      (import ../../patches/kernel/bcachefs.nix);
   };
 }
