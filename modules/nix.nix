@@ -24,7 +24,7 @@ with config.nixos; {
     buildMachines = [
       { hostName = "builder";
         system = "aarch64-linux";
-        maxJobs = 3;
+        maxJobs = 2;
         supportedFeatures = [ "kvm" "perf" "nixos-test" "big-parallel" ]; }
     ];
 
