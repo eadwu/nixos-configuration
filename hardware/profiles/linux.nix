@@ -28,4 +28,8 @@
     ] ++ lib.optional (!bcachefsSupport && needBcachefsSupport)
       (import ../../patches/kernel/bcachefs.nix);
   };
+
+  security.pam.defaults = ''
+    session required pam_keyinit.so force revoke
+  '';
 }

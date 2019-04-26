@@ -36,4 +36,8 @@
   };
 
   nixpkgs.config.allowUnfree = true;
+
+  security.pam.defaults = ''
+    session required pam_keyinit.so force revoke
+  '';
 }
