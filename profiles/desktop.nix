@@ -76,6 +76,7 @@ in with config.nixos; {
       gnumake
       # Misc
       cachix
+      epubcheck
       ffmpeg
       gnupg
       home-manager
