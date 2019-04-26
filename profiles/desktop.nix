@@ -37,11 +37,11 @@ in with config.nixos; {
     cleanTmpDir = true;
     supportedFilesystems = [ "ntfs" "bcachefs" ];
     kernelPackages = let
-      isStableLatest = pkgs.linux_latest.meta.branch == pkgs.linux_testing.meta.branch;
+      isStableLatest = pkgs.linux_latest_hardened.meta.branch == pkgs.linux_testing_hardened.meta.branch;
       needBcachefsSupport = builtins.elem "bcachefs" config.boot.supportedFilesystems;
     in if needBcachefsSupport || isStableLatest
-      then lib.mkForce pkgs.linuxPackages_latest
-      else pkgs.linuxPackages_testing;
+      then lib.mkForce pkgs.linuxPackages_latest_hardened
+      else pkgs.linuxPackages_testing_hardened;
   };
 
   environment = {

@@ -1,6 +1,11 @@
 { config, pkgs, lib, ... }:
 
 {
+  imports =
+    [
+      <nixpkgs/nixos/modules/profiles/hardened.nix>
+    ];
+
   boot = {
     blacklistedKernelModules = [
       # https://wiki.archlinux.org/index.php/Improving_performance#Watchdogs
@@ -23,13 +28,18 @@
       bcachefsSupport = config.boot.kernelPackages == pkgs.linuxPackages_testing_bcachefs;
       needBcachefsSupport = builtins.elem "bcachefs" config.boot.supportedFilesystems;
     in [
-      (import ../../patches/kernel/harden-kernel.nix)
       (import ../../patches/kernel/disable-amateur-radio-support.nix)
     ] ++ lib.optional (!bcachefsSupport && needBcachefsSupport)
       (import ../../patches/kernel/bcachefs.nix);
   };
 
-  security.pam.defaults = ''
-    session required pam_keyinit.so force revoke
-  '';
+  security = {
+    # Some hardened option bypasses because of convenience/performance
+    allowUserNamespaces = true;
+    allowSimultaneousMultithreading = true;
+
+    pam.defaults = ''
+      session required pam_keyinit.so force revoke
+    '';
+  };
 }

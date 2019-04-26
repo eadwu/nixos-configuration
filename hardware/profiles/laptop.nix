@@ -13,13 +13,8 @@
 
   hardware = {
     enableRedistributableFirmware = true;
-
     bluetooth.enable = true;
-
-    opengl = {
-      driSupport32Bit = true;
-      enable = true;
-    };
+    opengl.enable = true;
   };
 
   powerManagement.enable = true;
