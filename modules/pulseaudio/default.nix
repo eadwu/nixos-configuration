@@ -8,6 +8,5 @@ assert builtins.pathExists ./default.pa;
     enable = true;
     extraModules = lib.singleton pkgs.pulseaudio-modules-bt;
     package = pkgs.pulseaudioFull;
-    support32Bit = true;
   };
 }
