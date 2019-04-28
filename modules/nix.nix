@@ -11,13 +11,13 @@ with config.nixos; {
 
     binaryCaches = [
       "https://cache.nixos.org/"
-      "https://machine.cachix.org/"
+      "https://config.cachix.org/"
       "https://all-hies.cachix.org/"
     ];
 
     binaryCachePublicKeys = [
       "hydra.nixos.org-1:CNHJZBh9K4tP3EKF6FkkgeVYsS3ohTl+oS0Qa8bezVs="
-      "machine.cachix.org-1:qztDn4LVyyDQ4gYtIlo/6QUdKAoKXOPG9JMnIi5PEDg="
+      "config.cachix.org-1:dR/yvjsRz8TWkZj5mKcTckVTpHWCy9aPiRwGIvhAP9A="
       "all-hies.cachix.org-1:JjrzAOEUsD9ZMt8fdFbzo3jNAyEWlPAwdVuHw4RD43k="
     ];
 
