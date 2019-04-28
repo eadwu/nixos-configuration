@@ -12,6 +12,7 @@ in with config.nixos; {
   imports =
     [
       ./default.nix
+      ./bcachefs.nix
 
       ../modules/backlight
       ../modules/compton
@@ -35,12 +36,11 @@ in with config.nixos; {
 
   boot = {
     cleanTmpDir = true;
-    supportedFilesystems = [ "ntfs" "bcachefs" ];
+    supportedFilesystems = [ "ntfs" ];
     kernelPackages = let
       isStableLatest = pkgs.linux_latest_hardened.meta.branch == pkgs.linux_testing_hardened.meta.branch;
-      needBcachefsSupport = builtins.elem "bcachefs" config.boot.supportedFilesystems;
-    in if needBcachefsSupport || isStableLatest
-      then lib.mkForce pkgs.linuxPackages_latest_hardened
+    in if isStableLatest
+      then pkgs.linuxPackages_latest_hardened
       else pkgs.linuxPackages_testing_hardened;
   };
 

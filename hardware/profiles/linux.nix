@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ ... }:
 
 {
   imports =
@@ -24,22 +24,14 @@
       "vm.dirty_writeback_centisecs=6000"
     ];
 
-    kernelPatches = let
-      bcachefsSupport = config.boot.kernelPackages == pkgs.linuxPackages_testing_bcachefs;
-      needBcachefsSupport = builtins.elem "bcachefs" config.boot.supportedFilesystems;
-    in [
+    kernelPatches = [
       (import ../../patches/kernel/disable-amateur-radio-support.nix)
-    ] ++ lib.optional (!bcachefsSupport && needBcachefsSupport)
-      (import ../../patches/kernel/bcachefs.nix);
+    ];
   };
 
   security = {
     # Some hardened option bypasses because of convenience/performance
     allowUserNamespaces = true;
     allowSimultaneousMultithreading = true;
-
-    pam.defaults = ''
-      session required pam_keyinit.so force revoke
-    '';
   };
 }

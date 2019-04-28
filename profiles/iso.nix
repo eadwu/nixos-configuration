@@ -3,14 +3,13 @@
 {
   imports =
     [
+      ./bcachefs.nix
+
       <nixpkgs/nixos/modules/installer/cd-dvd/channel.nix>
       <nixpkgs/nixos/modules/installer/cd-dvd/installation-cd-minimal.nix>
     ];
 
   boot = {
-    kernelPackages = lib.mkForce pkgs.linuxPackages_latest_hardened;
-    kernelPatches = lib.singleton (import ../patches/kernel/bcachefs.nix);
-    supportedFilesystems = lib.singleton "bcachefs";
     zfs.enableUnstable = true;
   };
 
@@ -36,8 +35,4 @@
   };
 
   nixpkgs.config.allowUnfree = true;
-
-  security.pam.defaults = ''
-    session required pam_keyinit.so force revoke
-  '';
 }
