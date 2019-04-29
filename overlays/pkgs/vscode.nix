@@ -42,8 +42,8 @@ self: super:
 
       { name = "latex-workshop";
         publisher = "James-Yu";
-        version = "6.4.0";
-        sha256 = "0dvsabfsr6bmldib0hvqbkdaacnvnmbnmlhyc1iy2j0zlnl2rl2s"; }
+        version = "6.5.1";
+        sha256 = "01l6j0mlxkyni27qqk8kp6sh6v7ya983ynb3zqfbkjdq1g0fggfd"; }
 
       { name = "vscode-docker";
         publisher = "PeterJausovec";
@@ -57,8 +57,8 @@ self: super:
 
       { name = "vscode-hie-server";
         publisher = "alanz";
-        version = "0.0.25";
-        sha256 = "0m21w03v94qxm0i54ki5slh6rg7610zfxinfpngr0hfpgw2nnxvc"; }
+        version = "0.0.27";
+        sha256 = "1mz0h5zd295i73hbji9ivla8hx02i4yhqcv6l4r23w3f07ql3i8h"; }
 
       { name = "vscode-sqlite";
         publisher = "alexcvzz";
@@ -137,8 +137,8 @@ self: super:
 
       { name = "theme-monokai-pro-vscode";
         publisher = "monokai";
-        version = "1.1.12";
-        sha256 = "1cfsm8pk6jf8x80grm3y95r3s2530lbzaf4vdafdaqrx0m1bgqd5"; }
+        version = "1.1.13";
+        sha256 = "1dx47sg2nqmzqhf0ddjn837mz08qs70w79vdyb28anrjmi7k4az4"; }
 
       { name = "azure-account";
         publisher = "ms-vscode";
@@ -152,8 +152,8 @@ self: super:
 
       { name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.67";
-        sha256 = "1shy9xaqz1wsyzzz5z8g409ma5h5kaic0y7bc1q2nxy60gbq828n"; }
+        version = "1.0.91";
+        sha256 = "1ndii2x46kkmcdxb3xdbkxrxdj0a1i9qnga12vilpw4bvpz31b1z"; }
 
       { name = "debugger-for-chrome";
         publisher = "msjsdiag";
@@ -197,13 +197,13 @@ self: super:
 
       { name = "vscode-java-debug";
         publisher = "vscjava";
-        version = "0.17.0";
-        sha256 = "1iqy3xv9ljwn3fw8384sjkwpf6584c43yw5bqlc39krqilks31fi"; }
+        version = "0.18.0";
+        sha256 = "106r2w5k889q6m3glchvk4vy7vnllzsr10fzzwzbdqnv8cac12cr"; }
 
       { name = "vscode-java-pack";
         publisher = "vscjava";
-        version = "0.6.0";
-        sha256 = "0f2zi72aaywib0mjwx3m8420iys0kyn1xl5rapsi4zkjrh94ryxf"; }
+        version = "0.7.0";
+        sha256 = "09h4qdz7v34vh7gqffa51dmgpvrax892lmfjwb59g7ykz7hwhb73"; }
 
       { name = "vscode-java-test";
         publisher = "vscjava";
@@ -212,8 +212,8 @@ self: super:
 
       { name = "vscode-maven";
         publisher = "vscjava";
-        version = "0.16.1";
-        sha256 = "03k3rn82j92aarm1whmyx4b8xp1057nwj26y883hp12l97dcmbih"; }
+        version = "0.16.2";
+        sha256 = "1rdfqpk2ml7qcnqarzpb60j3y22nay62jrxkfir431499cihxhgh"; }
     ];
   };
 }
