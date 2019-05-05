@@ -18,6 +18,7 @@ in with config.nixos; {
       ../modules/compton
       ../modules/cups.nix
       ../modules/emacs.nix
+      ../modules/fontconfig.nix
       ../modules/i3color.nix
       ../modules/logind
       ../modules/mpd
