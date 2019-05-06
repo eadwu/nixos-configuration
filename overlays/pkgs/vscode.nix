@@ -47,8 +47,8 @@ self: super:
 
       { name = "vscode-docker";
         publisher = "PeterJausovec";
-        version = "0.6.1";
-        sha256 = "0clxy66qi5c3k5di5xsjm3vjib525xq89z1q2h3a5x5qwvbvd0mj"; }
+        version = "0.6.2";
+        sha256 = "1is5b7l6if103219d2bg4gar02p0asq87qswnkzgjqpnawrgkshd"; }
 
       { name = "better-comments";
         publisher = "aaron-bond";
@@ -152,8 +152,8 @@ self: super:
 
       { name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.91";
-        sha256 = "1ndii2x46kkmcdxb3xdbkxrxdj0a1i9qnga12vilpw4bvpz31b1z"; }
+        version = "1.0.125";
+        sha256 = "12h1jw8hl0l5mx8rn4q6vcz0fa40sq56hqdiryd2z39r953v9wl2"; }
 
       { name = "debugger-for-chrome";
         publisher = "msjsdiag";
@@ -172,8 +172,8 @@ self: super:
 
       { name = "java";
         publisher = "redhat";
-        version = "0.43.0";
-        sha256 = "1j3sk38hh9iga9cbdsripk93sxw06raklk0xzknxdd98lai963d0"; }
+        version = "0.44.0";
+        sha256 = "1bhnv03h2jyvbbk3x5ji90fc6ha8ysava400wkaz2qhy3k9bvy4h"; }
 
       { name = "rust";
         publisher = "rust-lang";
@@ -202,8 +202,8 @@ self: super:
 
       { name = "vscode-java-pack";
         publisher = "vscjava";
-        version = "0.7.0";
-        sha256 = "09h4qdz7v34vh7gqffa51dmgpvrax892lmfjwb59g7ykz7hwhb73"; }
+        version = "0.7.1";
+        sha256 = "0mrsxgaca0nlgs3j2hvpzx99qiak1dk9sz95bm6ihs0m8ba6zyd4"; }
 
       { name = "vscode-java-test";
         publisher = "vscjava";
