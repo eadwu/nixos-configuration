@@ -33,7 +33,10 @@ with config.nixos; {
     dpi = 240;
   };
 
-  i18n.consoleFont = "${pkgs.terminus_font}/share/consolefonts/ter-u28n.psf.gz";
+  i18n = {
+    consoleFont = "ter-u28n";
+    consolePackages = lib.singleton pkgs.terminus_font;
+  };
 
   nixos.settings = {
     xserver.dpiScale = 2;

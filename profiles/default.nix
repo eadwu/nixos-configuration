@@ -8,6 +8,8 @@
       ../modules/nix.nix
     ];
 
+  boot.earlyVconsoleSetup = true;
+
   environment = {
     shells = [
       "${pkgs.zsh}/bin/zsh"
