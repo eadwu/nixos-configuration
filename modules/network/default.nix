@@ -13,17 +13,31 @@ with config.nixos; {
     wireless.iwd.enable = true;
   };
 
-  systemd.network = {
-    enable = true;
-
-    networks.wlpNs0 = {
+  systemd.network = let
+    linkConfig = interface: {
       matchConfig = {
-        Name = "wlp*s0";
+        OriginalName = "${interface}*";
       };
 
-      networkConfig = {
-        DHCP = "yes";
+      linkConfig = {
+        MACAddressPolicy = "random";
+        NamePolicy = "kernel database onboard slot path";
       };
     };
+
+    networkConfig = interface: {
+      name = "${interface}*";
+      DHCP = "yes";
+      dns = [ "127.0.0.1" ];
+
+      dhcpConfig = {
+        Anonymize = true;
+        UseDNS = false;
+      };
+    };
+  in {
+    enable = true;
+    links = builtins.listToAttrs (map (interface: { name = interface; value = linkConfig interface; }) [ "en" "wl" ]);
+    networks = builtins.listToAttrs (map (interface: { name = interface; value = networkConfig interface; }) [ "en" "wl" ]);
   };
 }
