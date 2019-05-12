@@ -14,9 +14,9 @@ with config.nixos; {
   };
 
   systemd.network = let
-    linkConfig = interface: {
+    linkConfig = netType: {
       matchConfig = {
-        OriginalName = "${interface}*";
+        Type = netType;
       };
 
       linkConfig = {
@@ -25,10 +25,13 @@ with config.nixos; {
       };
     };
 
-    networkConfig = interface: {
-      name = "${interface}*";
+    networkConfig = netType: {
       DHCP = "yes";
       dns = [ "127.0.0.1" ];
+
+      matchConfig = {
+        Type = netType;
+      };
 
       dhcpConfig = {
         Anonymize = true;
@@ -37,7 +40,7 @@ with config.nixos; {
     };
   in {
     enable = true;
-    links = builtins.listToAttrs (map (interface: { name = interface; value = linkConfig interface; }) [ "en" "wl" ]);
-    networks = builtins.listToAttrs (map (interface: { name = interface; value = networkConfig interface; }) [ "en" "wl" ]);
+    links = builtins.listToAttrs (map (netType: { name = netType; value = linkConfig netType; }) [ "eth" "wlan" ]);
+    networks = builtins.listToAttrs (map (netType: { name = netType; value = networkConfig netType; }) [ "eth" "wlan" ]);
   };
 }
