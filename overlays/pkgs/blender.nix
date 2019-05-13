@@ -9,11 +9,11 @@ in {
   }).overrideAttrs (oldAttrs: rec {
     name = "${pname}-${version}";
     pname = "blender";
-    version = "2.80.2019.05.05";
+    version = "2.80.2019.05.12";
 
     src = builtins.fetchGit {
       url = "https://git.blender.org/blender.git";
-      rev = "480a09a92f7f1f28aabb4ad84b86ddccd6580afc";
+      rev = "05f1451d724874e12b3f1373e83849dbb4960ef6";
       ref = "master";
     };
 
