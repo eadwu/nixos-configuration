@@ -29,6 +29,8 @@
     ];
   };
 
+  environment.memoryAllocator.provider = "libc";
+
   security = {
     # Some hardened option bypasses because of convenience/performance
     allowUserNamespaces = true;
