@@ -37,8 +37,8 @@ self: super:
 
       { name = "Ionide-fsharp";
         publisher = "Ionide";
-        version = "3.35.0";
-        sha256 = "0skd6ch5i5hhihii3dzcxg6vcvqavg9m47n0flgsm69fdgszjvx3"; }
+        version = "3.37.0";
+        sha256 = "02cjvnxy2qsdgpj7bda9bz2mw079hwi8g4n91nn3pp3gykm4hmpj"; }
 
       { name = "latex-workshop";
         publisher = "James-Yu";
@@ -92,8 +92,8 @@ self: super:
 
       { name = "gitlens";
         publisher = "eamodio";
-        version = "9.6.3";
-        sha256 = "0psgvlf3945724l2lf3znr4xlmsk0zcrig48lap2bck43lr7xxfw"; }
+        version = "9.7.3";
+        sha256 = "1fiq7yzqb1r7p9pickf5k9frb80whl6xpqpjv9z0nvrd62iafmgr"; }
 
       { name = "tslint";
         publisher = "eg2";
@@ -152,8 +152,8 @@ self: super:
 
       { name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.125";
-        sha256 = "12h1jw8hl0l5mx8rn4q6vcz0fa40sq56hqdiryd2z39r953v9wl2"; }
+        version = "1.0.181";
+        sha256 = "1364za2r20rcp1jchnbfiw0z8ik4j4486c4dxd1sqga1m57g9xvj"; }
 
       { name = "debugger-for-chrome";
         publisher = "msjsdiag";
