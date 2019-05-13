@@ -11,11 +11,11 @@ let
   }).overrideAttrs (oldAttrs: rec {
     name = "${pname}-${version}";
     pname = stdenv.lib.removeSuffix "-${oldAttrs.version}" oldAttrs.name;
-    version = "unstable-2019-05-06";
+    version = "unstable-2019-05-12";
 
     src = builtins.fetchGit {
       url = "https://git.savannah.gnu.org/git/emacs.git";
-      rev = "921d279e15256a07168033b0c50f1fc82e22ef7f";
+      rev = "d2d4916046e31e46598f0a0edbc65e75b8cb4cc3";
       ref = "master";
     };
 
