@@ -1,6 +1,11 @@
 { lib, pkgs, ... }:
 
 {
+  imports =
+    [
+      ../options/pam_keyring.nix
+    ];
+
   boot = {
     supportedFilesystems = lib.singleton "bcachefs";
     kernelPackages = lib.mkForce pkgs.linuxPackages_latest_hardened;
@@ -13,10 +18,4 @@
 
     kernelPatches = lib.singleton (import ../patches/kernel/bcachefs.nix);
   };
-
-  # Keyring issue for bcachefs
-  # See https://github.com/NixOS/nixpkgs/issues/32279
-  security.pam.defaults = ''
-    session required pam_keyinit.so force revoke
-  '';
 }
