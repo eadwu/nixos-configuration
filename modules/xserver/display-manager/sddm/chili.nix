@@ -43,7 +43,7 @@ let
 in {
   imports =
     [
-      ../../../options/sddm-chili.nix
+      ../../../../options/sddm-chili.nix
     ];
 
   environment.systemPackages = (lib.singleton sddm-chili) ++ (with pkgs.qt5; [

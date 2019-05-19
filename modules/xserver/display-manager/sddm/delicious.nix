@@ -39,7 +39,7 @@ let
 in {
   imports =
     [
-      ../../../options/sddm-delicious.nix
+      ../../../../options/sddm-delicious.nix
     ];
 
   environment.systemPackages = (lib.singleton sddm-delicious) ++ (with pkgs.qt5; [

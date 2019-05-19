@@ -3,10 +3,12 @@
 with config.nixos; {
   imports =
     [
-      ./chili.nix
-      ./delicious.nix
-      ./enso-greeter.nix
-      ./gtk-greeter.nix
+      ./lightdm/enso-greeter.nix
+      ./lightdm/gtk-greeter.nix
+
+      ./sddm/chili.nix
+      ./sddm/delicious.nix
+      ./sddm/sugar-dark.nix
     ];
 
   services.xserver.displayManager = {
@@ -22,7 +24,7 @@ with config.nixos; {
 
     sddm = {
       enable = false;
-      theme = "chili";
+      theme = "sugar-dark";
     };
   };
 }
