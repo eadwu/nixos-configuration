@@ -7,14 +7,14 @@ tick=1
 
 case $1 in
   -)
-    new=$(( $(cat $kl_smc/actual_brightness) - $(cat $kl_smc/max_brightness) / ( $steps * $tick ) ))
+    new=$(( $(cat $kl_smc/brightness) - $(cat $kl_smc/max_brightness) / ( $steps * $tick ) ))
     if (( $new < 0 )); then
       echo "0" | tee $kl_smc/brightness
       exit 1
     fi
     ;;
   +)
-    new=$(( $(cat $kl_smc/actual_brightness) + $(cat $kl_smc/max_brightness) / ( $steps * $tick ) ))
+    new=$(( $(cat $kl_smc/brightness) + $(cat $kl_smc/max_brightness) / ( $steps * $tick ) ))
     if (( $new > $(cat $kl_smc/max_brightness) )); then
       echo "$(cat $kl_smc/max_brightness)" | tee $kl_smc/brightness
       exit 1
