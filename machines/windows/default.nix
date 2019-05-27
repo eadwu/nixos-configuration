@@ -29,7 +29,7 @@ with config.nixos; {
 
   fonts.fontconfig = {
     antialias = false;
-    dpi = 220;
+    dpi = 230;
   };
 
   i18n = {
