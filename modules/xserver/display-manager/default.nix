@@ -13,7 +13,7 @@ with config.nixos; {
 
   services.xserver.displayManager = {
     lightdm = {
-      enable = true;
+      enable = false;
       background = settings.xserver.background;
 
       greeters = {
@@ -23,8 +23,13 @@ with config.nixos; {
     };
 
     sddm = {
-      enable = false;
+      enable = true;
       theme = "sugar-dark";
+
+      extraConfig = ''
+        [General]
+        InputMethod=
+      '';
     };
   };
 }
