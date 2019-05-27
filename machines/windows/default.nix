@@ -29,8 +29,7 @@ with config.nixos; {
 
   fonts.fontconfig = {
     antialias = false;
-    # calculated: 282.42
-    dpi = 240;
+    dpi = 220;
   };
 
   i18n = {
@@ -92,15 +91,6 @@ with config.nixos; {
           MatchDevicePath "/dev/input/event*"
           Option "Ignore" "on"
         EndSection
-      '';
-
-      # calculated: 293.58336 165.14064
-      monitorSection = ''
-        DisplaySize 406 228
-      '';
-
-      screenSection = ''
-        Option "DPI" "240 x 240"
       '';
 
       libinput.additionalOptions = ''
