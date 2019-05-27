@@ -1,8 +1,52 @@
-{ pkgs, lib, ... }:
+{ config, pkgs, lib, ... }:
 
 with lib;
 
 let
+  scfg = config.services.xserver.displayManager.sddm;
+  cfg = scfg.greeters.sugar-dark;
+
+  sugarConfig = pkgs.writeText "theme.conf" ''
+    [General]
+    Background=${cfg.background}
+    ScaleImageCropped=${boolToString cfg.scaleImageCropped}
+    ScreenWidth=${toString cfg.width}
+    ScreenHeight=${toString cfg.height}
+
+    # [Design Customizations]
+    ThemeColor=${cfg.design.themeColor}
+    AccentColor=${cfg.design.accentColor}
+    RoundCorners=${toString cfg.design.roundCorners}
+    ScreenPadding=${toString cfg.design.screenPadding}
+    Font=${cfg.design.font}
+    FontSize=${optionalString (cfg.design.fontSize != null) (toString cfg.design.fontSize)}
+
+    # [Locale Settings]
+    Locale=${optionalString (cfg.locale.name != null) cfg.locale.name}
+    HourFormat=${optionalString (cfg.locale.hourFormat != null) cfg.locale.hourFormat}
+    DateFormat=${optionalString (cfg.locale.dateFormat != null) cfg.locale.dateFormat}
+
+    # [Interface Behavior]
+    ForceRightToLeft=${boolToString cfg.interface.forceRightToLeft}
+    ForceLastUser=${boolToString cfg.interface.forceLastUser}
+    ForcePasswordFocus=${boolToString cfg.interface.forcePasswordFocus}
+    ForceHideCompletePassword=${boolToString cfg.interface.forceHideCompletePassword}
+
+    # [Translations]
+    HeaderText=${optionalString (cfg.translation.headerText != null) cfg.translation.headerText}
+    TranslateUsernamePlaceholder=
+    TranslatePasswordPlaceholder=
+    TranslateShowPassword=
+    TranslateLoginFailed=
+    TranslateLogin=
+    TranslateSession=
+    TranslateSuspend=
+    TranslateReboot=
+    TranslateShutdown=
+
+    ${cfg.extraConfig}
+  '';
+
   designOpts = { ... }: {
     options = {
       themeColor = mkOption {
@@ -83,41 +127,67 @@ let
   translationOpts = { ... }: {
     options = {
       headerText = mkOption {
-        type = types.str;
-        default = "Welcome!";
+        type = types.nullOr types.str;
+        default = null;
       };
     };
   };
 in {
-  options.services.xserver.displayManager.sddm.greeters.sugar-dark = {
-    scaleImageCropped = mkOption {
-      type = types.bool;
-      default = true;
-    };
+  options = {
+    services.xserver.displayManager.sddm.greeters.sugar-dark = {
+      background = mkOption {
+        type = types.path;
+        default = config.nixos.settings.xserver.background;
+      };
 
-    design = mkOption {
-      type = types.submodule designOpts;
-      default = {};
-    };
+      scaleImageCropped = mkOption {
+        type = types.bool;
+        default = true;
+      };
 
-    locale = mkOption {
-      type = types.submodule localeOpts;
-      default = {};
-    };
+      width = mkOption {
+        type = types.int;
+        default = config.nixos.settings.machine.screen.width;
+      };
 
-    interface = mkOption {
-      type = types.submodule interfaceOpts;
-      default = {};
-    };
+      height = mkOption {
+        type = types.int;
+        default = config.nixos.settings.machine.screen.height;
+      };
 
-    translation = mkOption {
-      type = types.submodule translationOpts;
-      default = {};
-    };
+      design = mkOption {
+        type = types.submodule designOpts;
+        default = {};
+      };
 
-    extraConfig = mkOption {
-      type = types.lines;
-      default = "";
+      locale = mkOption {
+        type = types.submodule localeOpts;
+        default = {};
+      };
+
+      interface = mkOption {
+        type = types.submodule interfaceOpts;
+        default = {};
+      };
+
+      translation = mkOption {
+        type = types.submodule translationOpts;
+        default = {};
+      };
+
+      extraConfig = mkOption {
+        type = types.lines;
+        default = "";
+      };
     };
+  };
+
+  config = mkIf (scfg.enable && scfg.theme == "sugar-dark") {
+    environment.systemPackages = singleton
+      (pkgs.sddm-sugar-dark.overrideAttrs (oldAttrs: {
+        postInstall = (oldAttrs.postInstall or "") + ''
+          cp -f ${sugarConfig} $out/$installPrefix/$themeName/theme.conf
+        '';
+      }));
   };
 }

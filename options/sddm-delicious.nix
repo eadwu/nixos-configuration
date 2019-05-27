@@ -1,8 +1,33 @@
-{ pkgs, lib, ... }:
+{ config, pkgs, lib, ... }:
 
 with lib;
 
 let
+  scfg = config.services.xserver.displayManager.sddm;
+  cfg = scfg.greeters.delicious;
+
+  deliciousConfig = let
+    literalBool = v: if v then "enable" else "disable";
+  in pkgs.writeText "theme.conf" ''
+    [General]
+    background=${cfg.background}
+
+    fontfamily=${cfg.font.family}
+    fontcolor=${cfg.font.color}
+    fontscale=${cfg.font.scale}
+
+    sessions=${concatStringsSep "," cfg.sessions}
+
+    icontheme=${cfg.icon.theme}
+    iconformat=${cfg.icon.format}
+    iconoverlay=${cfg.icon.overlay}
+    iconglow=${literalBool cfg.icon.glow}
+
+    glowcolor=${cfg.glowColor}
+
+    ${cfg.extraConfig}
+  '';
+
   fontOpts = { ... }: {
     options = {
       family = mkOption {
@@ -67,52 +92,63 @@ let
     };
   };
 in {
-  options.services.xserver.displayManager.sddm.greeters.delicious = {
-    background = mkOption {
-      type = types.path;
-      default = "${pkgs.sddm-delicious}/background/space.mp4";
-      description = ''
-        Background image or video located in the background folder
-      '';
-    };
+  options = {
+    services.xserver.displayManager.sddm.greeters.delicious = {
+      background = mkOption {
+        type = types.path;
+        default = "${pkgs.sddm-delicious}/background/space.mp4";
+        description = ''
+          Background image or video located in the background folder
+        '';
+      };
 
-    font = mkOption {
-      type = types.submodule fontOpts;
-      default = {};
-      description = ''
-        Font configuration
-      '';
-    };
+      font = mkOption {
+        type = types.submodule fontOpts;
+        default = {};
+        description = ''
+          Font configuration
+        '';
+      };
 
-    sessions = mkOption {
-      type = types.nonEmptyListOf types.str;
-      default = [ "i3" "dwm" "bspwm" "gnome" "plasma" "awesome" "fluxbox" "windows" ];
-      description = ''
-        Available sessions with icons
-      '';
-    };
+      sessions = mkOption {
+        type = types.nonEmptyListOf types.str;
+        default = [ "i3" "dwm" "bspwm" "gnome" "plasma" "awesome" "fluxbox" "windows" ];
+        description = ''
+          Available sessions with icons
+        '';
+      };
 
-    icon = mkOption {
-      type = types.submodule iconOpts;
-      default = {};
-      description = ''
-        Icon configuration
-      '';
-    };
+      icon = mkOption {
+        type = types.submodule iconOpts;
+        default = {};
+        description = ''
+          Icon configuration
+        '';
+      };
 
-    glowColor = mkOption {
-      type = types.str;
-      default = "#FFFF0000";
-      description = ''
-        Color of glow
-      '';
-    };
+      glowColor = mkOption {
+        type = types.str;
+        default = "#FFFF0000";
+        description = ''
+          Color of glow
+        '';
+      };
 
-    extraConfig = mkOption {
-      type = types.lines;
-      default = "";
-      description = ''
-      '';
+      extraConfig = mkOption {
+        type = types.lines;
+        default = "";
+        description = ''
+        '';
+      };
     };
+  };
+
+  config = mkIf (scfg.enable && scfg.theme == "delicious") {
+    environment.systemPackages = singleton
+      (pkgs.sddm-delicious.overrideAttrs (oldAttrs: {
+        postInstall = (oldAttrs.postInstall or "") + ''
+          cp -f ${deliciousConfig} $out/$installPrefix/$themeName/theme.conf
+        '';
+      }));
   };
 }
