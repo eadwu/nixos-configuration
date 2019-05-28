@@ -3,7 +3,6 @@
 {
   services.compton = {
     enable = true;
-    package = pkgs.compton-git;
 
     fade = true;
     fadeDelta = 5;
@@ -39,7 +38,7 @@
       "96:_NET_WM_STATE@:32a *= '_NET_WM_STATE_STICKY'"
     ];
     backend = "glx";
-    vSync = "none";
+    vSync = false;
     refreshRate = 0;
     extraOptions = lib.optionalString (builtins.pathExists ./compton.conf) builtins.readFile ./compton.conf;
   };
