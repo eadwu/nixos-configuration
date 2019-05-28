@@ -6,8 +6,6 @@ with config.nixos; {
       ./lightdm/enso-greeter.nix
       ./lightdm/gtk-greeter.nix
 
-      ./sddm/chili.nix
-      ./sddm/delicious.nix
       ./sddm/sugar-dark.nix
     ];
 

@@ -1,0 +1,84 @@
+commit d5afcbc48b313edc653ec1667eebade3389b86be
+Author: Edmund Wu <fangkazuto@gmail.com>
+Date:   Mon May 27 20:15:03 2019 -0400
+
+    sddm-sugar-dark: extend supported mediatypes
+    
+    Video files are now supported, albeit only mp4 files for now
+
+diff --git a/Logic.js b/Logic.js
+new file mode 100644
+index 0000000..487e5c1
+--- /dev/null
++++ b/Logic.js
+@@ -0,0 +1,19 @@
++const background = config.Background;
++
++// Naive fetcher for media type
++function getMediaType (file) {
++  const videoFormats = [ "mp4" ];
++  const imageFormats = [ "jpg", "jpeg", "png" ];
++
++  const fileExt = file.split(".").pop().toLowerCase();
++
++  return videoFormats.indexOf(fileExt) > -1
++    ? "video"
++    : imageFormats.indexOf(fileExt) > -1
++      ? "image"
++      : "image";
++}
++
++// "Exports"
++const isVideo = getMediaType(background) === "video";
++const isImage = getMediaType(background) === "image"; // Effectively just !isVideo
+diff --git a/Main.qml b/Main.qml
+index e38ddfb..77c18ed 100644
+--- a/Main.qml
++++ b/Main.qml
+@@ -20,7 +20,9 @@
+ import QtQuick 2.11
+ import QtQuick.Layouts 1.11
+ import QtQuick.Controls 2.4
++import QtMultimedia 5.8
+ import "Components"
++import "Logic.js" as Logic
+ 
+ Pane{
+     id: root
+@@ -56,13 +58,35 @@ Pane{
+             Layout.fillWidth: true
+             Layout.fillHeight: true
+             Image {
+-                source: config.background || config.Background
++                source: Logic.isImage ? config.Background : ""
+                 anchors.fill: parent
+                 asynchronous: true
+                 cache: true
+                 fillMode: config.ScaleImageCropped == "true" ? Image.PreserveAspectCrop : Image.PreserveAspectFit
+                 clip: true
+                 mipmap: true
++                visible: Logic.isImage
++            }
++            Rectangle {
++                id: videoContainer
++                anchors.fill: parent
++                visible: Logic.isVideo
++                color: "#111"
++
++                MediaPlayer {
++                    id: videoSource
++                    source: config.Background
++                    autoPlay: true
++                    muted: true
++                    volume: 0.0
++                    loops: MediaPlayer.Infinite
++                }
++                VideoOutput {
++                    id: videoOutput
++                    anchors.fill: parent
++                    source: videoSource
++                    fillMode: config.ScaleImageCropped == "true" ? VideoOutput.PreserveAspectCrop : VideoOutput.PreserveAspectFit
++                }
+             }
+             MouseArea {
+                 anchors.fill: parent
