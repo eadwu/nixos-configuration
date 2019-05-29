@@ -16,6 +16,10 @@
           nix-collect-garbage -d
         }
 
+        nix-derive-output () {
+          nix-store --query --requisites --include-outputs $(nix-store --query --deriver "$1")
+        }
+
         nix-build-system () {
           nix build \
             -f "<nixpkgs/nixos>" \
