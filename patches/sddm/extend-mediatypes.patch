@@ -1,14 +1,14 @@
-commit d5afcbc48b313edc653ec1667eebade3389b86be
+commit 025e0bf9e0f4007ca5c282e3b6d1b854beab416c
 Author: Edmund Wu <fangkazuto@gmail.com>
-Date:   Mon May 27 20:15:03 2019 -0400
+Date:   Thu May 30 17:23:01 2019 -0400
 
-    sddm-sugar-dark: extend supported mediatypes
+    sddm-sugar-dark: extend support mediatypes
     
-    Video files are now supported, albeit only mp4 files for now
+    Support video files, albeit limited to avi, mkv, mov, mp4, and webm
 
 diff --git a/Logic.js b/Logic.js
 new file mode 100644
-index 0000000..487e5c1
+index 0000000..b7d4204
 --- /dev/null
 +++ b/Logic.js
 @@ -0,0 +1,19 @@
@@ -16,7 +16,7 @@ index 0000000..487e5c1
 +
 +// Naive fetcher for media type
 +function getMediaType (file) {
-+  const videoFormats = [ "mp4" ];
++  const videoFormats = [ "avi", "mkv", "mov", "mp4", "webm" ];
 +  const imageFormats = [ "jpg", "jpeg", "png" ];
 +
 +  const fileExt = file.split(".").pop().toLowerCase();
@@ -32,7 +32,7 @@ index 0000000..487e5c1
 +const isVideo = getMediaType(background) === "video";
 +const isImage = getMediaType(background) === "image"; // Effectively just !isVideo
 diff --git a/Main.qml b/Main.qml
-index e38ddfb..77c18ed 100644
+index e38ddfb..6be5b85 100644
 --- a/Main.qml
 +++ b/Main.qml
 @@ -20,7 +20,9 @@
@@ -45,7 +45,7 @@ index e38ddfb..77c18ed 100644
  
  Pane{
      id: root
-@@ -56,13 +58,35 @@ Pane{
+@@ -56,13 +58,48 @@ Pane{
              Layout.fillWidth: true
              Layout.fillHeight: true
              Image {
@@ -65,6 +65,20 @@ index e38ddfb..77c18ed 100644
 +                visible: Logic.isVideo
 +                color: "#111"
 +
++                // Preview background, visual "hack" to compensate for the delay between iterations
++                MediaPlayer {
++                    id: previewSource
++                    source: config.Background
++                    muted: true
++                    volume: 0.0
++                    onPositionChanged: { previewSource.pause(); }
++                }
++                VideoOutput {
++                    anchors.fill: parent
++                    source: previewSource
++                    fillMode: config.ScaleImageCropped == "true" ? VideoOutput.PreserveAspectCrop : VideoOutput.PreserveAspectFit
++                }
++                // The actual background always playing
 +                MediaPlayer {
 +                    id: videoSource
 +                    source: config.Background
@@ -74,7 +88,6 @@ index e38ddfb..77c18ed 100644
 +                    loops: MediaPlayer.Infinite
 +                }
 +                VideoOutput {
-+                    id: videoOutput
 +                    anchors.fill: parent
 +                    source: videoSource
 +                    fillMode: config.ScaleImageCropped == "true" ? VideoOutput.PreserveAspectCrop : VideoOutput.PreserveAspectFit
