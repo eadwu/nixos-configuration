@@ -9696,10 +9696,10 @@ index 000000000000..f1ddd189f0c8
 +#endif
 diff --git a/fs/bcachefs/bkey.h b/fs/bcachefs/bkey.h
 new file mode 100644
-index 000000000000..b52628be5495
+index 000000000000..280c9ec48e97
 --- /dev/null
 +++ b/fs/bcachefs/bkey.h
-@@ -0,0 +1,594 @@
+@@ -0,0 +1,591 @@
 +#ifndef _BCACHEFS_BKEY_H
 +#define _BCACHEFS_BKEY_H
 +
@@ -9734,10 +9734,7 @@ index 000000000000..b52628be5495
 +
 +#define bkey_next(_k)		vstruct_next(_k)
 +
-+static inline unsigned bkey_val_u64s(const struct bkey *k)
-+{
-+	return k->u64s - BKEY_U64s;
-+}
++#define bkey_val_u64s(_k)	((_k)->u64s - BKEY_U64s)
 +
 +static inline size_t bkey_val_bytes(const struct bkey *k)
 +{
@@ -33362,10 +33359,10 @@ index 000000000000..588e763f0440
 +#endif /* _BCACHEFS_ERROR_H */
 diff --git a/fs/bcachefs/extents.c b/fs/bcachefs/extents.c
 new file mode 100644
-index 000000000000..dffcc1445cea
+index 000000000000..818c772a8479
 --- /dev/null
 +++ b/fs/bcachefs/extents.c
-@@ -0,0 +1,1802 @@
+@@ -0,0 +1,1806 @@
 +/*
 + * Copyright (C) 2010 Kent Overstreet <kent.overstreet@gmail.com>
 + *
@@ -35018,6 +35015,10 @@ index 000000000000..dffcc1445cea
 +	enum merge_result ret;
 +
 +	EBUG_ON(bkey_written(b, m));
++
++	if (bkey_val_u64s(l) > BKEY_EXTENT_VAL_U64s_MAX ||
++	    bkey_val_u64s(r) > BKEY_EXTENT_VAL_U64s_MAX)
++		return BCH_MERGE_NOMERGE;
 +
 +	/*
 +	 * We need to save copies of both l and r, because we might get a
