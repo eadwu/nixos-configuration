@@ -29,7 +29,7 @@
     ];
   };
 
-  environment.memoryAllocator.provider = "libc";
+  environment.memoryAllocator.provider = "scudo";
 
   security = {
     # Some hardened option bypasses because of convenience/performance
