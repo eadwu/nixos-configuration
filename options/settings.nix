@@ -6,6 +6,15 @@ let
   cfg = config.nixos.settings;
 in {
   options.nixos.settings = {
+    credentials = mkOption {
+      type = types.nullOr types.path;
+      visible = false;
+      readOnly = true;
+      description = ''
+        The directory holding all the credentials
+      '';
+    };
+
     docker = {
       user = mkOption {
         type = types.str;
@@ -53,7 +62,7 @@ in {
 
       credentials = mkOption {
         type = types.path;
-        default = builtins.toString ../credentials/protonvpn;
+        default = "${cfg.credentials}/protonvpn";
         description = ''
           The filepath to the file which contains the credentials needed
         '';
@@ -90,18 +99,20 @@ in {
       };
 
       home = mkOption {
-        type = types.nullOr types.path;
+        type = types.path;
         visible = false;
         readOnly = true;
+        default = "/home/${cfg.system.user}";
         description = ''
           The user account's HOME directory
         '';
       };
 
       credentials = mkOption {
-        type = types.nullOr types.path;
+        type = types.path;
         visible = false;
         readOnly = true;
+        default = "${cfg.credentials}/${cfg.system.user}";
         description = ''
           The user account's password file
         '';
@@ -140,7 +151,7 @@ in {
 
         credentials = mkOption {
           type = types.path;
-          default = builtins.toString ../credentials/wireguard;
+          default = "${cfg.credentials}/wireguard";
           description = ''
             File which contains your private key
           '';
@@ -176,9 +187,6 @@ in {
   };
 
   config = mkIf (cfg.system.user != null) {
-    nixos.settings.system = with cfg.system; {
-      home = "/home/${user}";
-      credentials = builtins.toString ../credentials + "/${user}";
-    };
+    nixos.settings.credentials = builtins.toString ../credentials;
   };
 }
