@@ -1,0 +1,37 @@
+/*
+ * Core Manipulation
+ *
+ * Italic text
+ * Notification relocation
+ */
+atom-text-editor {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+
+  .cursor {
+    transition: opacity 200ms;
+  }
+
+  .syntax--this,
+  .syntax--null,
+  .syntax--boolean,
+  .syntax--comment,
+  .syntax--attribute-name,
+  .syntax--control:not(.syntax--at-rule),
+  .syntax--storage.syntax--type:not(.syntax--arrow):not(.syntax--class) {
+    font-style: italic;
+  }
+}
+
+atom-notifications {
+  top: auto;
+  bottom: 20px;
+}
+
+/*
+ * Package Manipulation
+ */
+
+status-bar .inline-block {
+  max-width: 100%;
+}

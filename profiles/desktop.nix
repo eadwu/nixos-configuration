@@ -4,10 +4,6 @@ let
   cachix = (import (builtins.fetchTarball {
     url = "https://cachix.org/api/v1/install";
   }) { }).cachix;
-
-  home-manager = (import (builtins.fetchTarball {
-    url = "https://api.github.com/repos/rycee/home-manager/tarball/master";
-  }) { }).home-manager;
 in with config.nixos; {
   imports =
     [
@@ -83,7 +79,6 @@ in with config.nixos; {
       epubcheck
       ffmpeg
       gnupg
-      home-manager
       imagemagick7
       mono
       oblogout
@@ -137,10 +132,6 @@ in with config.nixos; {
           config.system.build.virtualBoxOVA
       }
     '';
-
-    shellAliases = {
-      "home-manager" = "home-manager -2";
-    };
   };
 
   services.dbus.packages = lib.singleton pkgs.gnome3.dconf;

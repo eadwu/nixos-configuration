@@ -1,0 +1,118 @@
+"*":
+  "atom-clock":
+    dateFormat: " [Cour] Q - MMMM Do YYYY, dddd, h:mm A"
+    showClockIcon: true
+  "atom-ide-ui":
+    "atom-ide-diagnostics-ui":
+      showDirectoryColumn: true
+    hyperclick:
+      darwinTriggerKeys: "ctrlKey,altKey,metaKey"
+      linuxTriggerKeys: "altKey,metaKey"
+      win32TriggerKeys: "altKey,metaKey"
+    use: {}
+  "atom-package-deps":
+    ignored: [
+      "linter-clang"
+      "linter-eslint"
+    ]
+  "autocomplete-plus":
+    backspaceTriggersAutocomplete: true
+    confirmCompletion: "tab always, enter when suggestion explicitly selected"
+    minimumWordLength: 1
+    suggestionListFollows: "Cursor"
+  core:
+    autoHideMenuBar: true
+    closeDeletedFileTabs: true
+    disabledPackages: [
+      "atom-ternjs"
+      "linter-glsl"
+      "linter-clang"
+      "linter-xmllint"
+      "linter-jsonlint"
+      "linter-stylelint"
+      "linter-moonscript"
+      "linter-eslint"
+    ]
+    telemetryConsent: "limited"
+    themes: [
+      "bliss-ui"
+      "nord-atom-syntax"
+    ]
+    useTreeSitterParsers: true
+  docblockr:
+    lower_case_primitives: true
+  editor:
+    fontFamily: "IBM Plex Mono, Anonymous Pro"
+    fontSize: 12
+    showInvisibles: true
+  "exception-reporting":
+    userId: "eb41a2a6-f07d-424b-b5c0-352fd0f466a5"
+  filesize:
+    UseDecimal: true
+  "git-diff":
+    showIconsInEditorGutter: true
+  "git-plus":
+    general:
+      splitPane: "Right"
+    tags:
+      signTags: true
+  "ide-flowtype":
+    autoDownloadFlowBinaries: false
+    customFlowPath:
+      enabled: true
+      flowPath: "/usr/bin/flow"
+  "ide-java":
+    javaHome: "/usr/lib/jvm/java-9-openjdk"
+  "ide-typescript":
+    javascriptSupport: false
+  latex:
+    engine: "xelatex"
+    moveResultToSourceDirectory: false
+    opener: "pdf-view"
+    outputDirectory: ".."
+  "linter-eslint":
+    globalNodePath: "/usr"
+    lintHtmlFiles: true
+    scopes: [
+      "source.js"
+      "source.jsx"
+      "source.js.jsx"
+      "source.babel"
+      "source.js-semantic"
+      "text.html.basic"
+    ]
+  "linter-stylelint":
+    disableWhenNoConfig: false
+    useStandard: true
+  "markdown-preview":
+    useGitHubStyle: true
+  minimap:
+    plugins:
+      "git-diff": true
+      "git-diffDecorationsZIndex": 0
+      "highlight-selected": true
+      "highlight-selectedDecorationsZIndex": 0
+  "package-status":
+    packageList: [
+      "atom-ternjs"
+      "linter-glsl"
+      "linter-clang"
+      "linter-eslint"
+      "linter-xmllint"
+      "linter-jsonlint"
+      "linter-stylelint"
+      "linter-moonscript"
+    ]
+  "pdf-view":
+    paneToUseInSynctex: "right"
+    syncTeXPath: "/usr/bin/synctex"
+  "sync-settings":
+    _lastBackupHash: "b1cb6a97302a7e6655430c7a6c147ea18d79d1b3"
+    gistDescription: "Atom configuration for Arch Linux"
+    gistId: "3cf21fa5a80c6902213a3e1960cd9d3b"
+    personalAccessToken: "c9ef7b530582ac552172abdfd0a1b97ed2d5715c"
+  "tool-bar":
+    iconSize: "16px"
+    position: "Left"
+  welcome:
+    showOnStartup: false

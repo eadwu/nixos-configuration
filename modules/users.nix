@@ -1,6 +1,22 @@
 { config, pkgs, ... }:
 
-with config.nixos; {
+let
+  home-manager = (import (builtins.fetchTarball {
+    url = "https://api.github.com/repos/rycee/home-manager/tarball/master";
+  }) { });
+in with config.nixos; {
+  imports =
+    [
+      home-manager.nixos
+    ];
+
+  home-manager.users."${settings.system.user}" = { ... }: {
+    imports =
+      [
+        ./home-manager
+      ];
+  };
+
   users = {
     defaultUserShell = "${pkgs.zsh}/bin/zsh";
 
