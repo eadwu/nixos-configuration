@@ -46,8 +46,12 @@ with config.nixos; {
   };
 
   nixpkgs = {
-    config.allowUnfree = true;
     overlays = lib.optional (builtins.pathExists <nixpkgs-overlays>) (import <nixpkgs-overlays>);
+
+    config = {
+      allowUnfree = true;
+      sandbox = true;
+    };
   };
 
   programs.ssh.extraConfig = ''
