@@ -1,4 +1,4 @@
-{ pkgs, lib, ... }:
+{ lib, ... }:
 
 {
   services.compton = {
@@ -26,6 +26,30 @@
     ];
     activeOpacity = "0.95";
     inactiveOpacity = "0.85";
+    wintypes = {
+      tooltip = {
+        fade = true;
+        shadow = false;
+        opacity = "0.85";
+        focus = true;
+      };
+
+      dock = {
+        shadow = false;
+      };
+
+      dnd = {
+        shadow = false;
+      };
+
+      popup_menu = {
+        opacity = "0.95";
+      };
+
+      dropdown_menu = {
+        opacity = "0.95";
+      };
+    };
     opacityRules = [
       "99:name *?= 'EVE'"
       "99:class_g = 'Vivaldi-stable'"
