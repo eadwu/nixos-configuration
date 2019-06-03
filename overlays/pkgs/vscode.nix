@@ -102,13 +102,13 @@ self: super:
 
       { name = "vsc-material-theme-icons";
         publisher = "equinusocio";
-        version = "0.12.0";
-        sha256 = "1g15pqmy1i7brby049i6ci4spz5apshhs1vbnpnfimq4gsa5115i"; }
+        version = "1.0.4";
+        sha256 = "0yqlaywbd799fwrxyk7ghxqilgzaa879m5jrx4brz8hpr9zj0pks"; }
 
       { name = "auto-rename-tag";
         publisher = "formulahendry";
-        version = "0.0.15";
-        sha256 = "1hgd7y8fyzrphn166vmmsm9kqcl7n8gw4xi8rd24imwbswvh0mgi"; }
+        version = "0.1.0";
+        sha256 = "1zcxcf269jbwpsa29mlmfs3z8awbsccrq595m6chqrspnw2l8a2b"; }
 
       { name = "horizon-theme-vscode";
         publisher = "jolaleye";
@@ -142,8 +142,8 @@ self: super:
 
       { name = "pyright";
         publisher = "ms-pyright";
-        version = "1.0.33";
-        sha256 = "0id0881pvr6ach4ddknj0rxjl7v8v6s9bjw8x4niiqgl3y7f1nq8"; }
+        version = "1.0.36";
+        sha256 = "01wysv4lkfhh7mrd9gsb36im1ys7j67br2dzcnyf1f924kyz0dqx"; }
 
       { name = "azure-account";
         publisher = "ms-vscode";
@@ -157,8 +157,8 @@ self: super:
 
       { name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.249";
-        sha256 = "07zrraf8bj385mricm023y3j3qmw11bdiqykvfrim7ag9zzz971s"; }
+        version = "1.0.311";
+        sha256 = "1vrrbcqv5fjak3nqia9vcvhwpn3hrz40w310shq92k4c8vcf9yrb"; }
 
       { name = "debugger-for-chrome";
         publisher = "msjsdiag";
@@ -202,8 +202,8 @@ self: super:
 
       { name = "vscode-java-debug";
         publisher = "vscjava";
-        version = "0.18.0";
-        sha256 = "106r2w5k889q6m3glchvk4vy7vnllzsr10fzzwzbdqnv8cac12cr"; }
+        version = "0.19.0";
+        sha256 = "179q6aphxv63zvcg192xj4ywy6pr6dhbkwkd1bm0sgjmv9k64nbq"; }
 
       { name = "vscode-java-pack";
         publisher = "vscjava";
