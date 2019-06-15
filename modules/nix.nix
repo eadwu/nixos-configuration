@@ -66,7 +66,7 @@ with config.nixos; {
   '';
 
   system = {
-    stateVersion = "19.09";
+    stateVersion = "19.03";
 
     autoUpgrade = {
       enable = false;
