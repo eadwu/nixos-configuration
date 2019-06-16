@@ -25,13 +25,13 @@ with self.pkgs; {
     ({ lib, stdenv
      , qtsvg, qtbase, qtmultimedia, qtquickcontrols2, qtquickcontrols, qtgraphicaleffects }: stdenv.mkDerivation rec {
       pname = "sddm-sugar-dark";
-      version = "unstable-2019-03-06";
+      version = "unstable-2019-06-15";
 
       src = fetchFromGitHub {
         owner = "MarianArlt";
         repo = "sddm-sugar-dark";
-        rev = "2c1a229cfbac3167dd3619afa93f75f8c14f884a";
-        sha256 = "1sx03ffqd84zkx3iky0ni5rs5ild0zrj440ml0pjfsjx07in5v82";
+        rev = "0ed993a791ba6e486abeb5b88e6e8b2fd36ebdce";
+        sha256 = "0sh4rrpbg0hv62rgsr7f0rf55p90i35084cjx8h9sklc4indnpa6";
       };
 
       dontBuild = true;
