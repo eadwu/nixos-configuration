@@ -29,11 +29,13 @@
     ];
   };
 
-  environment.memoryAllocator.provider = "scudo";
+  environment.memoryAllocator.provider = "libc";
 
   security = {
     # Some hardened option bypasses because of convenience/performance
+    # Allow the use of sandboxes for Nix
     allowUserNamespaces = true;
+    # Multiple virtual cores per physical core
     allowSimultaneousMultithreading = true;
   };
 }
