@@ -34,7 +34,7 @@
     # Other
     ## Applications
     ark
-    discord
+    discord-canary
     evince
     gimp
     gnome3.gnome-disk-utility
