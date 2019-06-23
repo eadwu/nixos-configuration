@@ -50,6 +50,7 @@
     lm_sensors
     pipes
     rclone
+    spotdl
     xorg.xprop
     xwinwrap
     yarn
