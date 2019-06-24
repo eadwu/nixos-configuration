@@ -46,9 +46,9 @@ self: super:
         sha256 = "09ximbi0gkzyz4qd9h0gsnqw816gv1iwiz591anvi2zqyqi08301"; }
 
       { name = "vscode-docker";
-        publisher = "PeterJausovec";
-        version = "0.6.2";
-        sha256 = "1is5b7l6if103219d2bg4gar02p0asq87qswnkzgjqpnawrgkshd"; }
+        publisher = "ms-azuretools";
+        version = "0.6.4";
+        sha256 = "1683hc200ld3b6dhb2lf87lsrqd2gynjx7iz7z24dm21qd7fqy13"; }
 
       { name = "better-comments";
         publisher = "aaron-bond";
@@ -62,8 +62,8 @@ self: super:
 
       { name = "vscode-sqlite";
         publisher = "alexcvzz";
-        version = "0.7.0";
-        sha256 = "14ybdvv2a4qy8ncjlzscm76prmzb3bhky989d95wlxiyyha1asgv"; }
+        version = "0.7.1";
+        sha256 = "1cbmpqwiln018dclc2xvnh9hvan2y69m8zjbzigyj2krxxjg0yh6"; }
 
       { name = "Nix";
         publisher = "bbenoist";
@@ -112,8 +112,8 @@ self: super:
 
       { name = "horizon-theme-vscode";
         publisher = "jolaleye";
-        version = "2.0.1";
-        sha256 = "1crv2qbpci7258v45l9yd3sb4jqynj9nrav3s79vc0rbn5kg118b"; }
+        version = "2.0.2";
+        sha256 = "1ch8m9h6zxn8xj92ml5294637ygabnyird3f6vbh1djzwwz5rykc"; }
 
       { name = "language-haskell";
         publisher = "justusadam";
@@ -142,8 +142,8 @@ self: super:
 
       { name = "pyright";
         publisher = "ms-pyright";
-        version = "1.0.38";
-        sha256 = "08bc8gv4aq3qrn6h2k4vcccn584x4a0f2w000bz3w1s3kwx27b3a"; }
+        version = "1.0.40";
+        sha256 = "1ypakaxk0zq4xy6pqvd58x5vv45j0h3cgiijd6r6jqfkih8fhz3z"; }
 
       { name = "azure-account";
         publisher = "ms-vscode";
@@ -157,13 +157,13 @@ self: super:
 
       { name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.379";
-        sha256 = "19yx3rla74ivgprqmypi3kz6050hggv6vm0gmic5q9lvdhnjyq0b"; }
+        version = "1.0.419";
+        sha256 = "0rx74ww9f34liaqsg98dyqycqcw4l8scz64qs9h4pc55a30iw2xn"; }
 
       { name = "debugger-for-chrome";
         publisher = "msjsdiag";
-        version = "4.11.4";
-        sha256 = "07rfqlm44v2hwn4jykjcqr9d53jy88ii7y11q1is1dvprpf6hr6m"; }
+        version = "4.11.5";
+        sha256 = "0544bbx7ipsv51ynh97171d922fkfh6k87bnaw32acklx41wpwjv"; }
 
       { name = "quicktype";
         publisher = "quicktype";
