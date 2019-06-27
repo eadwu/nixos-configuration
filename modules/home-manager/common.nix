@@ -66,7 +66,6 @@
 
     config = {
       allowUnfree = true;
-      sandbox = true;
     };
   };
 }

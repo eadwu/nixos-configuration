@@ -48,7 +48,6 @@ with config.nixos; {
 
     config = {
       allowUnfree = true;
-      sandbox = true;
     };
   };
 
