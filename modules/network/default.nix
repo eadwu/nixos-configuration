@@ -37,6 +37,10 @@ with config.nixos; {
         Anonymize = true;
         UseDNS = false;
       };
+
+      networkConfig = {
+        DNSSEC = "no";
+      };
     };
   in {
     enable = true;
