@@ -5,13 +5,13 @@
     [
       /etc/nixos/hardware-configuration.nix
 
+      ../../profiles/desktop.nix
+
       ../../hardware/webcam
       ../../hardware/profiles/intel.nix
       ../../hardware/profiles/laptop.nix
       ../../hardware/profiles/linux.nix
       ../../hardware/profiles/uefi.nix
-
-      ../../profiles/desktop.nix
     ];
 
   networking = {

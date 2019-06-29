@@ -5,6 +5,9 @@ with config.nixos; {
     [
       /etc/nixos/hardware-configuration.nix
 
+      ../../options/undervolt.nix
+      ../../profiles/desktop.nix
+
       ../../hardware/dell/9570.nix
       # ../../hardware/gpu/nvidia/bumblebee
       ../../hardware/gpu/nvidia/disable
@@ -12,10 +15,6 @@ with config.nixos; {
 
       # ../../modules/network/wireguard.nix
       # ../../modules/network/openvpn.nix
-
-      ../../options/undervolt.nix
-
-      ../../profiles/desktop.nix
     ];
 
   disabledModules =
