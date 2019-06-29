@@ -17,7 +17,6 @@
       ./rofi.nix
       ./ssh.nix
       ./vim.nix
-      ./vivaldi.nix
       ./zsh.nix
       ./Xorg.nix
     ];
@@ -41,6 +40,7 @@
     google-musicmanager
     jetbrains.idea-ultimate
     rstudioWrapper
+    vivaldi
     winusb
     xfce.mousepad
     ## Console

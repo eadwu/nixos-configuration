@@ -15,6 +15,8 @@ let
 in {
   vivaldi = (super.vivaldi.override {
     isSnapshot = true;
+    enableWidevine = true;
+    proprietaryCodecs = true;
   }).overrideAttrs (oldAttrs: rec {
     version = lib.getAttrFromPath versionAttrPath (builtins.fromJSON (builtins.readFile "${vivaldiVersion}"));
 
