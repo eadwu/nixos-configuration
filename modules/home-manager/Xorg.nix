@@ -41,9 +41,5 @@ in {
     profileExtra = ''
       nitrogen --restore
     '';
-
-    windowManager.command = ''
-      ${pkgs.dwm}/bin/dwm
-    '';
   };
 }

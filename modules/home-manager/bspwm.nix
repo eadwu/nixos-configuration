@@ -1,21 +1,40 @@
 { pkgs, ... }:
 
+assert builtins.pathExists ./bspwm/bspwmrc;
+assert builtins.pathExists ./bspwm/sxhkdrc;
+
 let
   gmail = builtins.fetchGit {
     url = "https://github.com/vyachkonovalov/polybar-gmail";
   };
 in {
-  home.file = {
-    ".bspwm/external_rules" = {
-      executable = true;
-      source = bspwm/external_rules;
+  home = {
+    file = {
+      ".bspwm/external_rules" = {
+        executable = true;
+        source = bspwm/external_rules;
+      };
+
+      ".bspwm/weather_icons" = {
+        executable = true;
+        source = bspwm/weather_icons;
+      };
     };
 
-    ".bspwm/weather_icons" = {
-      executable = true;
-      source = bspwm/weather_icons;
+    packages = with pkgs; [
+      xdo
+      polybar
+    ];
+
+    sessionVariables = {
+      _JAVA_AWT_WM_NONREPARENTING = 1;
     };
   };
+
+  xsession.windowManager.command = with pkgs; ''
+    SXHKD_SHELL=${stdenv.shell} ${sxhkd}/bin/sxhkd -c ${builtins.toString ./bspwm/sxhkdrc}
+    ${bspwm}/bin/bspwm -c ${builtins.toString ./bspwm/bspwmrc}
+  '';
 
   services.polybar = {
     enable = true;

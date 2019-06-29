@@ -1,6 +1,20 @@
 { pkgs, ... }:
 
 {
+  home = {
+    packages = with pkgs; [
+      polybar
+    ];
+
+    sessionVariables = {
+      _JAVA_AWT_WM_NONREPARENTING = 1;
+    };
+  };
+
+  xsession.windowManager.command = with pkgs; ''
+    ${dwm}/bin/dwm
+  '';
+
   services.polybar = {
     enable = true;
 

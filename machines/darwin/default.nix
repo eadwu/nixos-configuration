@@ -11,9 +11,6 @@
       ../../hardware/profiles/linux.nix
       ../../hardware/profiles/uefi.nix
 
-      # ../../modules/xserver/window-manager/bspwm
-      ../../modules/xserver/window-manager/dwm
-
       ../../profiles/desktop.nix
     ];
 

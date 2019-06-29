@@ -6,6 +6,7 @@
       ./libinput.nix
       ./desktop-manager
       ./display-manager
+      ./window-manager
     ];
 
   services.xserver = {

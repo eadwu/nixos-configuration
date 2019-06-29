@@ -12,8 +12,6 @@ with config.nixos; {
 
       # ../../modules/network/wireguard.nix
       # ../../modules/network/openvpn.nix
-      # ../../modules/xserver/window-manager/bspwm
-      ../../modules/xserver/window-manager/dwm
 
       ../../options/undervolt.nix
 
