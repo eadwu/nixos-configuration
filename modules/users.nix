@@ -1,20 +1,20 @@
 { config, pkgs, ... }:
 
 let
-  home-manager = (import (builtins.fetchTarball {
+  home-manager = builtins.fetchTarball {
     url = "https://api.github.com/repos/rycee/home-manager/tarball/master";
-  }) { });
+  };
 in with config.nixos; {
   imports =
     [
-      home-manager.nixos
+      "${home-manager}/nixos"
     ];
 
-  home-manager.users."${settings.system.user}" = { ... }: {
-    imports =
-      [
-        ./home-manager
-      ];
+  home-manager = {
+    useUserPackages = true;
+    users."${settings.system.user}" = { lib, ... }: {
+      imports = lib.singleton ./home-manager;
+    };
   };
 
   users = {
@@ -22,18 +22,20 @@ in with config.nixos; {
 
     users = {
       "${settings.system.user}" = {
+        uid = 1000;
         createHome = true;
+        useDefaultShell = true;
+
+        home = settings.system.home;
+        passwordFile = settings.system.credentials;
+
+        group = "users";
         extraGroups = [
           "wheel"
           "docker"
           "libvirtd"
           "networkmanager"
         ];
-        group = "users";
-        home = settings.system.home;
-        passwordFile = settings.system.credentials;
-        uid = 1000;
-        useDefaultShell = true;
       };
     };
     mutableUsers = false;
