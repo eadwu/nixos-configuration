@@ -65,6 +65,5 @@ let
     };
   };
 in with python.pkgs; {
-  python3s = python;
   spotdl = toPythonApplication spotdl;
 }
