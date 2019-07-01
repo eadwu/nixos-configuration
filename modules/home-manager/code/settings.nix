@@ -69,6 +69,7 @@
   "explorer.confirmDragAndDrop" = false;
   "explorer.decorations.badges" = false;
   "explorer.decorations.colors" = true;
+  "search.smartCase" = true;
   "terminal.external.linuxExec" = "st";
   "update.mode" = "none";
   "html.format.contentUnformatted" = "pre,code,style,textarea";
@@ -198,9 +199,9 @@
   "python.linting.pylamaPath" = "~/.nix-profile/bin/pylama";
   "python.linting.pylintPath" = "~/.nix-profile/bin/pylint";
   "python.pythonPath" = "/run/current-system/sw/bin/python3";
-  "python.testing.pyTestEnabled" = false;
-  "python.testing.pyTestPath" = "~/.nix-profile/bin/pytest";
-  "python.testing.unittestEnabled" = true;
+  "python.unitTest.pyTestEnabled" = false;
+  "python.unitTest.pyTestPath" = "~/.nix-profile/bin/pytest";
+  "python.unitTest.unittestEnabled" = true;
   "rust.rustfmt_path" = "/run/current-system/sw/bin/rustfmt";
   "rust-client.channel" = "nightly";
   "rust-client.disableRustup" = true;
