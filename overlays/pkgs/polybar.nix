@@ -8,13 +8,13 @@ in {
     mpdSupport = true;
     pulseSupport = true;
   }).overrideAttrs (oldAttrs: {
-    version = "unstable-2019-06-19";
+    version = "unstable-2019-07-01";
 
     src = fetchFromGitHub {
       owner = "polybar";
       repo = "polybar";
-      rev = "0740382851cd8bcb49004746acf2c99acdbbc385";
-      sha256 = "19wnd6kcq4idj81z1zb24qp7pabc6d83x6s04bkz4nkr7a1nym6m";
+      rev = "f0c65e6cf08012d10bde88b2caee39ad938b40fe";
+      sha256 = "053bxzymhr4h22xmm8g6hrqbyp89qjy8ch4nrai681a2w0a1pmzh";
       fetchSubmodules = true;
     };
 
