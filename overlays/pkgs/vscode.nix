@@ -185,6 +185,16 @@ self: super:
         version = "0.6.1";
         sha256 = "0f66z6b374nvnrn7802dg0xz9f8wq6sjw3sb9ca533gn5jd7n297"; }
 
+      { name = "scala";
+        publisher = "scala-lang";
+        version = "0.3.3";
+        sha256 = "0172jxw2idcamk5y0iy1n3v8rsg7j5mb0kslkih3z85kmdxryz9w"; }
+
+      { name = "metals";
+        publisher = "scalameta";
+        version = "1.5.1";
+        sha256 = "0fhynr97haldvk31cf777pcxbvbcqfxzd9jspwczd1xnhh9z0ic6"; }
+
       { name = "stylelint";
         publisher = "shinnn";
         version = "0.51.0";

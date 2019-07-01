@@ -65,6 +65,8 @@ in with config.nixos; {
       python3
       rWrapper
       sass
+      sbt
+      scala
       sqlite
       texlive.combined.scheme-full
       ## Haskell
