@@ -41,6 +41,10 @@ in with self.pkgs; subOverlays // {
     enableGlfw = true;
   };
 
+  knot-resolver = super.knot-resolver.override {
+    extraFeatures = true;
+  };
+
   lightdm-enso-os-greeter = super.lightdm-enso-os-greeter.overrideAttrs (oldAttrs: rec {
     name = "${pname}-${version}";
     pname = "lightdm-enso-os-greeter";

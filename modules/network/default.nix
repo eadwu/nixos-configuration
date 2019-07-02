@@ -27,7 +27,9 @@ with config.nixos; {
 
     networkConfig = netType: {
       DHCP = "yes";
-      dns = [ "127.0.0.1" ];
+      dns = config.networking.nameservers
+        # backup dns nameservers
+        ++ [ "1.1.1.1" "9.9.9.9" ];
 
       matchConfig = {
         Type = netType;

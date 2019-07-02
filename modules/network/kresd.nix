@@ -1,4 +1,4 @@
-{ ... }:
+{ config, ... }:
 
 {
   networking.nameservers = [ "127.0.0.1" ];
@@ -7,11 +7,20 @@
     enable = true;
     extraConfig = ''
       modules = {
-        'policy'
+        'stats',
+        'policy',
+        'predict',
+        'serve_stale < cache'
       }
 
-      cache.size = 100 * MB
+      -- Cache size
+      cache.size = 150 * MB
+      -- Prefetch learning (20-minute blocks over 24 hours)
+      predict.config(20, 72)
+      -- Enable DNSSEC
+      trust_anchors.add_file('${config.services.kresd.cacheDir}/root.keys')
 
+      -- Forward queries
       policy.add(policy.all(policy.TLS_FORWARD({
         { '1.1.1.1', hostname = 'cloudflare-dns.com'},
         { '1.0.0.1', hostname = 'cloudflare-dns.com'},
