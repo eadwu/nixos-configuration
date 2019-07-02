@@ -27,6 +27,16 @@ in with self.pkgs; subOverlays // {
     };
   });
 
+  discord = super.discord-canary.overrideAttrs (oldAttrs: rec {
+    pname = "discord";
+    version = "canary";
+
+    src = builtins.fetchurl {
+      name = "${pname}-${version}.tar.gz";
+      url = "https://discordapp.com/api/download/canary?platform=linux&format=tar.gz";
+    };
+  });
+
   glava = super.glava.override {
     enableGlfw = true;
   };
