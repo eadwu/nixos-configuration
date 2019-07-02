@@ -1,4 +1,4 @@
-{ ... }:
+{ pkgs, ... }:
 
 {
   boot.kernelParams = [
@@ -6,6 +6,10 @@
     "intel_pstate=passive"
 
     "i915.enable_dc=1"
+  ];
+
+  environment.systemPackages = with pkgs; [
+    pcm
   ];
 
   hardware.cpu.intel.updateMicrocode = true;
