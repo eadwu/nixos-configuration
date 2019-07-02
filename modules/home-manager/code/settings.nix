@@ -1,4 +1,6 @@
-{
+{ pkgs, ... }:
+
+with pkgs; {
   "editor.codeActionsOnSave" = {
     "source.organizeImports" = true;
   };
@@ -95,12 +97,12 @@
   "git.enableCommitSigning" = true;
   "git.enableSmartCommit" = true;
   "git.showPushSuccessNotification" = true;
-  "C_Cpp.clang_format_path" = "/run/current-system/sw/bin/clang-format";
+  "C_Cpp.clang_format_path" = "${llvmPackages.clang-unwrapped}/bin/clang-format";
   "C_Cpp.clang_format_fallbackStyle" = "LLVM";
   "C_Cpp.formatting" = "Disabled";
-  "cmake.cmakePath" = "/run/current-system/sw/bin/cmake";
-  "docker.attachShellCommand.linuxContainer" = "/bin/zsh";
-  "eslint.nodePath" = "~/.nix-profile/lib/node_modules";
+  "cmake.cmakePath" = "${cmake}/bin/cmake";
+  "docker.attachShellCommand.linuxContainer" = "${zsh}/bin/zsh";
+  "eslint.nodePath" = "${nodePackages.eslint}/lib/node_modules";
   "eslint.packageManager" = "yarn";
   "eslint.validate" = [
     "html"
@@ -108,10 +110,9 @@
     "javascriptreact"
   ];
   "filesize.use24HourFormat" = false;
-  "FSharp.fsiFilePath" = "/run/current-system/sw/bin/fsharpi";
-  "FSharp.logLanguageServiceRequests" = "both";
-  "FSharp.logLanguageServiceRequestsOutputWindowLevel" = "DEBUG";
-  "FSharp.monoPath" = "/run/current-system/sw/bin/mono";
+  "FSharp.dotnetLocation" = "${dotnet-sdk}/bin/dotnet";
+  "FSharp.fsiFilePath" = "${fsharp}/bin/fsharpi";
+  "FSharp.monoPath" = "${mono}/bin/mono";
   "gitlens.advanced.messages" = {
     "suppressCommitHasNoPreviousCommitWarning" = false;
     "suppressCommitNotFoundWarning" = false;
@@ -130,7 +131,7 @@
     "blocks"
   ];
   "gitlens.keymap" = "alternate";
-  "java.home" = "/run/current-system/sw/lib/openjdk";
+  "java.home" = "${openjdk}/lib/openjdk";
   "java.implementationsCodeLens.enabled" = true;
   "java.referencesCodeLens.enabled" = true;
   "java.saveActions.organizeImports" = true;
@@ -138,7 +139,7 @@
   "languageServerHaskell.useCustomHieWrapper" = true;
   "languageServerHaskell.useCustomHieWrapperPath" = "\${workspaceFolder}/hie-wrapper.sh";
   "latex-workshop.chktex.enabled" = true;
-  "latex-workshop.chktex.path" = "/run/current-system/sw/bin/chktex";
+  "latex-workshop.chktex.path" = "${texlive.combined.scheme-full}/bin/chktex";
   "latex-workshop.latex.autoClean.run" = "onBuilt";
   "latex-workshop.latex.tools" = [
     {
@@ -176,9 +177,9 @@
       ];
     }
   ];
-  "latex-workshop.latexindent.path" = "/run/current-system/sw/bin/latexindent";
-  "latex-workshop.synctex.path" = "/run/current-system/sw/bin/synctex";
-  "latex-workshop.texcount.path" = "/run/current-system/sw/bin/texcount";
+  "latex-workshop.latexindent.path" = "${texlive.combined.scheme-full}/bin/latexindent";
+  "latex-workshop.synctex.path" = "${texlive.combined.scheme-full}/bin/synctex";
+  "latex-workshop.texcount.path" = "${texlive.combined.scheme-full}/bin/texcount";
   "latex-workshop.view.pdf.viewer" = "tab";
   "materialTheme.accent" = "Graphite";
   "npm.packageManager" = "yarn";
@@ -186,27 +187,27 @@
   "python.autoComplete.addBrackets" = true;
   "python.autoUpdateLanguageServer" = false;
   "python.formatting.provider" = "yapf";
-  "python.formatting.yapfPath" = "~/.nix-profile/bin/yapf";
+  "python.formatting.yapfPath" = "${python3.pkgs.yapf}/bin/yapf";
   "python.linting.flake8Enabled" = true;
-  "python.linting.flake8Path" = "~/.nix-profile/bin/flake8";
+  "python.linting.flake8Path" = "${python3.pkgs.flake8}/bin/flake8";
   "python.linting.mypyEnabled" = false;
-  "python.linting.mypyPath" = "~/.nix-profile/bin/mypy";
+  "python.linting.mypyPath" = "${python3.pkgs.mypy}/bin/mypy";
   "python.linting.pep8Enabled" = true;
-  "python.linting.pep8Path" = "~/.nix-profile/bin/pep8";
+  "python.linting.pep8Path" = "${python3.pkgs.pep8}/bin/pep8";
   "python.linting.pydocstyleEnabled" = true;
-  "python.linting.pydocstylePath" = "~/.nix-profile/bin/pydocstyle";
+  "python.linting.pydocstylePath" = "${python3.pkgs.pydocstyle}/bin/pydocstyle";
   "python.linting.pylamaEnabled" = true;
-  "python.linting.pylamaPath" = "~/.nix-profile/bin/pylama";
-  "python.linting.pylintPath" = "~/.nix-profile/bin/pylint";
-  "python.pythonPath" = "/run/current-system/sw/bin/python3";
+  "python.linting.pylamaPath" = "${python3.pkgs.pylama}/bin/pylama";
+  "python.linting.pylintPath" = "${python3.pkgs.pylint}/bin/pylint";
+  "python.pythonPath" = "${python3}/bin/python3";
   "python.unitTest.pyTestEnabled" = false;
-  "python.unitTest.pyTestPath" = "~/.nix-profile/bin/pytest";
+  "python.unitTest.pyTestPath" = "${python3.pkgs.pytest}/bin/pytest";
   "python.unitTest.unittestEnabled" = true;
-  "rust.rustfmt_path" = "/run/current-system/sw/bin/rustfmt";
+  "rust.rustfmt_path" = "${rustPlatform.rust}/bin/rustfmt";
   "rust-client.channel" = "nightly";
   "rust-client.disableRustup" = true;
-  "rust-client.rlsPath" = "/run/current-system/sw/bin/rls";
-  "sqlite.sqlite3" = "/run/current-system/sw/bin/sqlite3";
+  "rust-client.rlsPath" = "${rustPlatform.rust}/bin/rls";
+  "sqlite.sqlite3" = "${sqlite}/bin/sqlite3";
   "tslint.packageManager" = "yarn";
   "tslint.validateWithDefaultConfig" = true;
 }
