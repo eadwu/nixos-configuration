@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ pkgs, ... }:
 
 {
   imports =
@@ -8,10 +8,10 @@
 
   services.xserver.displayManager.sddm.greeters.sugar-dark = {
     background = pkgs.requireFile {
-      name = "Stream.2971.mp4";
-      sha256 = "1na6jhqz9zvys7pb185bbjh27cgdgx69zqxf6hjxg0ipycsk8dd8";
+      name = "video-bg.3e78e808.mp4";
+      sha256 = "0c7nvbpbigxcjgqd93038lvkba4z9q0g21jkhr4qwqj0alq026zh";
       message = ''
-        Stream.2971.mp4 is missing from /nix/store.
+        video-bg.3e78e808.mp4 is missing from /nix/store.
       '';
     };
 
