@@ -1,8 +1,8 @@
 diff --git a/block/bio.c b/block/bio.c
-index 716510ecd7ff..a67aa6e0de98 100644
+index a3c80a6c1fe5..d882a439fe20 100644
 --- a/block/bio.c
 +++ b/block/bio.c
-@@ -958,6 +958,7 @@ int bio_iov_iter_get_pages(struct bio *bio, struct iov_iter *iter)
+@@ -960,6 +960,7 @@ int bio_iov_iter_get_pages(struct bio *bio, struct iov_iter *iter)
  
  	return 0;
  }
@@ -10,7 +10,7 @@ index 716510ecd7ff..a67aa6e0de98 100644
  
  static void submit_bio_wait_endio(struct bio *bio)
  {
-@@ -1658,6 +1659,7 @@ void bio_set_pages_dirty(struct bio *bio)
+@@ -1660,6 +1661,7 @@ void bio_set_pages_dirty(struct bio *bio)
  			set_page_dirty_lock(bvec->bv_page);
  	}
  }
@@ -18,7 +18,7 @@ index 716510ecd7ff..a67aa6e0de98 100644
  
  static void bio_release_pages(struct bio *bio)
  {
-@@ -1731,6 +1733,7 @@ void bio_check_pages_dirty(struct bio *bio)
+@@ -1733,6 +1735,7 @@ void bio_check_pages_dirty(struct bio *bio)
  	spin_unlock_irqrestore(&bio_dirty_lock, flags);
  	schedule_work(&bio_dirty_work);
  }
@@ -88,10 +88,10 @@ index fdf75352e16a..ced9f1526c3f 100644
  struct bucket {
  	atomic_t	pin;
 diff --git a/drivers/md/bcache/super.c b/drivers/md/bcache/super.c
-index a697a3a923cd..da6803f28017 100644
+index e489d2459569..3cb9a2a20410 100644
 --- a/drivers/md/bcache/super.c
 +++ b/drivers/md/bcache/super.c
-@@ -2487,7 +2487,6 @@ static int __init bcache_init(void)
+@@ -2502,7 +2502,6 @@ static int __init bcache_init(void)
  		goto err;
  
  	bch_debug_init();
@@ -203,10 +203,10 @@ index 000000000000..e695ab786f80
 +	Include some unit and performance tests for the core btree code
 diff --git a/fs/bcachefs/Makefile b/fs/bcachefs/Makefile
 new file mode 100644
-index 000000000000..6b43d61c332e
+index 000000000000..da42c4fd764d
 --- /dev/null
 +++ b/fs/bcachefs/Makefile
-@@ -0,0 +1,56 @@
+@@ -0,0 +1,55 @@
 +
 +obj-$(CONFIG_BCACHEFS_FS)	+= bcachefs.o
 +
@@ -246,7 +246,6 @@ index 000000000000..6b43d61c332e
 +	journal_reclaim.o	\
 +	journal_seq_blacklist.o	\
 +	keylist.o		\
-+	lz4_decompress.o	\
 +	migrate.o		\
 +	move.o			\
 +	movinggc.o		\
@@ -4658,10 +4657,10 @@ index 000000000000..907d1b605cf4
 +#endif /* _BCACHEFS_H */
 diff --git a/fs/bcachefs/bcachefs_format.h b/fs/bcachefs/bcachefs_format.h
 new file mode 100644
-index 000000000000..05b92ee7fd96
+index 000000000000..13285936dd2d
 --- /dev/null
 +++ b/fs/bcachefs/bcachefs_format.h
-@@ -0,0 +1,1571 @@
+@@ -0,0 +1,1573 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +#ifndef _BCACHEFS_FORMAT_H
 +#define _BCACHEFS_FORMAT_H
@@ -5511,6 +5510,8 @@ index 000000000000..05b92ee7fd96
 +	DIV_ROUND_UP(offsetof(struct bch_alloc, data)
 +		     BCH_ALLOC_FIELDS(), sizeof(u64));
 +#undef x
++
++#define BKEY_ALLOC_U64s_MAX	(BKEY_U64s + BKEY_ALLOC_VAL_U64s_MAX)
 +
 +/* Quotas: */
 +
@@ -8319,10 +8320,10 @@ index 000000000000..1acff9d0fd7e
 +#endif /* _BCACHEFS_BKEY_H */
 diff --git a/fs/bcachefs/bkey_methods.c b/fs/bcachefs/bkey_methods.c
 new file mode 100644
-index 000000000000..09ee958c5568
+index 000000000000..27f196ef0b18
 --- /dev/null
 +++ b/fs/bcachefs/bkey_methods.c
-@@ -0,0 +1,259 @@
+@@ -0,0 +1,262 @@
 +// SPDX-License-Identifier: GPL-2.0
 +
 +#include "bcachefs.h"
@@ -8415,6 +8416,9 @@ index 000000000000..09ee958c5568
 +	if (btree_node_type_is_extents(type)) {
 +		if ((k.k->size == 0) != bkey_deleted(k.k))
 +			return "bad size field";
++
++		if (k.k->size > k.k->p.offset)
++			return "size greater than offset";
 +	} else {
 +		if (k.k->size)
 +			return "nonzero size field";
@@ -9368,10 +9372,10 @@ index 000000000000..397009181eae
 +#endif /* _BCACHEFS_BKEY_SORT_H */
 diff --git a/fs/bcachefs/bset.c b/fs/bcachefs/bset.c
 new file mode 100644
-index 000000000000..ac290f25cadb
+index 000000000000..ef10e77ec1e5
 --- /dev/null
 +++ b/fs/bcachefs/bset.c
-@@ -0,0 +1,1858 @@
+@@ -0,0 +1,1857 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Code for working with individual keys, and sorted sets of keys with in a
@@ -9387,7 +9391,6 @@ index 000000000000..ac290f25cadb
 +#include "util.h"
 +
 +#include <asm/unaligned.h>
-+#include <linux/dynamic_fault.h>
 +#include <linux/console.h>
 +#include <linux/random.h>
 +#include <linux/prefetch.h>
@@ -18096,15 +18099,13 @@ index 000000000000..8955555d6603
 +}
 diff --git a/fs/bcachefs/btree_iter.h b/fs/bcachefs/btree_iter.h
 new file mode 100644
-index 000000000000..eb7a4f398f85
+index 000000000000..9483ec8913e3
 --- /dev/null
 +++ b/fs/bcachefs/btree_iter.h
-@@ -0,0 +1,308 @@
+@@ -0,0 +1,306 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +#ifndef _BCACHEFS_BTREE_ITER_H
 +#define _BCACHEFS_BTREE_ITER_H
-+
-+#include <linux/dynamic_fault.h>
 +
 +#include "bset.h"
 +#include "btree_types.h"
@@ -18637,10 +18638,10 @@ index 000000000000..ea07ba19c5dc
 +
 diff --git a/fs/bcachefs/btree_types.h b/fs/bcachefs/btree_types.h
 new file mode 100644
-index 000000000000..475b2bb75af3
+index 000000000000..91aa30a6ed2f
 --- /dev/null
 +++ b/fs/bcachefs/btree_types.h
-@@ -0,0 +1,526 @@
+@@ -0,0 +1,527 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +#ifndef _BCACHEFS_BTREE_TYPES_H
 +#define _BCACHEFS_BTREE_TYPES_H
@@ -18905,6 +18906,7 @@ index 000000000000..475b2bb75af3
 +
 +	bool			deferred;
 +	bool			triggered;
++	bool			marked;
 +};
 +
 +#define BTREE_ITER_MAX		64
@@ -21927,10 +21929,10 @@ index 000000000000..e5156e908110
 +#endif /* _BCACHEFS_BTREE_UPDATE_INTERIOR_H */
 diff --git a/fs/bcachefs/btree_update_leaf.c b/fs/bcachefs/btree_update_leaf.c
 new file mode 100644
-index 000000000000..2a1454bc3441
+index 000000000000..4f12108bd6fe
 --- /dev/null
 +++ b/fs/bcachefs/btree_update_leaf.c
-@@ -0,0 +1,1083 @@
+@@ -0,0 +1,1098 @@
 +// SPDX-License-Identifier: GPL-2.0
 +
 +#include "bcachefs.h"
@@ -22475,6 +22477,7 @@ index 000000000000..2a1454bc3441
 +	struct bch_fs *c = trans->c;
 +	struct bch_fs_usage *fs_usage = NULL;
 +	struct btree_insert_entry *i;
++	bool saw_non_marked;
 +	unsigned mark_flags = trans->flags & BTREE_INSERT_BUCKET_INVALIDATE
 +		? BCH_BUCKET_MARK_BUCKET_INVALIDATE
 +		: 0;
@@ -22484,14 +22487,28 @@ index 000000000000..2a1454bc3441
 +		BUG_ON(i->iter->uptodate >= BTREE_ITER_NEED_RELOCK);
 +
 +	trans_for_each_update_iter(trans, i)
-+		if (update_has_triggers(trans, i) &&
-+		    update_triggers_transactional(trans, i)) {
-+			ret = bch2_trans_mark_update(trans, i);
-+			if (ret == -EINTR)
-+				trace_trans_restart_mark(trans->ip);
-+			if (ret)
-+				goto out_clear_replicas;
++		i->marked = false;
++
++	do {
++		saw_non_marked = false;
++
++		trans_for_each_update_iter(trans, i) {
++			if (i->marked)
++				continue;
++
++			saw_non_marked = true;
++			i->marked = true;
++
++			if (update_has_triggers(trans, i) &&
++			    update_triggers_transactional(trans, i)) {
++				ret = bch2_trans_mark_update(trans, i->iter, i->k);
++				if (ret == -EINTR)
++					trace_trans_restart_mark(trans->ip);
++				if (ret)
++					goto out_clear_replicas;
++			}
 +		}
++	} while (saw_non_marked);
 +
 +	btree_trans_lock_write(c, trans);
 +
@@ -23016,10 +23033,10 @@ index 000000000000..2a1454bc3441
 +}
 diff --git a/fs/bcachefs/buckets.c b/fs/bcachefs/buckets.c
 new file mode 100644
-index 000000000000..794adde61de1
+index 000000000000..b6b3ac5111ca
 --- /dev/null
 +++ b/fs/bcachefs/buckets.c
-@@ -0,0 +1,1909 @@
+@@ -0,0 +1,1910 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Code for manipulating bucket marks for garbage collection.
@@ -24340,22 +24357,18 @@ index 000000000000..794adde61de1
 +
 +static int trans_get_key(struct btree_trans *trans,
 +			 enum btree_id btree_id, struct bpos pos,
-+			 struct btree_insert_entry **insert,
 +			 struct btree_iter **iter,
 +			 struct bkey_s_c *k)
 +{
 +	unsigned i;
 +	int ret;
 +
-+	*insert = NULL;
-+
 +	for (i = 0; i < trans->nr_updates; i++)
 +		if (!trans->updates[i].deferred &&
 +		    trans->updates[i].iter->btree_id == btree_id &&
 +		    !bkey_cmp(pos, trans->updates[i].iter->pos)) {
-+			*insert = &trans->updates[i];
-+			*iter	= (*insert)->iter;
-+			*k	= bkey_i_to_s_c((*insert)->k);
++			*iter	= trans->updates[i].iter;
++			*k	= bkey_i_to_s_c(trans->updates[i].k);
 +			return 0;
 +		}
 +
@@ -24371,30 +24384,34 @@ index 000000000000..794adde61de1
 +	return ret;
 +}
 +
-+static int trans_update_key(struct btree_trans *trans,
-+			    struct btree_insert_entry **insert,
-+			    struct btree_iter *iter,
-+			    struct bkey_s_c k,
-+			    unsigned extra_u64s)
++static void *trans_update_key(struct btree_trans *trans,
++			      struct btree_iter *iter,
++			      unsigned u64s)
 +{
 +	struct bkey_i *new_k;
++	unsigned i;
 +
-+	if (*insert)
-+		return 0;
-+
-+	new_k = bch2_trans_kmalloc(trans, bkey_bytes(k.k) +
-+				   extra_u64s * sizeof(u64));
++	new_k = bch2_trans_kmalloc(trans, u64s * sizeof(u64));
 +	if (IS_ERR(new_k))
-+		return PTR_ERR(new_k);
++		return new_k;
 +
-+	*insert = bch2_trans_update(trans, ((struct btree_insert_entry) {
-+				.iter = iter,
-+				.k = new_k,
-+				.triggered = true,
++	bkey_init(&new_k->k);
++	new_k->k.p = iter->pos;
++
++	for (i = 0; i < trans->nr_updates; i++)
++		if (!trans->updates[i].deferred &&
++		    trans->updates[i].iter == iter) {
++			trans->updates[i].k = new_k;
++			return new_k;
++		}
++
++	bch2_trans_update(trans, ((struct btree_insert_entry) {
++		.iter = iter,
++		.k = new_k,
++		.triggered = true,
 +	}));
 +
-+	bkey_reassemble((*insert)->k, k);
-+	return 0;
++	return new_k;
 +}
 +
 +static int bch2_trans_mark_pointer(struct btree_trans *trans,
@@ -24403,7 +24420,6 @@ index 000000000000..794adde61de1
 +{
 +	struct bch_fs *c = trans->c;
 +	struct bch_dev *ca = bch_dev_bkey_exists(c, p.ptr.dev);
-+	struct btree_insert_entry *insert;
 +	struct btree_iter *iter;
 +	struct bkey_s_c k;
 +	struct bkey_alloc_unpacked u;
@@ -24413,7 +24429,7 @@ index 000000000000..794adde61de1
 +
 +	ret = trans_get_key(trans, BTREE_ID_ALLOC,
 +			    POS(p.ptr.dev, PTR_BUCKET_NR(ca, &p.ptr)),
-+			    &insert, &iter, &k);
++			    &iter, &k);
 +	if (ret)
 +		return ret;
 +
@@ -24446,11 +24462,12 @@ index 000000000000..794adde61de1
 +		? u.dirty_sectors
 +		: u.cached_sectors, sectors);
 +
-+	ret = trans_update_key(trans, &insert, iter, k, 1);
++	a = trans_update_key(trans, iter, BKEY_ALLOC_U64s_MAX);
++	ret = PTR_ERR_OR_ZERO(a);
 +	if (ret)
 +		goto out;
 +
-+	a = bkey_alloc_init(insert->k);
++	bkey_alloc_init(&a->k_i);
 +	a->k.p = iter->pos;
 +	bch2_alloc_pack(a, u);
 +out:
@@ -24463,8 +24480,8 @@ index 000000000000..794adde61de1
 +			s64 sectors, enum bch_data_type data_type)
 +{
 +	struct bch_replicas_padded r;
-+	struct btree_insert_entry *insert;
 +	struct btree_iter *iter;
++	struct bkey_i *new_k;
 +	struct bkey_s_c k;
 +	struct bkey_s_stripe s;
 +	unsigned nr_data;
@@ -24473,8 +24490,7 @@ index 000000000000..794adde61de1
 +
 +	BUG_ON(!sectors);
 +
-+	ret = trans_get_key(trans, BTREE_ID_EC, POS(0, p.idx),
-+			    &insert, &iter, &k);
++	ret = trans_get_key(trans, BTREE_ID_EC, POS(0, p.idx), &iter, &k);
 +	if (ret)
 +		return ret;
 +
@@ -24486,11 +24502,13 @@ index 000000000000..794adde61de1
 +		goto out;
 +	}
 +
-+	ret = trans_update_key(trans, &insert, iter, k, 1);
++	new_k = trans_update_key(trans, iter, k.k->u64s);
++	ret = PTR_ERR_OR_ZERO(new_k);
 +	if (ret)
 +		goto out;
 +
-+	s = bkey_i_to_s_stripe(insert->k);
++	bkey_reassemble(new_k, k);
++	s = bkey_i_to_s_stripe(new_k);
 +
 +	nr_data = s.v->nr_blocks - s.v->nr_redundant;
 +
@@ -24611,9 +24629,9 @@ index 000000000000..794adde61de1
 +}
 +
 +int bch2_trans_mark_update(struct btree_trans *trans,
-+			   struct btree_insert_entry *insert)
++			   struct btree_iter *iter,
++			   struct bkey_i *insert)
 +{
-+	struct btree_iter	*iter = insert->iter;
 +	struct btree		*b = iter->l[0].b;
 +	struct btree_node_iter	node_iter = iter->l[0].iter;
 +	struct bkey_packed	*_k;
@@ -24623,9 +24641,9 @@ index 000000000000..794adde61de1
 +		return 0;
 +
 +	ret = bch2_trans_mark_key(trans,
-+			bkey_i_to_s_c(insert->k),
-+			bpos_min(insert->k->k.p, b->key.k.p).offset -
-+			bkey_start_offset(&insert->k->k),
++			bkey_i_to_s_c(insert),
++			bpos_min(insert->k.p, b->key.k.p).offset -
++			bkey_start_offset(&insert->k),
 +			BCH_BUCKET_MARK_INSERT);
 +	if (ret)
 +		return ret;
@@ -24639,25 +24657,25 @@ index 000000000000..794adde61de1
 +		k = bkey_disassemble(b, _k, &unpacked);
 +
 +		if (btree_node_is_extents(b)
-+		    ? bkey_cmp(insert->k->k.p, bkey_start_pos(k.k)) <= 0
-+		    : bkey_cmp(insert->k->k.p, k.k->p))
++		    ? bkey_cmp(insert->k.p, bkey_start_pos(k.k)) <= 0
++		    : bkey_cmp(insert->k.p, k.k->p))
 +			break;
 +
 +		if (btree_node_is_extents(b)) {
-+			switch (bch2_extent_overlap(&insert->k->k, k.k)) {
++			switch (bch2_extent_overlap(&insert->k, k.k)) {
 +			case BCH_EXTENT_OVERLAP_ALL:
 +				sectors = -((s64) k.k->size);
 +				break;
 +			case BCH_EXTENT_OVERLAP_BACK:
-+				sectors = bkey_start_offset(&insert->k->k) -
++				sectors = bkey_start_offset(&insert->k) -
 +					k.k->p.offset;
 +				break;
 +			case BCH_EXTENT_OVERLAP_FRONT:
 +				sectors = bkey_start_offset(k.k) -
-+					insert->k->k.p.offset;
++					insert->k.p.offset;
 +				break;
 +			case BCH_EXTENT_OVERLAP_MIDDLE:
-+				sectors = k.k->p.offset - insert->k->k.p.offset;
++				sectors = k.k->p.offset - insert->k.p.offset;
 +				BUG_ON(sectors <= 0);
 +
 +				ret = bch2_trans_mark_key(trans, k, sectors,
@@ -24665,7 +24683,7 @@ index 000000000000..794adde61de1
 +				if (ret)
 +					return ret;
 +
-+				sectors = bkey_start_offset(&insert->k->k) -
++				sectors = bkey_start_offset(&insert->k) -
 +					k.k->p.offset;
 +				break;
 +			}
@@ -24931,10 +24949,10 @@ index 000000000000..794adde61de1
 +}
 diff --git a/fs/bcachefs/buckets.h b/fs/bcachefs/buckets.h
 new file mode 100644
-index 000000000000..34be8387e0a9
+index 000000000000..5ab6f3d34137
 --- /dev/null
 +++ b/fs/bcachefs/buckets.h
-@@ -0,0 +1,325 @@
+@@ -0,0 +1,326 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +/*
 + * Code for manipulating bucket marks for garbage collection.
@@ -25211,7 +25229,8 @@ index 000000000000..34be8387e0a9
 +				    struct replicas_delta_list *);
 +int bch2_trans_mark_key(struct btree_trans *, struct bkey_s_c, s64, unsigned);
 +int bch2_trans_mark_update(struct btree_trans *,
-+			   struct btree_insert_entry *);
++			   struct btree_iter *iter,
++			   struct bkey_i *insert);
 +void bch2_trans_fs_usage_apply(struct btree_trans *, struct bch_fs_usage *);
 +
 +/* disk reservations: */
@@ -27201,10 +27220,10 @@ index 000000000000..2b5e499e12b4
 +#endif /* _BCACHEFS_CLOCK_TYPES_H */
 diff --git a/fs/bcachefs/compress.c b/fs/bcachefs/compress.c
 new file mode 100644
-index 000000000000..8c4534d969d9
+index 000000000000..a7264d802ed7
 --- /dev/null
 +++ b/fs/bcachefs/compress.c
-@@ -0,0 +1,629 @@
+@@ -0,0 +1,623 @@
 +// SPDX-License-Identifier: GPL-2.0
 +#include "bcachefs.h"
 +#include "checksum.h"
@@ -27213,7 +27232,6 @@ index 000000000000..8c4534d969d9
 +#include "io.h"
 +#include "super-io.h"
 +
-+#include "lz4.h"
 +#include <linux/lz4.h>
 +#include <linux/zlib.h>
 +#include <linux/zstd.h>
@@ -27367,11 +27385,6 @@ index 000000000000..8c4534d969d9
 +
 +	switch (crc.compression_type) {
 +	case BCH_COMPRESSION_LZ4_OLD:
-+		ret = bch2_lz4_decompress(src_data.b, &src_len,
-+				     dst_data, dst_len);
-+		if (ret)
-+			goto err;
-+		break;
 +	case BCH_COMPRESSION_LZ4:
 +		ret = LZ4_decompress_safe_partial(src_data.b, dst_data,
 +						  src_len, dst_len, dst_len);
@@ -37230,7 +37243,7 @@ index 000000000000..88060b8785c3
 +#endif /* _BCACHEFS_FS_IO_H */
 diff --git a/fs/bcachefs/fs-ioctl.c b/fs/bcachefs/fs-ioctl.c
 new file mode 100644
-index 000000000000..971744ba3bf9
+index 000000000000..e80576f5a980
 --- /dev/null
 +++ b/fs/bcachefs/fs-ioctl.c
 @@ -0,0 +1,298 @@
@@ -37441,7 +37454,7 @@ index 000000000000..971744ba3bf9
 +	if (ret)
 +		goto err2;
 +
-+	bch2_lock_inodes(src, dst);
++	bch2_lock_inodes(INODE_UPDATE_LOCK, src, dst);
 +
 +	if (inode_attr_changing(src, dst, Inode_opt_project)) {
 +		ret = bch2_fs_quota_transfer(c, dst,
@@ -37454,7 +37467,7 @@ index 000000000000..971744ba3bf9
 +
 +	ret = bch2_write_inode(c, dst, bch2_reinherit_attrs_fn, src, 0);
 +err3:
-+	bch2_unlock_inodes(src, dst);
++	bch2_unlock_inodes(INODE_UPDATE_LOCK, src, dst);
 +
 +	/* return true if we did work */
 +	if (ret >= 0)
@@ -37621,10 +37634,10 @@ index 000000000000..f201980ef2c3
 +#endif /* _BCACHEFS_FS_IOCTL_H */
 diff --git a/fs/bcachefs/fs.c b/fs/bcachefs/fs.c
 new file mode 100644
-index 000000000000..c70c723f8518
+index 000000000000..9ce72815d1c8
 --- /dev/null
 +++ b/fs/bcachefs/fs.c
-@@ -0,0 +1,1823 @@
+@@ -0,0 +1,1825 @@
 +// SPDX-License-Identifier: GPL-2.0
 +#ifndef NO_BCACHEFS_FS
 +
@@ -38221,7 +38234,7 @@ index 000000000000..c70c723f8518
 +	struct btree_trans trans;
 +	int ret;
 +
-+	bch2_lock_inodes(dir, inode);
++	bch2_lock_inodes(INODE_UPDATE_LOCK, dir, inode);
 +	bch2_trans_init(&trans, c, 4, 1024);
 +retry:
 +	bch2_trans_begin(&trans);
@@ -38254,7 +38267,7 @@ index 000000000000..c70c723f8518
 +				      ATTR_MTIME);
 +err:
 +	bch2_trans_exit(&trans);
-+	bch2_unlock_inodes(dir, inode);
++	bch2_unlock_inodes(INODE_UPDATE_LOCK, dir, inode);
 +
 +	return ret;
 +}
@@ -38431,7 +38444,8 @@ index 000000000000..c70c723f8518
 +
 +	bch2_trans_init(&trans, c, 8, 2048);
 +
-+	bch2_lock_inodes(i.src_dir,
++	bch2_lock_inodes(INODE_UPDATE_LOCK,
++			 i.src_dir,
 +			 i.dst_dir,
 +			 i.src_inode,
 +			 i.dst_inode);
@@ -38529,7 +38543,8 @@ index 000000000000..c70c723f8518
 +				       1 << QTYP_PRJ,
 +				       KEY_TYPE_QUOTA_NOCHECK);
 +
-+	bch2_unlock_inodes(i.src_dir,
++	bch2_unlock_inodes(INODE_UPDATE_LOCK,
++			   i.src_dir,
 +			   i.dst_dir,
 +			   i.src_inode,
 +			   i.dst_inode);
@@ -39450,10 +39465,10 @@ index 000000000000..c70c723f8518
 +#endif /* NO_BCACHEFS_FS */
 diff --git a/fs/bcachefs/fs.h b/fs/bcachefs/fs.h
 new file mode 100644
-index 000000000000..fad8f4e5fdfc
+index 000000000000..226223b058a9
 --- /dev/null
 +++ b/fs/bcachefs/fs.h
-@@ -0,0 +1,148 @@
+@@ -0,0 +1,166 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +#ifndef _BCACHEFS_FS_H
 +#define _BCACHEFS_FS_H
@@ -39492,24 +39507,42 @@ index 000000000000..fad8f4e5fdfc
 +	return cmp_int(l, r);
 +}
 +
-+#define __bch2_lock_inodes(_lock, ...)					\
++enum bch_inode_lock_op {
++	INODE_LOCK		= (1U << 0),
++	INODE_UPDATE_LOCK	= (1U << 1),
++};
++
++#define bch2_lock_inodes(_locks, ...)					\
 +do {									\
 +	struct bch_inode_info *a[] = { NULL, __VA_ARGS__ };		\
 +	unsigned i;							\
 +									\
-+	bubble_sort(&a[1], ARRAY_SIZE(a) - 1 , ptrcmp);			\
++	bubble_sort(&a[1], ARRAY_SIZE(a) - 1, ptrcmp);			\
 +									\
-+	for (i = ARRAY_SIZE(a) - 1; a[i]; --i)				\
++	for (i = 1; i < ARRAY_SIZE(a); i++)				\
 +		if (a[i] != a[i - 1]) {					\
-+			if (_lock)					\
++			if (_locks & INODE_LOCK)			\
++				down_write_nested(&a[i]->v.i_rwsem, i);	\
++			if (_locks & INODE_UPDATE_LOCK)			\
 +				mutex_lock_nested(&a[i]->ei_update_lock, i);\
-+			else						\
-+				mutex_unlock(&a[i]->ei_update_lock);	\
 +		}							\
 +} while (0)
 +
-+#define bch2_lock_inodes(...)	__bch2_lock_inodes(true, __VA_ARGS__)
-+#define bch2_unlock_inodes(...)	__bch2_lock_inodes(false, __VA_ARGS__)
++#define bch2_unlock_inodes(_locks, ...)					\
++do {									\
++	struct bch_inode_info *a[] = { NULL, __VA_ARGS__ };		\
++	unsigned i;							\
++									\
++	bubble_sort(&a[1], ARRAY_SIZE(a) - 1, ptrcmp);			\
++									\
++	for (i = 1; i < ARRAY_SIZE(a); i++)				\
++		if (a[i] != a[i - 1]) {					\
++			if (_locks & INODE_LOCK)			\
++				up_write(&a[i]->v.i_rwsem);		\
++			if (_locks & INODE_UPDATE_LOCK)			\
++				mutex_unlock(&a[i]->ei_update_lock);	\
++		}							\
++} while (0)
 +
 +static inline struct bch_inode_info *file_bch_inode(struct file *file)
 +{
@@ -41102,10 +41135,10 @@ index 000000000000..9e4af02bde1e
 +#endif /* _BCACHEFS_FSCK_H */
 diff --git a/fs/bcachefs/inode.c b/fs/bcachefs/inode.c
 new file mode 100644
-index 000000000000..67379cef6bcf
+index 000000000000..05b7f6594113
 --- /dev/null
 +++ b/fs/bcachefs/inode.c
-@@ -0,0 +1,502 @@
+@@ -0,0 +1,505 @@
 +// SPDX-License-Identifier: GPL-2.0
 +
 +#include "bcachefs.h"
@@ -41354,6 +41387,9 @@ index 000000000000..67379cef6bcf
 +void bch2_inode_generation_to_text(struct printbuf *out, struct bch_fs *c,
 +				   struct bkey_s_c k)
 +{
++	struct bkey_s_c_inode_generation gen = bkey_s_c_to_inode_generation(k);
++
++	pr_buf(out, "generation: %u", le32_to_cpu(gen.v->bi_generation));
 +}
 +
 +void bch2_inode_init(struct bch_fs *c, struct bch_inode_unpacked *inode_u,
@@ -41728,10 +41764,10 @@ index 000000000000..af0c355f2f04
 +#endif /* _BCACHEFS_INODE_H */
 diff --git a/fs/bcachefs/io.c b/fs/bcachefs/io.c
 new file mode 100644
-index 000000000000..913cc2734cb0
+index 000000000000..792f1df5d0a1
 --- /dev/null
 +++ b/fs/bcachefs/io.c
-@@ -0,0 +1,1936 @@
+@@ -0,0 +1,1935 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Some low level IO code, and hacks for various block layer limitations
@@ -42692,7 +42728,6 @@ index 000000000000..913cc2734cb0
 +	BUG_ON(!op->nr_replicas);
 +	BUG_ON(!op->write_point.v);
 +	BUG_ON(!bkey_cmp(op->pos, POS_MAX));
-+	BUG_ON(bio_sectors(&op->wbio.bio) > U16_MAX);
 +
 +	op->start_time = local_clock();
 +
@@ -48399,304 +48434,6 @@ index 000000000000..4b3ff7d8a875
 +};
 +
 +#endif /* _BCACHEFS_KEYLIST_TYPES_H */
-diff --git a/fs/bcachefs/lz4.h b/fs/bcachefs/lz4.h
-new file mode 100644
-index 000000000000..46c1f2737e80
---- /dev/null
-+++ b/fs/bcachefs/lz4.h
-@@ -0,0 +1,8 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __BCH_LZ4_H__
-+#define __BCH_LZ4_H__
-+
-+int bch2_lz4_decompress(const unsigned char *src, size_t *src_len,
-+			unsigned char *dest, size_t actual_dest_len);
-+
-+#endif
-diff --git a/fs/bcachefs/lz4_decompress.c b/fs/bcachefs/lz4_decompress.c
-new file mode 100644
-index 000000000000..21d7d2e898d3
---- /dev/null
-+++ b/fs/bcachefs/lz4_decompress.c
-@@ -0,0 +1,278 @@
-+// SPDX-License-Identifier: GPL-2.0
-+/*
-+ * LZ4 Decompressor for Linux kernel
-+ *
-+ * Copyright (C) 2013, LG Electronics, Kyungsik Lee <kyungsik.lee@lge.com>
-+ *
-+ * Based on LZ4 implementation by Yann Collet.
-+ *
-+ * LZ4 - Fast LZ compression algorithm
-+ * Copyright (C) 2011-2012, Yann Collet.
-+ * BSD 2-Clause License (http://www.opensource.org/licenses/bsd-license.php)
-+ *
-+ * Redistribution and use in source and binary forms, with or without
-+ * modification, are permitted provided that the following conditions are
-+ * met:
-+ *
-+ *     * Redistributions of source code must retain the above copyright
-+ * notice, this list of conditions and the following disclaimer.
-+ *     * Redistributions in binary form must reproduce the above
-+ * copyright notice, this list of conditions and the following disclaimer
-+ * in the documentation and/or other materials provided with the
-+ * distribution.
-+ *
-+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-+ *
-+ *  You can contact the author at :
-+ *  - LZ4 homepage : http://fastcompression.blogspot.com/p/lz4.html
-+ *  - LZ4 source repository : http://code.google.com/p/lz4/
-+ */
-+
-+#ifndef STATIC
-+#include <linux/module.h>
-+#include <linux/kernel.h>
-+#endif
-+
-+#include "lz4.h"
-+
-+/*
-+ * Detects 64 bits mode
-+ */
-+#if defined(CONFIG_64BIT)
-+#define LZ4_ARCH64 1
-+#else
-+#define LZ4_ARCH64 0
-+#endif
-+
-+#include <asm/unaligned.h>
-+#include <linux/log2.h>
-+#include <linux/string.h>
-+
-+#define A32(_p) get_unaligned((u32 *) (_p))
-+#define A16(_p) get_unaligned((u16 *) (_p))
-+
-+#define GET_LE16_ADVANCE(_src)				\
-+({							\
-+	u16 _r = get_unaligned_le16(_src);		\
-+	(_src) += 2;					\
-+	_r;						\
-+})
-+
-+#define PUT_LE16_ADVANCE(_dst, _v)			\
-+do {							\
-+	put_unaligned_le16((_v), (_dst));		\
-+	(_dst) += 2;					\
-+} while (0)
-+
-+#define LENGTH_LONG		15
-+#define COPYLENGTH		8
-+#define ML_BITS			4
-+#define ML_MASK			((1U << ML_BITS) - 1)
-+#define RUN_BITS		(8 - ML_BITS)
-+#define RUN_MASK		((1U << RUN_BITS) - 1)
-+#define MEMORY_USAGE		14
-+#define MINMATCH		4
-+#define SKIPSTRENGTH		6
-+#define LASTLITERALS		5
-+#define MFLIMIT			(COPYLENGTH + MINMATCH)
-+#define MINLENGTH		(MFLIMIT + 1)
-+#define MAXD_LOG		16
-+#define MAXD			(1 << MAXD_LOG)
-+#define MAXD_MASK		(u32)(MAXD - 1)
-+#define MAX_DISTANCE		(MAXD - 1)
-+#define HASH_LOG		(MAXD_LOG - 1)
-+#define HASHTABLESIZE		(1 << HASH_LOG)
-+#define MAX_NB_ATTEMPTS		256
-+#define OPTIMAL_ML		(int)((ML_MASK-1)+MINMATCH)
-+#define LZ4_64KLIMIT		((1<<16) + (MFLIMIT - 1))
-+
-+#define __HASH_VALUE(p, bits)				\
-+	(((A32(p)) * 2654435761U) >> (32 - (bits)))
-+
-+#define HASH_VALUE(p)		__HASH_VALUE(p, HASH_LOG)
-+
-+#define MEMCPY_ADVANCE(_dst, _src, length)		\
-+do {							\
-+	typeof(length) _length = (length);		\
-+	memcpy(_dst, _src, _length);			\
-+	_src += _length;				\
-+	_dst += _length;				\
-+} while (0)
-+
-+#define MEMCPY_ADVANCE_BYTES(_dst, _src, _length)	\
-+do {							\
-+	const u8 *_end = (_src) + (_length);		\
-+	while ((_src) < _end)				\
-+		*_dst++ = *_src++;			\
-+} while (0)
-+
-+#define STEPSIZE		__SIZEOF_LONG__
-+
-+#define LZ4_COPYPACKET(_src, _dst)			\
-+do {							\
-+	MEMCPY_ADVANCE(_dst, _src, STEPSIZE);		\
-+	MEMCPY_ADVANCE(_dst, _src, COPYLENGTH - STEPSIZE);\
-+} while (0)
-+
-+/*
-+ * Equivalent to MEMCPY_ADVANCE - except may overrun @_dst and @_src by
-+ * COPYLENGTH:
-+ *
-+ * Note: src and dst may overlap (with src < dst) - we must do the copy in
-+ * STEPSIZE chunks for correctness
-+ *
-+ * Note also: length may be negative - we must not call memcpy if length is
-+ * negative, but still adjust dst and src by length
-+ */
-+#define MEMCPY_ADVANCE_CHUNKED(_dst, _src, _length)	\
-+do {							\
-+	u8 *_end = (_dst) + (_length);			\
-+	while ((_dst) < _end)				\
-+		LZ4_COPYPACKET(_src, _dst);		\
-+	_src -= (_dst) - _end;				\
-+	_dst = _end;					\
-+} while (0)
-+
-+#define MEMCPY_ADVANCE_CHUNKED_NOFIXUP(_dst, _src, _end)\
-+do {							\
-+	while ((_dst) < (_end))				\
-+		LZ4_COPYPACKET((_src), (_dst));		\
-+} while (0)
-+
-+static const int dec32table[8] = {0, 3, 2, 3, 0, 0, 0, 0};
-+#if LZ4_ARCH64
-+static const int dec64table[8] = {0, 0, 0, -1, 0, 1, 2, 3};
-+#else
-+static const int dec64table[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-+#endif
-+
-+static inline size_t get_length(const u8 **ip, size_t length)
-+{
-+	if (length == LENGTH_LONG) {
-+		size_t len;
-+
-+		do {
-+			length += (len = *(*ip)++);
-+		} while (len == 255);
-+	}
-+
-+	return length;
-+}
-+
-+static int lz4_uncompress(const u8 *source, u8 *dest, int osize)
-+{
-+	const u8 *ip = source;
-+	const u8 *ref;
-+	u8 *op = dest;
-+	u8 * const oend = op + osize;
-+	u8 *cpy;
-+	unsigned token, offset;
-+	ssize_t length;
-+
-+	while (1) {
-+		/* get runlength */
-+		token = *ip++;
-+		length = get_length(&ip, token >> ML_BITS);
-+
-+		/* copy literals */
-+		if (unlikely(op + length > oend - COPYLENGTH)) {
-+			/*
-+			 * Error: not enough place for another match
-+			 * (min 4) + 5 literals
-+			 */
-+			if (op + length != oend)
-+				goto _output_error;
-+
-+			MEMCPY_ADVANCE(op, ip, length);
-+			break; /* EOF */
-+		}
-+		MEMCPY_ADVANCE_CHUNKED(op, ip, length);
-+
-+		/* get match offset */
-+		offset = GET_LE16_ADVANCE(ip);
-+		ref = op - offset;
-+
-+		/* Error: offset create reference outside destination buffer */
-+		if (unlikely(ref < (u8 *const) dest))
-+			goto _output_error;
-+
-+		/* get match length */
-+		length = get_length(&ip, token & ML_MASK);
-+		length += MINMATCH;
-+
-+		/* copy first STEPSIZE bytes of match: */
-+		if (unlikely(offset < STEPSIZE)) {
-+			MEMCPY_ADVANCE_BYTES(op, ref, 4);
-+			ref -= dec32table[offset];
-+
-+			memcpy(op, ref, 4);
-+			op += STEPSIZE - 4;
-+			ref -= dec64table[offset];
-+		} else {
-+			MEMCPY_ADVANCE(op, ref, STEPSIZE);
-+		}
-+		length -= STEPSIZE;
-+		/*
-+		 * Note - length could have been < STEPSIZE; that's ok, length
-+		 * will now be negative and we'll just end up rewinding op:
-+		 */
-+
-+		/* copy rest of match: */
-+		cpy = op + length;
-+		if (cpy > oend - COPYLENGTH) {
-+			/* Error: request to write beyond destination buffer */
-+			if (cpy              > oend ||
-+			    ref + COPYLENGTH > oend)
-+				goto _output_error;
-+#if !LZ4_ARCH64
-+			if (op  + COPYLENGTH > oend)
-+				goto _output_error;
-+#endif
-+			MEMCPY_ADVANCE_CHUNKED_NOFIXUP(op, ref, oend - COPYLENGTH);
-+			/* op could be > cpy here */
-+			while (op < cpy)
-+				*op++ = *ref++;
-+			op = cpy;
-+			/*
-+			 * Check EOF (should never happen, since last 5 bytes
-+			 * are supposed to be literals)
-+			 */
-+			if (op == oend)
-+				goto _output_error;
-+		} else {
-+			MEMCPY_ADVANCE_CHUNKED(op, ref, length);
-+		}
-+	}
-+	/* end of decoding */
-+	return ip - source;
-+
-+	/* write overflow error detected */
-+_output_error:
-+	return -1;
-+}
-+
-+int bch2_lz4_decompress(const unsigned char *src, size_t *src_len,
-+			unsigned char *dest, size_t actual_dest_len)
-+{
-+	int ret = -1;
-+	int input_len = 0;
-+
-+	input_len = lz4_uncompress(src, dest, actual_dest_len);
-+	if (input_len < 0)
-+		goto exit_0;
-+	*src_len = input_len;
-+
-+	return 0;
-+exit_0:
-+	return ret;
-+}
 diff --git a/fs/bcachefs/migrate.c b/fs/bcachefs/migrate.c
 new file mode 100644
 index 000000000000..ad41f5e36a7c
@@ -52296,10 +52033,10 @@ index 000000000000..192c6be20ced
 +#endif /* _BCACHEFS_REBALANCE_TYPES_H */
 diff --git a/fs/bcachefs/recovery.c b/fs/bcachefs/recovery.c
 new file mode 100644
-index 000000000000..dc9222b1a196
+index 000000000000..e0df2c0a4fdf
 --- /dev/null
 +++ b/fs/bcachefs/recovery.c
-@@ -0,0 +1,1002 @@
+@@ -0,0 +1,1012 @@
 +// SPDX-License-Identifier: GPL-2.0
 +
 +#include "bcachefs.h"
@@ -52681,7 +52418,15 @@ index 000000000000..dc9222b1a196
 +
 +	switch (entry->type) {
 +	case BCH_JSET_ENTRY_btree_root: {
-+		struct btree_root *r = &c->btree_roots[entry->btree_id];
++		struct btree_root *r;
++
++		if (entry->btree_id >= BTREE_ID_NR) {
++			bch_err(c, "filesystem has unknown btree type %u",
++				entry->btree_id);
++			return -EINVAL;
++		}
++
++		r = &c->btree_roots[entry->btree_id];
 +
 +		if (entry->u64s) {
 +			r->level = entry->level;
@@ -53023,10 +52768,12 @@ index 000000000000..dc9222b1a196
 +
 +	ret = bch2_blacklist_table_initialize(c);
 +
-+	ret = verify_journal_entries_not_blacklisted_or_missing(c,
-+						&journal_entries);
-+	if (ret)
-+		goto err;
++	if (!list_empty(&journal_entries)) {
++		ret = verify_journal_entries_not_blacklisted_or_missing(c,
++							&journal_entries);
++		if (ret)
++			goto err;
++	}
 +
 +	ret = bch2_fs_journal_start(&c->journal, journal_seq,
 +				    &journal_entries);
@@ -62983,10 +62730,10 @@ index 000000000000..4151065ab853
 +
 +#endif /* _BCACHEFS_XATTR_H */
 diff --git a/fs/cifs/file.c b/fs/cifs/file.c
-index 7037a137fa53..66f38b3d5bca 100644
+index 736a61843e73..582700f183b8 100644
 --- a/fs/cifs/file.c
 +++ b/fs/cifs/file.c
-@@ -4125,20 +4125,12 @@ readpages_get_pages(struct address_space *mapping, struct list_head *page_list,
+@@ -4131,20 +4131,12 @@ readpages_get_pages(struct address_space *mapping, struct list_head *page_list,
  
  	page = lru_to_page(page_list);
  
@@ -63010,7 +62757,7 @@ index 7037a137fa53..66f38b3d5bca 100644
  
  	/* move first page to the tmplist */
  	*offset = (loff_t)page->index << PAGE_SHIFT;
-@@ -4157,11 +4149,8 @@ readpages_get_pages(struct address_space *mapping, struct list_head *page_list,
+@@ -4163,11 +4155,8 @@ readpages_get_pages(struct address_space *mapping, struct list_head *page_list,
  		if (*bytes + PAGE_SIZE > rsize)
  			break;
  
@@ -63024,10 +62771,10 @@ index 7037a137fa53..66f38b3d5bca 100644
  		(*bytes) += PAGE_SIZE;
  		expected_index++;
 diff --git a/fs/dcache.c b/fs/dcache.c
-index aac41adf4743..18edb4e5bc72 100644
+index c663c602f9ef..e2c5fbb1f5bf 100644
 --- a/fs/dcache.c
 +++ b/fs/dcache.c
-@@ -3042,9 +3042,8 @@ void d_genocide(struct dentry *parent)
+@@ -3044,9 +3044,8 @@ void d_genocide(struct dentry *parent)
  
  EXPORT_SYMBOL(d_genocide);
  
@@ -63038,7 +62785,7 @@ index aac41adf4743..18edb4e5bc72 100644
  	BUG_ON(dentry->d_name.name != dentry->d_iname ||
  		!hlist_unhashed(&dentry->d_u.d_alias) ||
  		!d_unlinked(dentry));
-@@ -3054,6 +3053,13 @@ void d_tmpfile(struct dentry *dentry, struct inode *inode)
+@@ -3056,6 +3055,13 @@ void d_tmpfile(struct dentry *dentry, struct inode *inode)
  				(unsigned long long)inode->i_ino);
  	spin_unlock(&dentry->d_lock);
  	spin_unlock(&dentry->d_parent->d_lock);
@@ -63053,13 +62800,13 @@ index aac41adf4743..18edb4e5bc72 100644
  }
  EXPORT_SYMBOL(d_tmpfile);
 diff --git a/fs/inode.c b/fs/inode.c
-index 9a453f3637f8..cc44f345e09c 100644
+index 5bd1dd2e942f..4892d43a6233 100644
 --- a/fs/inode.c
 +++ b/fs/inode.c
 @@ -350,6 +350,7 @@ EXPORT_SYMBOL(inc_nlink);
  static void __address_space_init_once(struct address_space *mapping)
  {
- 	xa_init_flags(&mapping->i_pages, XA_FLAGS_LOCK_IRQ);
+ 	xa_init_flags(&mapping->i_pages, XA_FLAGS_LOCK_IRQ | XA_FLAGS_ACCOUNT);
 +	pagecache_lock_init(&mapping->add_lock);
  	init_rwsem(&mapping->i_mmap_rwsem);
  	INIT_LIST_HEAD(&mapping->private_list);
@@ -63323,7 +63070,7 @@ index 6b318efd8a74..48b2c6ae6fc6 100644
 +
  #endif /* __LINUX_COMPILER_ATTRIBUTES_H */
 diff --git a/include/linux/dcache.h b/include/linux/dcache.h
-index 60996e64c579..e0fe3301622f 100644
+index 6e1e8e6602c6..9a754a71c14a 100644
 --- a/include/linux/dcache.h
 +++ b/include/linux/dcache.h
 @@ -255,6 +255,7 @@ extern struct dentry * d_make_root(struct inode *);
