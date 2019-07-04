@@ -5,7 +5,7 @@ with config.nixos; {
     [
       <nixpkgs/nixos/modules/virtualisation/virtualbox-image.nix>
 
-      ../hardware/webcam
+      ../hardware/devices
       ../hardware/profiles/intel.nix
       ../hardware/profiles/laptop.nix
       ../hardware/profiles/linux.nix
