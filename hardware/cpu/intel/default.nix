@@ -2,10 +2,8 @@
 
 {
   boot.kernelParams = [
-    # Use acpi-cpufreq as the CPU scaling governor
+    # Allow the use of other cpu frequency governors
     "intel_pstate=passive"
-
-    "i915.enable_dc=1"
   ];
 
   environment.systemPackages = with pkgs; [
