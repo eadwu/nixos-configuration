@@ -11,6 +11,7 @@ in with config.nixos; {
       ./bcachefs.nix
 
       ../modules/backlight
+      ../modules/clight.nix
       ../modules/compton
       ../modules/cups.nix
       ../modules/emacs.nix
@@ -22,7 +23,6 @@ in with config.nixos; {
       ../modules/network
       ../modules/oblogout.nix
       ../modules/pulseaudio
-      ../modules/redshift.nix
       ../modules/tlp.nix
       ../modules/users.nix
       ../modules/virtualisation.nix
