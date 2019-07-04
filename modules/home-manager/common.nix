@@ -62,10 +62,9 @@
   ];
 
   nixpkgs = {
+    config = import ./config.nix;
     overlays = lib.optional (builtins.pathExists <nixpkgs-overlays>) (import <nixpkgs-overlays>);
-
-    config = {
-      allowUnfree = true;
-    };
   };
+
+  xdg.configFile."nixpkgs/config.nix".source = ./config.nix;
 }
