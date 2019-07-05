@@ -16,12 +16,14 @@
     ];
 
     systemPackages = with pkgs; [
+      fzf
       gptfdisk
       htop
       libarchive
       openssl
       nixops
       pass
+      ripgrep
       tree
       unrar
       unzip
