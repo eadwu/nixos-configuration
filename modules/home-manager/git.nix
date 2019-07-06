@@ -1,33 +1,35 @@
-{ pkgs, lib, ... }:
+{ pkgs, ... }:
+
+with pkgs;
 
 let
-  gitignore = pkgs.stdenv.mkDerivation {
+  gitignore = stdenv.mkDerivation {
     name = "gitignore";
 
-    outputHash = "044iccjc4vz4rz3hc2mqls48ir8llx0pxhv0jk1algarihgxhlhwj2mraswnfc0ckg0ss53ckcrlkq4cxsm1w5ql200jpqqb8jdl2ww";
+    outputHash = "1ib0rs7w5rm04fnd143j9cm4bahhsng5n125xn60js19chirknrzlb755pqfzchdwzabxvagphcfx1x3m09sbr6ik43fpcnid4nz0g3";
     outputHashAlgo = "sha512";
     outputHashMode = "flat";
 
-    buildInputs = lib.singleton pkgs.wget;
+    buildInputs = [ wget ];
 
     buildCommand = ''
-      wget "https://www.gitignore.io/api/c,r,git,c++,java,rust,cmake,elisp,emacs,latex,linux,macos,haskell,database,intellij,visualstudiocode" \
-        --ca-certificate=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt \
+      wget "https://www.gitignore.io/api/c,r,git,c++,java,rust,cmake,elisp,emacs,latex,linux,macos,scala,haskell,database,intellij,visualstudiocode" \
+        --ca-certificate=${cacert}/etc/ssl/certs/ca-bundle.crt \
         -O $out
     '';
   };
 
-  queryWatchman = pkgs.runCommand "fsmonitor-watchman" {
-    src = "${pkgs.git}/share/git-core/templates/hooks/fsmonitor-watchman.sample";
-    buildInputs = lib.singleton pkgs.gnused;
+  queryWatchman = runCommand "fsmonitor-watchman" {
+    src = "${git}/share/git-core/templates/hooks/fsmonitor-watchman.sample";
+    buildInputs = [ gnused ];
   } ''
-    sed 's@/usr@${pkgs.perl}@' $src > $out
+    sed 's@/usr@${perl}@' $src > $out
     chmod +x $out
   '';
 in {
   programs.git = {
     enable = true;
-    package = pkgs.gitAndTools.gitFull;
+    package = gitAndTools.gitFull;
     userName = "Edmund Wu";
     userEmail = "fangkazuto@gmail.com";
 
@@ -53,9 +55,9 @@ in {
         version = 2
 
       [filter "lfs"]
-        clean = ${pkgs.git-lfs}/bin/git-lfs clean -- %f
-        smudge = ${pkgs.git-lfs}/bin/git-lfs smudge -- %f
-        process = ${pkgs.git-lfs}/bin/git-lfs filter-process
+        clean = ${git-lfs}/bin/git-lfs clean -- %f
+        smudge = ${git-lfs}/bin/git-lfs smudge -- %f
+        process = ${git-lfs}/bin/git-lfs filter-process
         required = true
     '';
   };
