@@ -22,8 +22,8 @@ self: super:
     ] ++ super.vscode-utils.extensionsFromVscodeMarketplace [
       { name = "vsc-material-theme";
         publisher = "Equinusocio";
-        version = "29.1.0";
-        sha256 = "02n1q3dv641rs2shcpsvbgjv3kkn73q76c6pjc5y2c6aqf5483d5"; }
+        version = "29.2.0";
+        sha256 = "192x2rblyxgwilyk54anpplxqqwza9445rxsqw78v5ig64yv521j"; }
 
       { name = "Ionide-FAKE";
         publisher = "Ionide";
@@ -37,13 +37,13 @@ self: super:
 
       { name = "Ionide-fsharp";
         publisher = "Ionide";
-        version = "4.0.0";
-        sha256 = "1spdg7y3zi97fmmr68kxgl08agxv10va3vi370z2lr7ln883sax8"; }
+        version = "4.0.4";
+        sha256 = "09ymskr70l1zr6xkp254xvh2yws7xzwklxs2wxs12wykswf7jgx9"; }
 
       { name = "latex-workshop";
         publisher = "James-Yu";
-        version = "7.0.2";
-        sha256 = "09ximbi0gkzyz4qd9h0gsnqw816gv1iwiz591anvi2zqyqi08301"; }
+        version = "7.1.0";
+        sha256 = "1vz7x5cjn8sy6i6lbvxxsa28pwcrlgb1zpyvd7wa03fl3n0h7nys"; }
 
       { name = "better-comments";
         publisher = "aaron-bond";
@@ -67,8 +67,8 @@ self: super:
 
       { name = "solargraph";
         publisher = "castwide";
-        version = "0.19.6";
-        sha256 = "1wibaz834zlc9cg5ckfap2bgy41p7vi97va9qhcm5zdq4lgk7rlp"; }
+        version = "0.20.0";
+        sha256 = "0dkf30dwjvfzb2v396lmaf9c1j8rnispr8fsjwbykdp3miwlqlca"; }
 
       { name = "path-intellisense";
         publisher = "christian-kohler";
@@ -92,8 +92,8 @@ self: super:
 
       { name = "tslint";
         publisher = "eg2";
-        version = "1.0.43";
-        sha256 = "0p0lvkip083vx1y5p53ksy9457x76ylxlc2kf7zdb09vqm6ss8z3"; }
+        version = "1.0.44";
+        sha256 = "11q8kmm7k3pllwgflsjn20d1w58x3r0vl3i2b32bnbk2gzwcjmib"; }
 
       { name = "vsc-material-theme-icons";
         publisher = "equinusocio";
@@ -142,8 +142,8 @@ self: super:
 
       { name = "pyright";
         publisher = "ms-pyright";
-        version = "1.0.42";
-        sha256 = "1gj3zf546l1zrkpb9vf4xi1rip3mgah47ny9n56mhs8vxlf0f01a"; }
+        version = "1.0.43";
+        sha256 = "001xg3yh1xhjzasvqsh3fsz4572sj4nrqba4xfs42dyy5j6baqvc"; }
 
       { name = "azure-account";
         publisher = "ms-vscode";
@@ -157,8 +157,8 @@ self: super:
 
       { name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.471";
-        sha256 = "0lf3xrrqnx0pzbwbm4crv34xfqxx0hrad67lj1m4g9sxbr91xszd"; }
+        version = "1.0.488";
+        sha256 = "16p1f8qlm4p9q3ngbysa5smq1sf3cwv575rjl31290gkrmpd0rzp"; }
 
       { name = "debugger-for-chrome";
         publisher = "msjsdiag";
@@ -187,8 +187,8 @@ self: super:
 
       { name = "scala";
         publisher = "scala-lang";
-        version = "0.3.3";
-        sha256 = "0172jxw2idcamk5y0iy1n3v8rsg7j5mb0kslkih3z85kmdxryz9w"; }
+        version = "0.3.4";
+        sha256 = "1p2ldayaxyz9q7azlwi9b25a37d6w03q4yrzdpmixklxj5d67pch"; }
 
       { name = "metals";
         publisher = "scalameta";
@@ -212,8 +212,8 @@ self: super:
 
       { name = "vscode-java-debug";
         publisher = "vscjava";
-        version = "0.19.0";
-        sha256 = "179q6aphxv63zvcg192xj4ywy6pr6dhbkwkd1bm0sgjmv9k64nbq"; }
+        version = "0.20.0";
+        sha256 = "19h2vwj7n23fi7h6fl2igknqfy9qdwd2zm6jbhizl5k1qahqb633"; }
 
       { name = "vscode-java-pack";
         publisher = "vscjava";
