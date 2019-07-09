@@ -1,8 +1,8 @@
-{ ... }:
+{ lib, ... }:
 
 {
   services.clight = {
-    enable = true;
+    enable = lib.mkDefault true;
     latitude = "40.7";
     longitude = "-73.8";
 

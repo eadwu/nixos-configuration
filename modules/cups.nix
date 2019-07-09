@@ -2,18 +2,18 @@
 
 {
   hardware.sane = {
-    enable = true;
+    enable = lib.mkDefault true;
     extraBackends = lib.singleton pkgs.hplip;
   };
 
   services = {
     avahi = {
-      enable = true;
+      enable = lib.mkDefault true;
       nssmdns = true;
     };
 
     printing = {
-      enable = true;
+      enable = lib.mkDefault true;
       drivers = lib.singleton pkgs.hplip;
     };
   };
