@@ -21,11 +21,5 @@
 
   nixos.settings.system.user = "yin";
 
-  services = {
-    undervolt.enable = false;
-    xserver.libinput.additionalOptions = ''
-      Option "PalmDetection" "on"
-      Option "TappingButtonMap" "lmr"
-    '';
-  };
+  services.undervolt.enable = false;
 }

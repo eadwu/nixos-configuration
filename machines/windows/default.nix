@@ -88,8 +88,6 @@ with config.nixos; {
 
       libinput.additionalOptions = ''
         Option "AccelSpeed" "1"
-        Option "PalmDetection" "on"
-        Option "TappingButtonMap" "lmr"
       '';
     };
   };
