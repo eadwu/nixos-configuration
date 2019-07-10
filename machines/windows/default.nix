@@ -32,9 +32,12 @@ with config.nixos; {
     xserver.dpiScale = 2;
     system.user = "xps";
 
-    machine.screen = {
-      width = 3840;
-      height = 2160;
+    machine = {
+      hostname = "nixOSS";
+      screen = {
+        width = 3840;
+        height = 2160;
+      };
     };
 
     wireguard = {
