@@ -5,7 +5,6 @@ with config.nixos; {
     [
       /etc/nixos/hardware-configuration.nix
 
-      ../../options/undervolt.nix
       ../../profiles/desktop.nix
 
       ../../hardware/dell/9570.nix
@@ -15,11 +14,6 @@ with config.nixos; {
 
       # ../../modules/network/wireguard.nix
       # ../../modules/network/openvpn.nix
-    ];
-
-  disabledModules =
-    [
-      <nixpkgs/nixos/modules/services/hardware/undervolt.nix>
     ];
 
   environment.variables.QT_AUTO_SCREEN_SCALE_FACTOR = toString settings.xserver.dpiScale;
@@ -70,8 +64,7 @@ with config.nixos; {
     '';
 
     undervolt = rec {
-      enable = !config.hardware.nvidia.modesetting.enable;
-      temp = "90";
+      temp = "75";
       coreOffset = "-100";
       gpuOffset = "-75";
       uncoreOffset = coreOffset;
