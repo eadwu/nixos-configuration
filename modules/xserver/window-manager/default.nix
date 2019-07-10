@@ -2,8 +2,14 @@
 
 {
   services.xserver.windowManager = {
-    default = "dwm";
+    default = "hm";
     bspwm.enable = true;
     dwm.enable = true;
+
+    # Started through home-manager
+    session = lib.singleton {
+      name = "hm";
+      start = "";
+    };
   };
 }
