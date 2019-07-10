@@ -83,6 +83,7 @@ in with config.nixos; {
       gnupg
       imagemagick7
       mono
+      nix-diff
       oblogout
       rofi
       scrot
