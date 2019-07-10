@@ -21,7 +21,7 @@
         }
 
         nix-build-system () {
-          nix build \
+          nix build $@ \
             -f "<nixpkgs/nixos>" \
             config.system.build.toplevel
         }
