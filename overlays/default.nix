@@ -63,6 +63,11 @@ in with self.pkgs; subOverlays // {
     };
   });
 
+  mesa_drivers = (super.mesa.override {
+    driDrivers = [ "i915" "r100" "r200" "nouveau" ];
+    galliumDrivers = [ "iris" "r300" "r600" "radeonsi" "nouveau" "virgl" "svga" "swrast" ];
+  }).drivers;
+
   ncmpcpp = super.ncmpcpp.override {
     clockSupport = true;
     outputsSupport = true;

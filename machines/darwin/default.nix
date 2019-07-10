@@ -20,6 +20,10 @@
 
   nix.nixPath = lib.singleton "nixos-config=${builtins.toString ./.}";
 
+  nixpkgs.overlays = lib.singleton (self: super: {
+    mesa_drivers = super.mesa.drivers;
+  });
+
   nixos.settings.system.user = "yin";
 
   services = {
