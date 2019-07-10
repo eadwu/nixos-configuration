@@ -1,4 +1,4 @@
-{ ... }:
+{ lib, ... }:
 
 {
   imports =
@@ -24,7 +24,7 @@
       "vm.dirty_writeback_centisecs=6000"
     ];
 
-    kernelPatches = [
+    kernelPatches = lib.mkBefore [
       (import ../../patches/kernel/disable-amateur-radio-support.nix)
     ];
   };
