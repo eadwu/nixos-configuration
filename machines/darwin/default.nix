@@ -13,6 +13,11 @@
       ../../hardware/profiles/uefi.nix
     ];
 
+  networking = {
+    networkmanager.enable = true;
+    wireless.iwd.enable = lib.mkForce false;
+  };
+
   nix.nixPath = lib.singleton "nixos-config=${builtins.toString ./.}";
 
   nixpkgs.overlays = lib.singleton (self: super: {
