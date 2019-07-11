@@ -29,9 +29,10 @@
     wintypes = {
       tooltip = {
         fade = true;
-        shadow = false;
+        shadow = true;
         opacity = "0.85";
         focus = true;
+        full-shadow = false;
       };
 
       dock = {
