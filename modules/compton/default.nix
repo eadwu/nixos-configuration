@@ -2,7 +2,7 @@
 
 {
   services.compton = {
-    enable = true;
+    enable = lib.mkDefault true;
 
     fade = true;
     fadeDelta = 5;

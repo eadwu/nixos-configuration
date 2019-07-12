@@ -1,4 +1,4 @@
-{ config, ... }:
+{ config, lib, ... }:
 
 with config.nixos; {
   imports =
@@ -8,9 +8,9 @@ with config.nixos; {
 
   networking = {
     hostName = settings.machine.hostname;
-    dhcpcd.enable = false;
+    dhcpcd.enable = lib.mkDefault false;
     firewall.checkReversePath = false;
-    wireless.iwd.enable = true;
+    wireless.iwd.enable = lib.mkDefault true;
   };
 
   systemd.network = let
