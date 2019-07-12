@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 
 {
   boot.kernelParams = [
@@ -24,10 +24,6 @@
 
   services.xserver = {
     useGlamor = true;
-
-    # deviceSection = ''
-    #   Option "DRI" "2"
-    #   Option "TearFree" "True"
-    # '';
+    videoDrivers = lib.singleton "intel";
   };
 }

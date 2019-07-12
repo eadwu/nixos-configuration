@@ -50,8 +50,4 @@ in with config.nixos; {
   security.sudo.extraConfig = ''
     ${settings.system.user} ALL=(ALL:ALL) NOPASSWD: ${naps}/bin/naps
   '';
-
-  services.xserver.videoDrivers = [
-    "modesetting"
-  ];
 }
