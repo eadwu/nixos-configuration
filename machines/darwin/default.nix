@@ -22,5 +22,8 @@
 
   nixos.settings.system.user = "yin";
 
-  services.undervolt.enable = false;
+  services = {
+    clight.enable = false;
+    undervolt.enable = false;
+  };
 }
