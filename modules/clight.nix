@@ -13,7 +13,6 @@
 
     extraConfig = ''
       captures = 20;
-      ambient_gamma = true;
       gamma_long_transition = true;
       ac_capture_timeouts = [ 120, 300, 60 ];
       ac_backlight_regression_points = [ 0.0, 0.12, 0.24, 0.37, 0.51, 0.64, 0.70, 0.82, 0.93, 0.97, 1.0 ];
