@@ -16,7 +16,10 @@
       -- Cache size
       cache.size = 150 * MB
       -- Prefetch learning (20-minute blocks over 24 hours)
-      predict.config(20, 72)
+      predict.config({
+        window = 20,
+        period = 18 * (60 / 15)
+      })
       -- Enable DNSSEC
       trust_anchors.add_file('${config.services.kresd.cacheDir}/root.keys')
 
