@@ -23031,10 +23031,10 @@ index 0000000000000..4f12108bd6fe6
 +}
 diff --git a/fs/bcachefs/buckets.c b/fs/bcachefs/buckets.c
 new file mode 100644
-index 0000000000000..b6b3ac5111cad
+index 0000000000000..81c3c3137825e
 --- /dev/null
 +++ b/fs/bcachefs/buckets.c
-@@ -0,0 +1,1910 @@
+@@ -0,0 +1,1930 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Code for manipulating bucket marks for garbage collection.
@@ -23883,8 +23883,6 @@ index 0000000000000..b6b3ac5111cad
 +		struct bucket *g = PTR_BUCKET(ca, ptr, gc);
 +		struct bucket_mark new, old;
 +
-+		BUG_ON(ptr_stale(ca, ptr));
-+
 +		old = bucket_data_cmpxchg(c, ca, fs_usage, g, new, ({
 +			new.dirty			= true;
 +			new.stripe			= enabled;
@@ -23893,6 +23891,26 @@ index 0000000000000..b6b3ac5111cad
 +				new.journal_seq		= journal_seq;
 +			}
 +		}));
++
++		/*
++		 * XXX write repair code for these, flag stripe as possibly bad
++		 */
++		if (old.gen != ptr->gen)
++			bch2_fsck_err(c, FSCK_CAN_IGNORE|FSCK_NEED_FSCK,
++				      "stripe with stale pointer");
++#if 0
++		/*
++		 * We'd like to check for these, but these checks don't work
++		 * yet:
++		 */
++		if (old.stripe && enabled)
++			bch2_fsck_err(c, FSCK_CAN_IGNORE|FSCK_NEED_FSCK,
++				      "multiple stripes using same bucket");
++
++		if (!old.stripe && !enabled)
++			bch2_fsck_err(c, FSCK_CAN_IGNORE|FSCK_NEED_FSCK,
++				      "deleting stripe but bucket not marked as stripe bucket");
++#endif
 +	}
 +}
 +
@@ -23921,9 +23939,11 @@ index 0000000000000..b6b3ac5111cad
 +		 * checked the gen
 +		 */
 +		if (gen_after(new.gen, p.ptr.gen)) {
-+			BUG_ON(!test_bit(BCH_FS_ALLOC_READ_DONE, &c->flags));
-+			EBUG_ON(!p.ptr.cached &&
-+				test_bit(JOURNAL_REPLAY_DONE, &c->journal.flags));
++			/* XXX write repair code for this */
++			if (!p.ptr.cached &&
++			    test_bit(JOURNAL_REPLAY_DONE, &c->journal.flags))
++				bch2_fsck_err(c, FSCK_CAN_IGNORE|FSCK_NEED_FSCK,
++					      "stale dirty pointer");
 +			return true;
 +		}
 +
@@ -29432,10 +29452,10 @@ index 0000000000000..c8e0c37a5e1a4
 +#endif /* _BCACHEFS_DISK_GROUPS_H */
 diff --git a/fs/bcachefs/ec.c b/fs/bcachefs/ec.c
 new file mode 100644
-index 0000000000000..aa67af8b98160
+index 0000000000000..848f5dcbe0ae5
 --- /dev/null
 +++ b/fs/bcachefs/ec.c
-@@ -0,0 +1,1371 @@
+@@ -0,0 +1,1395 @@
 +// SPDX-License-Identifier: GPL-2.0
 +
 +/* erasure coding */
@@ -30705,10 +30725,10 @@ index 0000000000000..aa67af8b98160
 +
 +int bch2_stripes_read(struct bch_fs *c, struct journal_keys *journal_keys)
 +{
-+	struct journal_key *i;
 +	struct btree_trans trans;
-+	struct btree_iter *iter;
-+	struct bkey_s_c k;
++	struct btree_iter *btree_iter;
++	struct journal_iter journal_iter;
++	struct bkey_s_c btree_k, journal_k, k;
 +	int ret;
 +
 +	ret = bch2_fs_ec_start(c);
@@ -30717,23 +30737,47 @@ index 0000000000000..aa67af8b98160
 +
 +	bch2_trans_init(&trans, c, 0, 0);
 +
-+	for_each_btree_key(&trans, iter, BTREE_ID_EC, POS_MIN, 0, k, ret)
++	btree_iter	= bch2_trans_get_iter(&trans, BTREE_ID_EC, POS_MIN, 0);
++	journal_iter	= bch2_journal_iter_init(journal_keys, BTREE_ID_EC);
++
++	btree_k		= bch2_btree_iter_peek(btree_iter);
++	journal_k	= bch2_journal_iter_peek(&journal_iter);
++
++	while (1) {
++		if (btree_k.k && journal_k.k) {
++			int cmp = bkey_cmp(btree_k.k->p, journal_k.k->p);
++
++			if (cmp < 0) {
++				k = btree_k;
++				btree_k = bch2_btree_iter_next(btree_iter);
++			} else if (cmp == 0) {
++				btree_k = bch2_btree_iter_next(btree_iter);
++				k = journal_k;
++				journal_k = bch2_journal_iter_next(&journal_iter);
++			} else {
++				k = journal_k;
++				journal_k = bch2_journal_iter_next(&journal_iter);
++			}
++		} else if (btree_k.k) {
++			k = btree_k;
++			btree_k = bch2_btree_iter_next(btree_iter);
++		} else if (journal_k.k) {
++			k = journal_k;
++			journal_k = bch2_journal_iter_next(&journal_iter);
++		} else {
++			break;
++		}
++
 +		bch2_mark_key(c, k, 0, NULL, 0,
 +			      BCH_BUCKET_MARK_ALLOC_READ|
 +			      BCH_BUCKET_MARK_NOATOMIC);
++	}
 +
 +	ret = bch2_trans_exit(&trans) ?: ret;
 +	if (ret) {
 +		bch_err(c, "error reading stripes: %i", ret);
 +		return ret;
 +	}
-+
-+	for_each_journal_key(*journal_keys, i)
-+		if (i->btree_id == BTREE_ID_EC)
-+			bch2_mark_key(c, bkey_i_to_s_c(i->k),
-+				      0, NULL, 0,
-+				      BCH_BUCKET_MARK_ALLOC_READ|
-+				      BCH_BUCKET_MARK_NOATOMIC);
 +
 +	return 0;
 +}
@@ -52070,10 +52114,10 @@ index 0000000000000..192c6be20cedd
 +#endif /* _BCACHEFS_REBALANCE_TYPES_H */
 diff --git a/fs/bcachefs/recovery.c b/fs/bcachefs/recovery.c
 new file mode 100644
-index 0000000000000..e0df2c0a4fdf5
+index 0000000000000..92867b5c078f7
 --- /dev/null
 +++ b/fs/bcachefs/recovery.c
-@@ -0,0 +1,1012 @@
+@@ -0,0 +1,1048 @@
 +// SPDX-License-Identifier: GPL-2.0
 +
 +#include "bcachefs.h"
@@ -52099,6 +52143,42 @@ index 0000000000000..e0df2c0a4fdf5
 +#include <linux/stat.h>
 +
 +#define QSTR(n) { { { .len = strlen(n) } }, .name = n }
++
++/* iterate over keys read from the journal: */
++
++struct journal_iter bch2_journal_iter_init(struct journal_keys *keys,
++					   enum btree_id id)
++{
++	return (struct journal_iter) {
++		.keys		= keys,
++		.k		= keys->d,
++		.btree_id	= id,
++	};
++}
++
++struct bkey_s_c bch2_journal_iter_peek(struct journal_iter *iter)
++{
++	while (1) {
++		if (iter->k == iter->keys->d + iter->keys->nr)
++			return bkey_s_c_null;
++
++		if (iter->k->btree_id == iter->btree_id)
++			return bkey_i_to_s_c(iter->k->k);
++
++		iter->k++;
++	}
++
++	return bkey_s_c_null;
++}
++
++struct bkey_s_c bch2_journal_iter_next(struct journal_iter *iter)
++{
++	if (iter->k == iter->keys->d + iter->keys->nr)
++		return bkey_s_c_null;
++
++	iter->k++;
++	return bch2_journal_iter_peek(iter);
++}
 +
 +/* sort and dedup all keys in the journal: */
 +
@@ -53088,10 +53168,10 @@ index 0000000000000..e0df2c0a4fdf5
 +}
 diff --git a/fs/bcachefs/recovery.h b/fs/bcachefs/recovery.h
 new file mode 100644
-index 0000000000000..a69260d6165a1
+index 0000000000000..479ea46f8dcb5
 --- /dev/null
 +++ b/fs/bcachefs/recovery.h
-@@ -0,0 +1,24 @@
+@@ -0,0 +1,35 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +#ifndef _BCACHEFS_RECOVERY_H
 +#define _BCACHEFS_RECOVERY_H
@@ -53111,6 +53191,17 @@ index 0000000000000..a69260d6165a1
 +
 +#define for_each_journal_key(keys, i)				\
 +	for (i = (keys).d; i < (keys).d + (keys).nr; (i)++)
++
++struct journal_iter {
++	struct journal_keys	*keys;
++	struct journal_key	*k;
++	enum btree_id		btree_id;
++};
++
++struct journal_iter bch2_journal_iter_init(struct journal_keys *,
++					   enum btree_id);
++struct bkey_s_c bch2_journal_iter_peek(struct journal_iter *);
++struct bkey_s_c bch2_journal_iter_next(struct journal_iter *);
 +
 +int bch2_fs_recovery(struct bch_fs *);
 +int bch2_fs_initialize(struct bch_fs *);
