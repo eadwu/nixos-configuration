@@ -44,6 +44,7 @@
     # Allow the use of sandboxes for Nix
     allowUserNamespaces = true;
     # Multiple virtual cores per physical core
-    allowSimultaneousMultithreading = true;
+    # NOTE: About 30% boost compared to a single physical core
+    allowSimultaneousMultithreading = lib.mkDefault false;
   };
 }
