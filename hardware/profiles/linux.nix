@@ -12,6 +12,14 @@
       "iTCO_wdt"
     ];
 
+    kernelModules = [
+      # Explicitly load these for usb read/write support
+      "bfq" # Register io scheduler for usb
+      "uas"
+      "sd_mod"
+      "usb_storage"
+    ];
+
     kernelParams = [
       # https://wiki.archlinux.org/index.php/Improving_performance#Watchdogs
       "nowatchdog"
