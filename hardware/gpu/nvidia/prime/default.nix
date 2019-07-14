@@ -1,4 +1,4 @@
-{ ... }:
+{ lib, ... }:
 
 {
   imports =
@@ -22,7 +22,5 @@
     };
   };
 
-  services.xserver.videoDrivers = [
-    "nvidiaBeta"
-  ];
+  services.xserver.videoDrivers = lib.singleton "nvidiaBeta";
 }

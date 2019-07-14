@@ -24,6 +24,6 @@
 
   services.xserver = {
     useGlamor = true;
-    videoDrivers = lib.singleton "intel";
+    videoDrivers = with lib; mkDefault (singleton "intel");
   };
 }
