@@ -5,7 +5,7 @@
     enable = true;
     opacity = 40;
     bgcolor = "black";
-    buttontheme = "adeos-cores";
+    buttontheme = "adeos-archlabs";
     buttons = "logout, suspend, hibernate, restart, shutdown, cancel";
     cancel = "Escape";
     shutdown = "S";
