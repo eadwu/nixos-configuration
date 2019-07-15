@@ -23,7 +23,8 @@ with self.pkgs; {
 
   sddm-sugar-dark = libsForQt511.callPackage
     ({ lib, stdenv
-     , qtsvg, qtbase, qtmultimedia, qtquickcontrols2, qtquickcontrols, qtgraphicaleffects }: stdenv.mkDerivation rec {
+     , qtsvg, qtbase, qtquickcontrols2
+     , qtmultimedia }: stdenv.mkDerivation rec {
       pname = "sddm-sugar-dark";
       version = "unstable-2019-06-15";
 
