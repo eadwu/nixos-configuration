@@ -22,6 +22,7 @@
       libarchive
       openssl
       nixops
+      nix-index
       pass
       ripgrep
       tree
