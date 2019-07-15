@@ -9,12 +9,12 @@ in {
   }).overrideAttrs (oldAttrs: rec {
     name = "${pname}-${version}";
     pname = "blender";
-    version = "2.80.2019.07.07";
+    version = "2.80-rc1";
 
     src = builtins.fetchGit {
       url = "https://git.blender.org/blender.git";
-      rev = "d19d0ff99e61a49a7a0178bc58ff258bab775f70";
-      ref = "master";
+      rev = "06312c6d2db8a6d959bed153f76a28f9faf866f8";
+      ref = "blender-v2.80-release";
     };
 
     cmakeFlags = oldAttrs.cmakeFlags ++ [
