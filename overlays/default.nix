@@ -1,11 +1,4 @@
 self: super: let
-  rPackages = with super.rPackages; [
-    ggplot2
-    showtext
-    rmarkdown
-    RDocumentation
-  ];
-
   subOverlays = let
     lib = super.stdenv.lib;
   in builtins.listToAttrs (lib.flatten (map
@@ -18,11 +11,34 @@ in with self.pkgs; subOverlays // {
     unfreeEnableUnrar = true;
   };
 
+  boxpub = (import (builtins.fetchGit {
+    url = "https://git.sr.ht/~eadwu/boxpub";
+    ref = "master";
+  }) { }).boxpub;
+
   capitaine-cursors = super.capitaine-cursors.overrideAttrs (oldAttrs: rec {
     version = "master";
 
     src = builtins.fetchGit {
       url = "https://github.com/keeferrourke/capitaine-cursors";
+      ref = version;
+    };
+  });
+
+  clight = super.clight.overrideAttrs (oldAttrs: rec {
+    version = "master";
+
+    src = builtins.fetchGit {
+      url = "https://github.com/FedeDP/Clight";
+      ref = version;
+    };
+  });
+
+  clightd = super.clightd.overrideAttrs (oldAttrs: rec {
+    version = "master";
+
+    src = builtins.fetchGit {
+      url = "https://github.com/FedeDP/Clightd";
       ref = version;
     };
   });
@@ -69,13 +85,38 @@ in with self.pkgs; subOverlays // {
     visualizerSupport = true;
   };
 
-  rWrapper = super.rWrapper.override {
-    packages = rPackages;
-  };
+  dmenu = super.dmenu.overrideAttrs (oldAttrs: rec {
+    name = "${pname}-${version}";
+    pname = "dmenu";
+    version = "develop";
 
-  rstudioWrapper = super.rstudioWrapper.override {
-    packages = rPackages;
-  };
+    src = builtins.fetchGit {
+      url = "https://gitlab.com/eadwu/dmenu";
+      ref = version;
+    };
+  });
+
+  dwm = super.dwm.overrideAttrs (oldAttrs: rec {
+    name = "${pname}-${version}";
+    pname = "dwm";
+    version = "develop";
+
+    src = builtins.fetchGit {
+      url = "https://gitlab.com/eadwu/dwm";
+      ref = version;
+    };
+  });
+
+  st = super.st.overrideAttrs (oldAttrs: rec {
+    name = "${pname}-${version}";
+    pname = "st";
+    version = "develop";
+
+    src = builtins.fetchGit {
+      url = "https://gitlab.com/eadwu/st";
+      ref = version;
+    };
+  });
 
   xorg = super.xorg.overrideScope' (lib.callPackageWith __splicedPackages (new: old: {
     xf86videointel = old.xf86videointel.overrideAttrs (oldAttrs: rec {
