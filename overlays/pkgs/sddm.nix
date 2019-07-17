@@ -23,8 +23,8 @@ with self.pkgs; {
 
   sddm-sugar-dark = libsForQt511.callPackage
     ({ lib, stdenv
-     , qtsvg, qtbase, qtquickcontrols2
-     , qtmultimedia }: stdenv.mkDerivation rec {
+      , qtsvg, qtbase, qtquickcontrols2
+      , qtmultimedia }: stdenv.mkDerivation rec {
       pname = "sddm-sugar-dark";
       version = "unstable-2019-06-15";
 
@@ -44,13 +44,13 @@ with self.pkgs; {
         ../../patches/sddm/extend-mediatypes.patch
       ];
 
-      buildInputs = [
-        qtsvg
-        qtbase
-        qtquickcontrols2
+      propagatedUserEnvPkgs = [
+        qtsvg.bin
+        qtbase.bin
+        qtquickcontrols2.bin
 
         # Dependencies for patch
-        qtmultimedia
+        qtmultimedia.bin
       ];
 
       installPhase = ''
