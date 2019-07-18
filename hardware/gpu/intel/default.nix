@@ -14,9 +14,19 @@
     "i915.enable_guc=-1"
   ];
 
-  environment.systemPackages = with pkgs; [ libva-utils ];
+  environment = {
+    systemPackages = with pkgs; [ libva-utils ];
+    variables.MESA_LOADER_DRIVER_OVERRIDE = lib.mkDefault "iris";
+  };
 
-  hardware.opengl.extraPackages = with pkgs; [ vaapiIntel intel-media-driver ];
+  hardware.opengl = {
+    # Override mesa derivation with iris driver
+    # Priority is less than mkDefault (1000) but greater than default (0)
+    package = lib.mkOverride 999 (pkgs.mesa.override {
+      galliumDrivers = [ "iris" "r300" "r600" "radeonsi" "nouveau" "virgl" "svga" "swrast" ];
+    }).drivers;
+    extraPackages = with pkgs; [ vaapiIntel intel-media-driver ];
+  };
 
   services.xserver = {
     useGlamor = true;

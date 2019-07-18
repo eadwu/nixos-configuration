@@ -13,6 +13,8 @@
       ../../hardware/profiles/uefi.nix
     ];
 
+  environment.variables.MESA_LOADER_DRIVER_OVERRIDE = "i965";
+
   networking = {
     networkmanager.enable = true;
     wireless.iwd.enable = false;
