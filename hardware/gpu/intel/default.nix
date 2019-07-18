@@ -24,6 +24,6 @@
 
   services.xserver = {
     useGlamor = true;
-    videoDrivers = with lib; mkDefault (singleton "intel");
+    videoDrivers = lib.mkDefault [ "modesetting" ];
   };
 }
