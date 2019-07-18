@@ -117,4 +117,8 @@ in with self.pkgs; subOverlays // {
       ref = version;
     };
   });
+
+  vaapiIntel = super.vaapiIntel.override {
+    enableHybridCodec = true;
+  };
 }
