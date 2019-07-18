@@ -117,17 +117,4 @@ in with self.pkgs; subOverlays // {
       ref = version;
     };
   });
-
-  xorg = super.xorg.overrideScope' (lib.callPackageWith __splicedPackages (new: old: {
-    xf86videointel = old.xf86videointel.overrideAttrs (oldAttrs: rec {
-      name = "${pname}-${version}";
-      pname = "xf86-video-intel";
-      version = "master";
-
-      src = builtins.fetchGit {
-        url = "https://gitlab.freedesktop.org/xorg/driver/xf86-video-intel";
-        ref = version;
-      };
-    });
-  })) // { inherit xlibsWrapper; };
 }
