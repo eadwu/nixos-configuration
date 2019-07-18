@@ -15,6 +15,7 @@
     printing = {
       enable = lib.mkDefault true;
       drivers = lib.singleton pkgs.hplip;
+      webInterface = true;
     };
   };
 }
