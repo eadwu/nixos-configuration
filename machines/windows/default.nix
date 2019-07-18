@@ -67,8 +67,8 @@ with config.nixos; {
     '';
 
     undervolt.options = rec {
-      temp = 75;
-      temp-bat = 80;
+      temp = 80;
+      temp-bat = 75;
       core = (-100);
       gpu = (-75);
       cache = core;
