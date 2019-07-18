@@ -15,7 +15,7 @@ in {
     };
 
     options = mkOption {
-      type = types.attrs;
+      type = with types; attrsOf (nullOr (either int str));
       default = {};
       description = ''
         Command line argument(s) to pass to <command>undervolt</command>
@@ -32,20 +32,22 @@ in {
       undervolt
     ];
 
-    services.udev.extraRules = mkIf (builtins.hasAttr "temp-bat" cfg.options) ''
-      ACTION=="change", SUBSYSTEM=="power_supply", ATTR{type}=="Mains", RUN+="${pkgs.systemd}/bin/systemctl restart undervolt"
+    services.udev.extraRules = let
+      toArgs = attrs: concatStringsSep " " (mapAttrsToList
+        (arg: v: let
+          value =
+            if null == v       then ""
+            else if isInt v    then toString v
+            else if isString v then ''"${escape [''"''] v}"''
+            else abort "undervolt.toArgs: unexpected type (v = ${v})";
+        in "--${arg} ${value}")
+        attrs);
+
+      undervoltCmd = "${pkgs.undervolt}/bin/undervolt ${toArgs cfg.options}";
+    in ''
+      # Apply an undervolt for Intel CPUs
+      ACTION=="change", SUBSYSTEM=="power_supply", ATTR{type}=="Mains", ATTR{online}=="0", RUN+="${undervoltCmd}"
+      ACTION=="change", SUBSYSTEM=="power_supply", ATTR{type}=="Mains", ATTR{online}=="1", RUN+="${undervoltCmd}"
     '';
-
-    systemd.services.undervolt = {
-      after = [ "suspend.target" "hibernate.target" "hybrid-sleep.target" ];
-      wantedBy = [ "suspend.target" "hibernate.target" "hybrid-sleep.target" "multi-user.target" ];
-
-      description = "Intel Undervolt";
-      serviceConfig.ExecStart = ''
-        ${pkgs.undervolt}/bin/undervolt ${concatStringsSep " " (mapAttrsToList
-          (arg: value: "--${arg} ${toString value}")
-          cfg.options)}
-      '';
-    };
   };
 }
