@@ -66,12 +66,14 @@ with config.nixos; {
       USB_WHITELIST="27c6:5395"
     '';
 
-    undervolt = rec {
-      temp = "75";
-      coreOffset = "-100";
-      gpuOffset = "-75";
-      uncoreOffset = coreOffset;
-      analogioOffset = coreOffset;
+    undervolt.options = rec {
+      temp = 75;
+      temp-bat = 80;
+      core = (-100);
+      gpu = (-75);
+      cache = core;
+      uncore = core;
+      analogio = core;
     };
 
     xserver = {
