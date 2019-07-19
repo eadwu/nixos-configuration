@@ -12,7 +12,7 @@ in with config.nixos; {
 
       ../modules/backlight
       ../modules/clight.nix
-      ../modules/compton
+      ../modules/compton.nix
       ../modules/cups.nix
       ../modules/emacs.nix
       ../modules/fontconfig.nix

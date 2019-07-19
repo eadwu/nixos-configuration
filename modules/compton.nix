@@ -65,6 +65,40 @@
     backend = "glx";
     vSync = false;
     refreshRate = 0;
-    extraOptions = lib.optionalString (builtins.pathExists ./compton.conf) builtins.readFile ./compton.conf;
+    settings = {
+      # GLX backend
+      glx-no-stencil = true;
+
+      # Shadows
+      shadow-radius = 10;
+      shadow-ignore-shaped = false;
+
+      # Opacity
+      inactive-opacity-override = false;
+      blur-background = true;
+      blur-background-fixed = false;
+      blur-background-exclude = [
+        "window_type = 'dock'"
+        "window_type = 'desktop'"
+      ];
+
+      blur = {
+        method = "gaussian";
+        size = 10;
+        deviation = 5.0;
+      };
+
+      # Other
+      mark-wmwin-focused = false;
+      mark-ovredir-focused = false;
+      use-ewmh-active-win = true;
+      detect-rounded-corners = true;
+      detect-client-opacity = true;
+      sw-opti = false;
+      unredir-if-possible = true;
+      focus-exclude = [];
+      detect-transient = true;
+      detect-client-leader = true;
+    };
   };
 }
