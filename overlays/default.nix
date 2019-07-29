@@ -53,6 +53,28 @@ in with self.pkgs; subOverlays // {
     };
   });
 
+  dmenu = super.dmenu.overrideAttrs (oldAttrs: rec {
+    name = "${pname}-${version}";
+    pname = "dmenu";
+    version = "develop";
+
+    src = builtins.fetchGit {
+      url = "https://gitlab.com/eadwu/dmenu";
+      ref = version;
+    };
+  });
+
+  dwm = super.dwm.overrideAttrs (oldAttrs: rec {
+    name = "${pname}-${version}";
+    pname = "dwm";
+    version = "develop";
+
+    src = builtins.fetchGit {
+      url = "https://gitlab.com/eadwu/dwm";
+      ref = version;
+    };
+  });
+
   glava = super.glava.override {
     enableGlfw = true;
   };
@@ -85,27 +107,11 @@ in with self.pkgs; subOverlays // {
     visualizerSupport = true;
   };
 
-  dmenu = super.dmenu.overrideAttrs (oldAttrs: rec {
-    name = "${pname}-${version}";
-    pname = "dmenu";
-    version = "develop";
-
-    src = builtins.fetchGit {
-      url = "https://gitlab.com/eadwu/dmenu";
-      ref = version;
-    };
-  });
-
-  dwm = super.dwm.overrideAttrs (oldAttrs: rec {
-    name = "${pname}-${version}";
-    pname = "dwm";
-    version = "develop";
-
-    src = builtins.fetchGit {
-      url = "https://gitlab.com/eadwu/dwm";
-      ref = version;
-    };
-  });
+  polybar = super.polybar.override {
+    githubSupport = true;
+    mpdSupport = true;
+    pulseSupport = true;
+  };
 
   st = super.st.overrideAttrs (oldAttrs: rec {
     name = "${pname}-${version}";
