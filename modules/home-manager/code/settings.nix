@@ -102,6 +102,9 @@ with pkgs; {
   "C_Cpp.formatting" = "Disabled";
   "cmake.cmakePath" = "${cmake}/bin/cmake";
   "docker.attachShellCommand.linuxContainer" = "${zsh}/bin/zsh";
+  "emmet.includeLanguages" = {
+    "nunjucks" = "html";
+  };
   "eslint.nodePath" = "${nodePackages.eslint}/lib/node_modules";
   "eslint.packageManager" = "yarn";
   "eslint.validate" = [
