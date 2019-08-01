@@ -94,7 +94,5 @@ with config.nixos; {
     };
   };
 
-  systemd.user.services.compton.environment.MESA_LOADER_DRIVER_OVERRIDE = "i965";
-
   time.hardwareClockInLocalTime = true;
 }
