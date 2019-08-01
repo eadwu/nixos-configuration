@@ -180,10 +180,10 @@ self: super:
         version = "0.47.0";
         sha256 = "06wv22j9chzfm8z5qsphhp2siyxh6fn34x9fkfz1iz4lpc26hyc2"; }
 
-      { name = "nunjucks";
-        publisher = "ronnidc";
-        version = "0.2.3";
-        sha256 = "119xgyn1dggw2rcqkn2mnz364iw5jlrxg7pcydbijsqj5d3zdfsf"; }
+      { name = "jinjahtml";
+        publisher = "samuelcolvin";
+        version = "0.10.5";
+        sha256 = "1mv2zkp09dgqdvvr42mwajm0cninqqw2g2adi5b5ki63niv5xx2y"; }
 
       { name = "rust";
         publisher = "rust-lang";

@@ -103,7 +103,7 @@ with pkgs; {
   "cmake.cmakePath" = "${cmake}/bin/cmake";
   "docker.attachShellCommand.linuxContainer" = "${zsh}/bin/zsh";
   "emmet.includeLanguages" = {
-    "nunjucks" = "html";
+    "jinja-html" = "html";
   };
   "eslint.nodePath" = "${nodePackages.eslint}/lib/node_modules";
   "eslint.packageManager" = "yarn";
