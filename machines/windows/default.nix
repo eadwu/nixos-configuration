@@ -67,7 +67,9 @@ with config.nixos; {
     '';
 
     undervolt.options = rec {
-      temp = 80;
+      temp = if config.hardware.nvidia.optimus_prime.enable
+        then 97
+        else 80;
       temp-bat = 75;
       core = (-100);
       gpu = (-75);
