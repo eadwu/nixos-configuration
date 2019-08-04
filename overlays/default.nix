@@ -16,7 +16,7 @@ in with self.pkgs; subOverlays // {
     ref = "master";
   }) { }).boxpub;
 
-  capitaine-cursors = super.capitaine-cursors.overrideAttrs (oldAttrs: rec {
+  capitaine-cursors = super.capitaine-cursors.overrideAttrs (_: rec {
     version = "master";
 
     src = builtins.fetchGit {
@@ -25,7 +25,7 @@ in with self.pkgs; subOverlays // {
     };
   });
 
-  clight = super.clight.overrideAttrs (oldAttrs: rec {
+  clight = super.clight.overrideAttrs (_: rec {
     version = "master";
 
     src = builtins.fetchGit {
@@ -34,7 +34,7 @@ in with self.pkgs; subOverlays // {
     };
   });
 
-  clightd = super.clightd.overrideAttrs (oldAttrs: rec {
+  clightd = super.clightd.overrideAttrs (_: rec {
     version = "master";
 
     src = builtins.fetchGit {
@@ -43,7 +43,7 @@ in with self.pkgs; subOverlays // {
     };
   });
 
-  discord = super.discord-canary.overrideAttrs (oldAttrs: rec {
+  discord = super.discord-canary.overrideAttrs (_: rec {
     pname = "discord";
     version = "canary";
 
@@ -53,7 +53,7 @@ in with self.pkgs; subOverlays // {
     };
   });
 
-  dmenu = super.dmenu.overrideAttrs (oldAttrs: rec {
+  dmenu = super.dmenu.overrideAttrs (_: rec {
     name = "${pname}-${version}";
     pname = "dmenu";
     version = "develop";
@@ -64,7 +64,7 @@ in with self.pkgs; subOverlays // {
     };
   });
 
-  dwm = super.dwm.overrideAttrs (oldAttrs: rec {
+  dwm = super.dwm.overrideAttrs (_: rec {
     name = "${pname}-${version}";
     pname = "dwm";
     version = "develop";
@@ -90,7 +90,7 @@ in with self.pkgs; subOverlays // {
     extraFeatures = true;
   };
 
-  lightdm-enso-os-greeter = super.lightdm-enso-os-greeter.overrideAttrs (oldAttrs: rec {
+  lightdm-enso-os-greeter = super.lightdm-enso-os-greeter.overrideAttrs (_: rec {
     name = "${pname}-${version}";
     pname = "lightdm-enso-os-greeter";
     version = "master";
@@ -113,7 +113,7 @@ in with self.pkgs; subOverlays // {
     pulseSupport = true;
   };
 
-  st = super.st.overrideAttrs (oldAttrs: rec {
+  st = super.st.overrideAttrs (_: rec {
     name = "${pname}-${version}";
     pname = "st";
     version = "develop";

@@ -17,7 +17,7 @@ in {
     isSnapshot = true;
     enableWidevine = true;
     proprietaryCodecs = true;
-  }).overrideAttrs (oldAttrs: rec {
+  }).overrideAttrs (_: rec {
     version = lib.getAttrFromPath versionAttrPath (builtins.fromJSON (builtins.readFile "${vivaldiVersion}"));
 
     src = builtins.fetchurl {

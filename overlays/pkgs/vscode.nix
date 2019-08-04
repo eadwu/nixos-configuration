@@ -3,7 +3,7 @@ self: super:
 {
   vscode = (super.vscode.override {
     isInsiders = true;
-  }).overrideAttrs(oldAttrs: rec {
+  }).overrideAttrs(_: rec {
     name = "${pname}-${version}";
     pname = "vscode-insiders";
     version = "nightly";
