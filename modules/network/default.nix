@@ -13,6 +13,10 @@ with config.nixos; {
     wireless.iwd.enable = lib.mkDefault true;
   };
 
+  services.resolved.extraConfig = ''
+    MulticastDNS=false
+  '';
+
   systemd.network = let
     linkConfig = netType: {
       matchConfig = {
