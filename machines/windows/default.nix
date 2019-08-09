@@ -60,6 +60,8 @@ with config.nixos; {
     }
   '';
 
+  security.allowSimultaneousMultithreading = true;
+
   services = {
     tlp.extraConfig = ''
       # Autosuspend for USB device Goodix Fingerprint Device

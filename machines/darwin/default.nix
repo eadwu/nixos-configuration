@@ -24,6 +24,8 @@
 
   nixos.settings.system.user = "yin";
 
+  security.allowSimultaneousMultithreading = true;
+
   services = {
     clight.enable = false;
     undervolt.enable = false;
