@@ -6,7 +6,7 @@ with self.pkgs; {
     version = "master";
 
     src = builtins.fetchTarball {
-      url = "https://github.com/anewtypeofinterference/Optician-Sans/archive/master.tar.gz";
+      url = "https://github.com/anewtypeofinterference/Optician-Sans/archive/${version}.tar.gz";
     };
 
     dontBuild = true;
