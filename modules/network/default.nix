@@ -9,7 +9,6 @@ with config.nixos; {
   networking = {
     hostName = settings.machine.hostname;
     dhcpcd.enable = lib.mkDefault false;
-    firewall.checkReversePath = false;
     wireless.iwd.enable = lib.mkDefault true;
   };
 

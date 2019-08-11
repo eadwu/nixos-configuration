@@ -17,6 +17,7 @@ in with config.nixos; {
       ../modules/emacs.nix
       ../modules/fontconfig.nix
       ../modules/i3color.nix
+      ../modules/libvirt.nix
       ../modules/logind
       ../modules/mpd
       ../modules/netdata.nix
