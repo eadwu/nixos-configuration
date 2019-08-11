@@ -94,6 +94,14 @@ in with self.pkgs; subOverlays // {
     };
   });
 
+  nixopsUnstable = super.nixopsUnstable.overrideAttrs(_: {
+    version = "latest";
+
+    src = builtins.fetchTarball {
+      url = "https://hydra.nixos.org/job/nixops/master/tarball/latest/download-by-type/file/source-dist";
+    };
+  });
+
   ncmpcpp = super.ncmpcpp.override {
     clockSupport = true;
     outputsSupport = true;

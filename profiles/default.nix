@@ -21,7 +21,7 @@
       htop
       libarchive
       openssl
-      nixops
+      nixopsUnstable
       nix-index
       pass
       ripgrep
