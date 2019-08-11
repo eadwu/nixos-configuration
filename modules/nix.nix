@@ -20,7 +20,7 @@ with config.nixos; {
     binaryCachePublicKeys = [
       "config.cachix.org-1:dR/yvjsRz8TWkZj5mKcTckVTpHWCy9aPiRwGIvhAP9A="
       "all-hies.cachix.org-1:JjrzAOEUsD9ZMt8fdFbzo3jNAyEWlPAwdVuHw4RD43k="
-      boxpub.cachix.org-1:H+WS+f/7uZml+Koio43kDpA7emp6aJ6kAwRS47oX0Zo=
+      "boxpub.cachix.org-1:H+WS+f/7uZml+Koio43kDpA7emp6aJ6kAwRS47oX0Zo="
     ];
 
     buildMachines = [
@@ -32,7 +32,9 @@ with config.nixos; {
 
     extraOptions = ''
       show-trace = true
-      # useful when the builder has a faster internet connection than yours
+      # Getting the latest vivaldi snapshot uses IFD
+      # allow-import-from-derivation = false
+      # Useful when the builder has a faster internet connection than yours
       # builders-use-substitutes = true
     '';
 
@@ -67,7 +69,7 @@ with config.nixos; {
   '';
 
   system = {
-    stateVersion = "19.03";
+    stateVersion = lib.mkDefault "19.03";
 
     autoUpgrade = {
       enable = false;
