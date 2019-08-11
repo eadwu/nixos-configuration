@@ -22,9 +22,8 @@ in with config.nixos; {
       bumblebee = (super.bumblebee.override {
         nvidia_x11 = nvidia_x11_beta;
       }).overrideAttrs (oldAttrs: {
-        src = builtins.fetchGit {
-          url = "https://github.com/Bumblebee-Project/Bumblebee";
-          ref = "develop";
+        src = builtins.fetchTarball {
+          url = "https://github.com/Bumblebee-Project/Bumblebee/archive/develop.tar.gz";
         };
 
         patchPhase = ''

@@ -13,10 +13,8 @@ let
     pname = stdenv.lib.removeSuffix "-${oldAttrs.version}" oldAttrs.name;
     version = "unstable-2019-07-28";
 
-    src = builtins.fetchGit {
-      url = "https://git.savannah.gnu.org/git/emacs.git";
-      rev = "8f4faf7aa1a1b92dbd4d1512592da44e47777e4b";
-      ref = "master";
+    src = builtins.fetchTarball {
+      url = "https://git.savannah.gnu.org/cgit/emacs.git/snapshot/emacs-8f4faf7aa1a1b92dbd4d1512592da44e47777e4b.tar.gz";
     };
 
     patches = [

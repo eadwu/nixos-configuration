@@ -4,8 +4,8 @@ assert builtins.pathExists ./bspwm/bspwmrc;
 assert builtins.pathExists ./bspwm/sxhkdrc;
 
 let
-  gmail = builtins.fetchGit {
-    url = "https://github.com/vyachkonovalov/polybar-gmail";
+  gmail = builtins.fetchTarball {
+    url = "https://github.com/vyachkonovalov/polybar-gmail/archive/master.tar.gz";
   };
 in {
   home = {

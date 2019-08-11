@@ -5,9 +5,8 @@ with self.pkgs; {
     pname = "optician-sans";
     version = "master";
 
-    src = builtins.fetchGit {
-      url = "https://github.com/anewtypeofinterference/Optician-Sans";
-      ref = version;
+    src = builtins.fetchTarball {
+      url = "https://github.com/anewtypeofinterference/Optician-Sans/archive/master.tar.gz";
     };
 
     dontBuild = true;

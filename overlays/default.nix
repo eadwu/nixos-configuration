@@ -11,35 +11,31 @@ in with self.pkgs; subOverlays // {
     unfreeEnableUnrar = true;
   };
 
-  boxpub = (import (builtins.fetchGit {
-    url = "https://git.sr.ht/~eadwu/boxpub";
-    ref = "master";
+  boxpub = (import (builtins.fetchTarball {
+    url = "https://git.sr.ht/~eadwu/boxpub/archive/master.tar.gz";
   }) { }).boxpub;
 
   capitaine-cursors = super.capitaine-cursors.overrideAttrs (_: rec {
     version = "master";
 
-    src = builtins.fetchGit {
-      url = "https://github.com/keeferrourke/capitaine-cursors";
-      ref = version;
+    src = builtins.fetchTarball {
+      url = "https://github.com/keeferrourke/capitaine-cursors/archive/${version}.tar.gz";
     };
   });
 
   clight = super.clight.overrideAttrs (_: rec {
     version = "master";
 
-    src = builtins.fetchGit {
-      url = "https://github.com/FedeDP/Clight";
-      ref = version;
+    src = builtins.fetchTarball {
+      url = "https://github.com/FedeDP/Clight/archive/${version}.tar.gz";
     };
   });
 
   clightd = super.clightd.overrideAttrs (_: rec {
     version = "master";
 
-    src = builtins.fetchGit {
-      url = "https://github.com/FedeDP/Clightd";
-      ref = version;
+    src = builtins.fetchTarball {
+      url = "https://github.com/FedeDP/Clightd/archive/${version}.tar.gz";
     };
   });
 
@@ -47,7 +43,7 @@ in with self.pkgs; subOverlays // {
     pname = "discord";
     version = "canary";
 
-    src = builtins.fetchurl {
+    src = builtins.fetchTarball {
       name = "${pname}-${version}.tar.gz";
       url = "https://discordapp.com/api/download/canary?platform=linux&format=tar.gz";
     };
@@ -58,9 +54,8 @@ in with self.pkgs; subOverlays // {
     pname = "dmenu";
     version = "develop";
 
-    src = builtins.fetchGit {
-      url = "https://gitlab.com/eadwu/dmenu";
-      ref = version;
+    src = builtins.fetchTarball {
+      url = "https://gitlab.com/eadwu/dmenu/-/archive/${version}/${name}.tar.gz";
     };
   });
 
@@ -69,9 +64,8 @@ in with self.pkgs; subOverlays // {
     pname = "dwm";
     version = "develop";
 
-    src = builtins.fetchGit {
-      url = "https://gitlab.com/eadwu/dwm";
-      ref = version;
+    src = builtins.fetchTarball {
+      url = "https://gitlab.com/eadwu/dwm/-/archive/${version}/${name}.tar.gz";
     };
   });
 
@@ -95,9 +89,8 @@ in with self.pkgs; subOverlays // {
     pname = "lightdm-enso-os-greeter";
     version = "master";
 
-    src = builtins.fetchGit {
-      url = "https://github.com/nick92/Enso-OS";
-      ref = version;
+    src = builtins.fetchTarball {
+      url = "https://github.com/nick92/Enso-OS/archive/${version}.tar.gz";
     };
   });
 
@@ -118,9 +111,8 @@ in with self.pkgs; subOverlays // {
     pname = "st";
     version = "develop";
 
-    src = builtins.fetchGit {
-      url = "https://gitlab.com/eadwu/st";
-      ref = version;
+    src = builtins.fetchTarball {
+      url = "https://gitlab.com/eadwu/st/-/archive/${version}/${name}.tar.gz";
     };
   });
 

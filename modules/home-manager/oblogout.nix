@@ -1,8 +1,7 @@
 { pkgs, ... }:
 
 {
-  home.file. ".themes/adeos-archlabs".source = "${builtins.fetchGit {
-    url = "https://github.com/bruhensant/adeos-archlabs";
-    ref = "master";
+  home.file. ".themes/adeos-archlabs".source = "${builtins.fetchTarball {
+    url = "https://github.com/bruhensant/adeos-archlabs/archive/master.tar.gz";
   }}/adeos-archlabs";
 }

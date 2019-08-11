@@ -5,9 +5,8 @@ let
     pname = "gtk-theme-collections";
     version = "master";
 
-    src = builtins.fetchGit {
-      url = "https://github.com/addy-dclxvi/gtk-theme-collections";
-      ref = version;
+    src = builtins.fetchTarball {
+      url = "https://github.com/addy-dclxvi/gtk-theme-collections/archive/${version}.tar.gz";
     };
 
     dontBuild = true;

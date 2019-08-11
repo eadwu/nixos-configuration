@@ -6,20 +6,20 @@ let
     sha256 = "0zlm2kgnjwcp8p9znbp4iwn4wqlv30yg8335nk3k8mgr0c21xx16";
   }}/EasyFX.py";
 
-  autoMirror = "${builtins.fetchGit {
-    url = "https://framagit.org/Lapineige/Blender_add-ons.git";
+  autoMirror = "${builtins.fetchTarball {
+    url = "https://framagit.org/Lapineige/Blender_add-ons/-/archive/master/Blender_add-ons-master.tar.gz";
   }}/AutoMirror/AutoMirror_V2-4.py";
 
-  matalogue = "${builtins.fetchGit {
-    url = "https://github.com/gregzaal/Matalogue";
+  matalogue = "${builtins.fetchTarball {
+    url = "https://github.com/gregzaal/Matalogue/archive/master.tar.gz";
   }}/matalogue.py";
 
-  sculptBrushes = "${builtins.fetchGit {
-    url = "https://github.com/IIK3D/Sculpt_Brushes";
+  sculptBrushes = "${builtins.fetchTarball {
+    url = "https://github.com/IIK3D/Sculpt_Brushes/archive/master.tar.gz";
   }}/sculpt_brushes";
 
-  batchOperations = "${builtins.fetchGit {
-    url = "https://github.com/dairin0d/batch-operations";
+  batchOperations = "${builtins.fetchTarball {
+    url = "https://github.com/dairin0d/batch-operations/archive/master.tar.gz";
   }}/space_view3d_batch_operations";
 
   blender_2_7x = {
@@ -31,10 +31,10 @@ let
     "blender/2.79/space_view3d_batch_operations".source = batchOperations;
   };
 
-  blender_2_8x = { };
-in {
-  home.packages = lib.singleton pkgs.blender;
-  xdg.configFile = {
+  blender_2_8x = {
     "blender/2.80/sculpt_brushes".source = sculptBrushes;
   };
+in {
+  home.packages = lib.singleton pkgs.blender;
+  xdg.configFile = blender_2_8x;
 }
