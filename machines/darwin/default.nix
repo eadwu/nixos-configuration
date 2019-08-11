@@ -1,4 +1,4 @@
-{ lib, ... }:
+{ ... }:
 
 {
   imports =
@@ -20,7 +20,7 @@
     wireless.iwd.enable = false;
   };
 
-  nix.nixPath = lib.singleton "nixos-config=${builtins.toString ./.}";
+  nix.nixPath = [ "nixos-config=${builtins.toString ./.}" ];
 
   nixos.settings.system.user = "yin";
 

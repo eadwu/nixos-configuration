@@ -3,7 +3,7 @@
 {
   hardware.sane = {
     enable = lib.mkDefault true;
-    extraBackends = lib.singleton pkgs.hplip;
+    extraBackends = [ pkgs.hplip ];
   };
 
   services = {
@@ -14,7 +14,7 @@
 
     printing = {
       enable = lib.mkDefault true;
-      drivers = lib.singleton pkgs.hplip;
+      drivers = [ pkgs.hplip ];
       webInterface = true;
     };
   };

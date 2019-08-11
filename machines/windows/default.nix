@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, ... }:
 
 with config.nixos; {
   imports =
@@ -25,7 +25,7 @@ with config.nixos; {
 
   i18n = {
     consoleFont = "ter-u28n";
-    consolePackages = lib.singleton pkgs.terminus_font;
+    consolePackages = [ pkgs.terminus_font ];
   };
 
   nixos.settings = {
@@ -50,7 +50,7 @@ with config.nixos; {
     };
   };
 
-  nix.nixPath = lib.singleton "nixos-config=${builtins.toString ./.}";
+  nix.nixPath = [ "nixos-config=${builtins.toString ./.}" ];
 
   programs.zsh.interactiveShellInit = ''
     bios-upgrade () {

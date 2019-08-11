@@ -1,4 +1,4 @@
-{ lib, ... }:
+{ ... }:
 
 {
   services.xserver.windowManager = {
@@ -7,9 +7,9 @@
     dwm.enable = true;
 
     # Started through home-manager
-    session = lib.singleton {
-      name = "hm";
-      start = "";
-    };
+    session = [
+      { name = "hm";
+        start = ""; }
+    ];
   };
 }

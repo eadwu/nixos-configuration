@@ -33,7 +33,7 @@
 
   i18n = {
     consoleFont = "ter-u28n";
-    consolePackages = lib.singleton pkgs.terminus_font;
+    consolePackages = [ pkgs.terminus_font ];
   };
 
   isoImage = {

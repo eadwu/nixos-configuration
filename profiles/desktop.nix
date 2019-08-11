@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, ... }:
 
 let
   cachix = (import (builtins.fetchTarball {
@@ -138,5 +138,5 @@ in with config.nixos; {
     '';
   };
 
-  services.dbus.packages = lib.singleton pkgs.gnome3.dconf;
+  services.dbus.packages = [ pkgs.gnome3.dconf ];
 }

@@ -1,4 +1,4 @@
-{ pkgs, lib, ... }:
+{ pkgs, ... }:
 
 let
   easyFX = "${pkgs.fetchzip {
@@ -35,6 +35,6 @@ let
     "blender/2.80/sculpt_brushes".source = sculptBrushes;
   };
 in {
-  home.packages = lib.singleton pkgs.blender;
+  home.packages = [ pkgs.blender ];
   xdg.configFile = blender_2_8x;
 }

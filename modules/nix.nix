@@ -36,9 +36,9 @@ with config.nixos; {
       # builders-use-substitutes = true
     '';
 
-    nixPath = lib.singleton "/etc/nixos"
+    nixPath = [ "/etc/nixos" ]
       ++ (if builtins.pathExists ../../nixpkgs
-        then lib.singleton "nixpkgs=${builtins.toString ../../nixpkgs}"
+        then [ "nixpkgs=${builtins.toString ../../nixpkgs}" ]
         else [
           "nixpkgs=https://gitlab.com/eadwu/nixpkgs/-/archive/develop/nixpkgs-develop.tar.gz"
           "nixpkgs=https://api.github.com/repos/eadwu/nixpkgs/tarball/develop"

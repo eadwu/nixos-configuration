@@ -1,8 +1,8 @@
-{ pkgs, lib, ... }:
+{ pkgs, ... }:
 
 let
   system-config = (import <nixpkgs/nixos/lib/eval-config.nix> {
-    modules = lib.singleton <nixos-config>;
+    modules = [ <nixos-config> ];
   }).config.nixos.settings;
 in {
   xresources.properties = {

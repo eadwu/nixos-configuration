@@ -12,8 +12,8 @@ in with config.nixos; {
 
   home-manager = {
     useUserPackages = true;
-    users."${settings.system.user}" = { lib, ... }: {
-      imports = lib.singleton ./home-manager;
+    users."${settings.system.user}" = { ... }: {
+      imports = [ ./home-manager ];
     };
   };
 

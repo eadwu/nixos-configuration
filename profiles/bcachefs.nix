@@ -7,7 +7,7 @@
     ];
 
   boot = {
-    supportedFilesystems = lib.singleton "bcachefs";
+    supportedFilesystems = [ "bcachefs" ];
     kernelPackages = lib.mkForce pkgs.linuxPackages_latest_hardened;
 
     kernelParams = [
@@ -16,6 +16,6 @@
       "slub_debug=F"
     ];
 
-    kernelPatches = lib.singleton (import ../patches/kernel/bcachefs.nix);
+    kernelPatches = [ (import ../patches/kernel/bcachefs.nix) ];
   };
 }
