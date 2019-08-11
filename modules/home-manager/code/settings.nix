@@ -43,7 +43,7 @@ with pkgs; {
     "notificationLink.foreground" = "#616161";
     "editorWidget.border" = "#616161";
   };
-  "workbench.colorTheme" = "Monokai Pro (Filter Spectrum)";
+  "workbench.colorTheme" = "Noctis Minimus";
   "workbench.iconTheme" = "eq-material-theme-icons-ocean";
   "workbench.sideBar.location" = "right";
   "breadcrumbs.enabled" = true;
