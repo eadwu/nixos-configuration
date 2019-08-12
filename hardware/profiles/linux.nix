@@ -13,6 +13,8 @@
     ];
 
     kernelModules = [
+      # Filesystem support
+      "ext4"
       # Explicitly load these for usb read/write support
       "bfq" # Register io scheduler for usb
       "uas"
