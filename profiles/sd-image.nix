@@ -1,15 +1,47 @@
 { pkgs, lib, ... }:
 
-{
-  imports =
-    [
-      <nixpkgs/nixos/modules/installer/cd-dvd/sd-image-aarch64-new-kernel.nix>
-    ];
+with lib; {
+  imports = [ <nixpkgs/nixos/modules/installer/cd-dvd/sd-image-aarch64.nix> ];
 
-  boot.zfs.enableUnstable = true;
+  # Reduce bloat
+  boot.supportedFilesystems = mkForce [ "vfat" ];
+  # Adjustments to base image
+  sdImage.firmwareSize = 32;
+  boot.kernelPackages = mkForce (pkgs.linuxPackagesFor pkgs.linux_rpi_4_19);
+  nixpkgs.overlays = [ (import ../overlays/partials/linux.nix) ];
+
+  # Zsh shell
+  environment.shells = [ "${pkgs.zsh}/bin/zsh" ];
+  programs.zsh.enable = true;
+  programs.zsh.interactiveShellInit = ''
+    setopt histignorespace
+  '';
+  programs.zsh.ohMyZsh = {
+    enable = true;
+    customPkgs = [ pkgs.spaceship-prompt ];
+    theme = "spaceship";
+  };
+
+  # SSH configuration for headless deployment
   networking.hostName = "aarch64";
-  services.avahi.enable = true;
-  services.avahi.nssmdns = true;
-  systemd.services.sshd.wantedBy = lib.mkForce [ "multi-user.target" ];
-  users.users.root.initialHashedPassword = lib.mkForce "$6$uQrouMul3IyTEDx$fv6DHCRTL0zeNoQ3/pbnp3qaPqhO5cEUKyvPrpvYzcazvN9yIF2fH/CF0ddy4QsXeE9yMniFUj98NppcMr6nT0";
+  systemd.services.sshd.wantedBy = mkForce [ "multi-user.target" ];
+
+  users.mutableUsers = false;
+  users.defaultUserShell = "${pkgs.zsh}/bin/zsh";
+  users.users.root.initialHashedPassword = mkForce "$6$LzwNPjjIU$WN0jrxLKdpO33fdUE.rpc.6RN2YdU8tCoI8Kmk2xNkqWUH01tLFW.nDJcF9wDrcIhHAxL5eVYmxzSkN.RWyMa0";
+  users.users.root.openssh.authorizedKeys.keyFiles =
+    optional (builtins.pathExists ../credentials/aarch64.pub) ../credentials/aarch64.pub;
+
+  services.avahi = {
+    enable = true;
+    nssmdns = true;
+    publish.enable = true;
+    publish.addresses = true;
+  };
+
+  # Pin system in the event of a cross compilation
+  nixpkgs = {
+    config = {};
+    localSystem = { system = builtins.currentSystem; };
+  };
 }

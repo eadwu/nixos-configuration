@@ -130,8 +130,14 @@ in with config.nixos; {
           config.system.build.sdImage
       }
 
+      nix-cross-compile-sd () {
+        nix build -f "<nixpkgs/nixos>" \
+          -I nixos-config=${builtins.toString ./cross-sd-image.nix} \
+          config.system.build.sdImage
+      }
+
       nix-generate-vm () {
-        nix build -f "<nixpkgs/nixos>"  \
+        nix build -f "<nixpkgs/nixos>" \
           -I nixos-config=${builtins.toString ./vm.nix} \
           config.system.build.virtualBoxOVA
       }
