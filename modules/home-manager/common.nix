@@ -25,6 +25,7 @@
     # Environment
     nitrogen
     xfceUnstable.thunar
+    xfceUnstable.thunar-volman
     xfceUnstable.xfce4-screenshooter
     xfceUnstable.xfce4-taskmanager
     ## Theme
