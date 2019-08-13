@@ -16,11 +16,11 @@ with config.nixos; {
     MulticastDNS=false
   '';
 
-  systemd.network = let
-    linkConfig = netType: {
-      matchConfig = {
-        Type = netType;
-      };
+  systemd.network = {
+    enable = true;
+
+    links.default = {
+      matchConfig.Name = "*";
 
       linkConfig = {
         MACAddressPolicy = "random";
@@ -28,15 +28,13 @@ with config.nixos; {
       };
     };
 
-    networkConfig = netType: {
+    networks.default = {
       DHCP = "yes";
       dns = config.networking.nameservers
         # backup dns nameservers
         ++ [ "1.1.1.1" "9.9.9.9" ];
 
-      matchConfig = {
-        Type = netType;
-      };
+      matchConfig.Name = "*";
 
       dhcpConfig = {
         Anonymize = true;
@@ -47,9 +45,17 @@ with config.nixos; {
         DNSSEC = "no";
       };
     };
-  in {
-    enable = true;
-    links = builtins.listToAttrs (map (netType: { name = netType; value = linkConfig netType; }) [ "eth" "wlan" ]);
-    networks = builtins.listToAttrs (map (netType: { name = netType; value = networkConfig netType; }) [ "eth" "wlan" ]);
+
+    networks = {
+      eth = {
+        matchConfig.Type = "eth";
+        dhcpConfig.RouteMetric = 10;
+      };
+
+      wlan = {
+        matchConfig.Type = "wlan";
+        dhcpConfig.RouteMetric = 20;
+      };
+    };
   };
 }
