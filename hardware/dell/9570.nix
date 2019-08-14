@@ -5,7 +5,6 @@
     [
       ../profiles/uefi.nix
       ../profiles/intel.nix
-      ../profiles/nvidia.nix
       ../profiles/laptop.nix
       ../profiles/linux.nix
     ];
@@ -15,6 +14,11 @@
     "mem_sleep_default=deep"
     "psmouse.synaptics_intertouch=0"
   ];
+
+  hardware.nvidia.prime = {
+    intelBusId = "PCI:0:2:0";
+    nvidiaBusId = "PCI:1:0:0";
+  };
 
   services.fwupd.enable = true;
 }
