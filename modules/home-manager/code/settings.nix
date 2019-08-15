@@ -73,6 +73,7 @@ with pkgs; {
   "explorer.decorations.colors" = true;
   "search.smartCase" = true;
   "terminal.external.linuxExec" = "st";
+  "scm.alwaysShowProviders" = true;
   "update.mode" = "none";
   "html.format.contentUnformatted" = "pre,code,style,textarea";
   "html.format.extraLiners" = "";
