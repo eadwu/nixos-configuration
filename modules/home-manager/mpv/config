@@ -1,2 +1,8 @@
 vo=gpu
 hwdec=vaapi
+
+profile=gpu-hq
+video-sync=display-resample
+interpolation
+tscale=oversample
+glsl-shaders="~~/shaders/Anime4K_Adaptive.glsl"
