@@ -1,16 +1,7 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 
 {
   boot.cleanTmpDir = true;
-  # boot.kernelPackages = pkgs.linuxPackagesFor pkgs.linux_rpi_4_19;
-  # boot.kernelParams = [
-  #   "cma=32M"
-  #   "console=ttyS0,115200n8"
-
-  #   # deadline I/O scheduler
-  #   "elevator=deadline"
-  # ];
-
   boot.loader.grub.enable = false;
   boot.loader.raspberryPi = {
     enable = true;
@@ -51,6 +42,8 @@
 
     # Debug / Utils
     lsof
+    blktrace
+    iotop
     nix-universal-prefetch
     pciutils
     usbutils
@@ -75,7 +68,6 @@
     requireSignedBinaryCaches = true;
     useSandbox = true;
     trustedUsers = [ "root" ];
-    allowedUsers = [ "@wheel" ];
 
     binaryCaches = [
       "https://rpi.cachix.org/"
@@ -114,23 +106,21 @@
             url = "https://hydra.nixos.org/job/nixops/master/tarball/latest/download-by-type/file/source-dist";
           };
         });
-      })
 
-      (self: super: with self.pkgs; {
-        linux_rpi_4_19 = super.linux_rpi.override {
+        linux_rpi_4_19 = (super.linux_rpi.override {
           argsOverride = rec {
-            version = "4.19.65";
+            version = "4.19.66";
             modDirVersion = with lib; concatStrings (intersperse "." (take 3 (splitString "." "${version}.0")));
-
-            src = builtins.fetchTarball {
-              url = "https://github.com/raspberrypi/linux/archive/ea2c11a187c0e248343452846457b94715e04969.tar.gz";
-            };
           };
-        };
+        }).overrideDerivation (_: {
+          src = builtins.fetchTarball {
+            url = "https://github.com/raspberrypi/linux/archive/fc5826fb999e0b32900d1f487e90c27a92010214.tar.gz";
+          };
+        });
 
         raspberrypifw = super.raspberrypifw.overrideAttrs (_: {
           src = builtins.fetchTarball {
-            url = "https://github.com/raspberrypi/firmware/archive/66bafab005569e3eb92ec54cd3efeee3da338738.tar.gz";
+            url = "https://github.com/raspberrypi/firmware/archive/b42496fd290dbe8cea47b230eb1782641329a24d.tar.gz";
           };
         });
       })
@@ -155,12 +145,6 @@
 
       nix-derive-output () {
         nix-store --query --requisites --include-outputs $(nix-store --query --deriver "$1")
-      }
-
-      nix-build-system () {
-        nix build $@ \
-          -f "<nixpkgs/nixos>" \
-          config.system.build.toplevel
       }
     '';
 
@@ -212,33 +196,12 @@
     ];
 
   boot.kernelPackages = pkgs.linuxPackages_latest_hardened;
-  boot.blacklistedKernelModules = [
-    # https://wiki.archlinux.org/index.php/Improving_performance#Watchdogs
-    "iTCO_wdt"
-  ];
-
-  boot.kernelModules = [
-    # Filesystem support
-    "ext4"
-    # Explicitly load these for usb read/write support
-    "bfq" # Register io scheduler for usb
-    "uas"
-    "sd_mod"
-    "usb_storage"
-  ];
 
   boot.kernelParams = [
-    "cma=32M"
-    "console=ttyS0,115200n8"
+    "cma=32M" "console=tty0" "console=ttyS0,115200n8"
 
     # deadline I/O scheduler
     "elevator=deadline"
-
-    # https://wiki.archlinux.org/index.php/Power_management
-    # Debugging feature to catch hardware hangs that cause a kernel panic
-    # Disabling may cause decrease in power usage
-    "snd_hda_intel.power_save=1"
-    "vm.dirty_writeback_centisecs=6000"
   ];
 
   environment.memoryAllocator.provider = "libc";
@@ -247,11 +210,9 @@
   security.allowSimultaneousMultithreading = true;
 
   # systemd-networkd
-  networking = {
-    dhcpcd.enable = false;
-    wireless.enable = true;
-    # wireless.iwd.enable = true;
-  };
+  networking.dhcpcd.enable = false;
+  networking.wireless.enable = true;
+  # networking.wireless.iwd.enable = true;
 
   services.resolved.extraConfig = ''
     MulticastDNS=false
@@ -261,7 +222,7 @@
     enable = true;
 
     links.default = {
-      matchConfig.Name = "*";
+      matchConfig.OriginalName = "!docker0* virbr0*";
 
       linkConfig = {
         MACAddressPolicy = "random";
@@ -273,7 +234,7 @@
       DHCP = "yes";
       dns = [ "1.1.1.1" "9.9.9.9" ];
 
-      matchConfig.Name = "*";
+      matchConfig.Name = "!docker0* virbr0*";
 
       dhcpConfig = {
         Anonymize = true;
@@ -287,7 +248,7 @@
 
     networks = {
       eth = {
-        matchConfig.Type = "eth";
+        matchConfig.Name = "eth*";
         dhcpConfig.RouteMetric = 10;
       };
 
