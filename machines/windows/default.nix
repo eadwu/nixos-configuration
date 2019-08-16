@@ -31,23 +31,9 @@ with config.nixos; {
   nixos.settings = {
     xserver.dpiScale = 2;
     system.user = "xps";
-
-    machine = {
-      hostname = "nixOSS";
-      screen = {
-        width = 3840;
-        height = 2160;
-      };
-    };
-
-    wireguard = {
-      client.addresses = [ "10.100.1.40/24" ];
-
-      server = {
-        address = "23.22.8.192";
-        credentials = "owMZpd6QLiHuMFgf6d04A6uocFGhlOzJktySIVkv6XU=";
-      };
-    };
+    machine.hostname = "nixOSS";
+    machine.screen.width = 3840;
+    machine.screen.height = 2160;
   };
 
   nix.nixPath = [ "nixos-config=${builtins.toString ./.}" ];
@@ -69,9 +55,7 @@ with config.nixos; {
     '';
 
     undervolt.options = rec {
-      temp = with config.hardware.nvidia.prime; if offload.enable || sync.enable
-        then 97
-        else 80;
+      temp = with config.hardware.nvidia.prime; if offload.enable || sync.enable then 97 else 80;
       temp-bat = 75;
       core = (-100);
       gpu = (-75);
