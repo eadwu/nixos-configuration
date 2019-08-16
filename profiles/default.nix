@@ -36,6 +36,8 @@
 
       # Debug / Utils
       lsof
+      blktrace
+      iotop
       nix-universal-prefetch
       pciutils
       usbutils
