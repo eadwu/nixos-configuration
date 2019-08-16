@@ -20,7 +20,7 @@ with config.nixos; {
     enable = true;
 
     links.default = {
-      matchConfig.Name = "*";
+      matchConfig.OriginalName = "!docker0* virbr0*";
 
       linkConfig = {
         MACAddressPolicy = "random";
@@ -34,7 +34,7 @@ with config.nixos; {
         # backup dns nameservers
         ++ [ "1.1.1.1" "9.9.9.9" ];
 
-      matchConfig.Name = "*";
+      matchConfig.Name = "!docker0* virbr0*";
 
       dhcpConfig = {
         Anonymize = true;
@@ -48,7 +48,7 @@ with config.nixos; {
 
     networks = {
       eth = {
-        matchConfig.Type = "eth";
+        matchConfig.Name = "eth*";
         dhcpConfig.RouteMetric = 10;
       };
 
