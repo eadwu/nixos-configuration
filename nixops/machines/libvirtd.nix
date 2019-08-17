@@ -1,6 +1,8 @@
 { lib, ... }:
 
 {
+  imports = [ ./. ];
+
   deployment = {
     targetEnv = "libvirtd";
     libvirtd = {

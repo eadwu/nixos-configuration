@@ -63,10 +63,7 @@
   };
 
   defaults = { config, pkgs, ... }: {
-    imports =
-      [
-        ../machines/libvirtd.nix
-      ];
+    imports = [ ../machines/libvirtd.nix ];
 
     deployment.libvirtd = {
       memorySize = 512;

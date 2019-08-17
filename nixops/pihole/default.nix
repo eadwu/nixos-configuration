@@ -2,11 +2,6 @@
   network.description = "Dockerized Pi-Hole";
 
   pipihole = { pkgs, ... }: {
-    imports =
-      [
-        ../machines/libvirtd.nix
-      ];
-
     networking.firewall = {
       allowedTCPPorts = [ 53 80 443 ];
       allowedUDPPorts = [ 53 67 ];
@@ -62,6 +57,8 @@
   };
 
   defaults = { ... }: {
+    imports = [ ../machines/libvirtd.nix ];
+
     deployment.libvirtd = {
       memorySize = 512;
       baseImageSize = 4;
