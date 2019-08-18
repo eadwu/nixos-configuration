@@ -29,7 +29,7 @@ with config.nixos; {
       { hostName = "builder";
         system = "aarch64-linux";
         maxJobs = 2;
-        supportedFeatures = [ "kvm" "perf" "nixos-test" "big-parallel" ]; }
+        supportedFeatures = [ "benchmark" "big-parallel" "kvm" "nixos-test" ]; }
     ];
 
     extraOptions = ''
