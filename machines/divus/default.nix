@@ -210,9 +210,36 @@
   security.allowSimultaneousMultithreading = true;
 
   # systemd-networkd
-  networking.dhcpcd.enable = false;
-  networking.wireless.enable = true;
-  # networking.wireless.iwd.enable = true;
+  networking = {
+    dhcpcd.enable = false;
+
+    wireless = {
+      enable = true;
+
+      extraConfig = ''
+        ap_scan=1
+        eapol_version=2
+      '';
+
+      networks.eduroam = {
+        hidden = true;
+        auth = ''
+          disabled=0
+          auth_alg=OPEN
+          key_mgmt=WPA-EAP
+          proto=WPA RSN
+          pairwise=CCMP TKIP
+          eap=PEAP
+          identity="edmundwu@buffalo.edu"
+          anonymous_identity="notastudentatbuffalo@buffalo.edu"
+          password=hash:${builtins.readFile /etc/eduroam}
+          ca_cert="${builtins.toString /etc/ca.pem}"
+          phase1="peaplabel=0"
+          phase2="auth=MSCHAPV2"
+        '';
+      };
+    };
+  };
 
   services.resolved.extraConfig = ''
     MulticastDNS=false

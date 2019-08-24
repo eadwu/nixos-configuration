@@ -9,7 +9,34 @@ with config.nixos; {
   networking = {
     hostName = settings.machine.hostname;
     dhcpcd.enable = lib.mkDefault false;
-    wireless.iwd.enable = lib.mkDefault true;
+
+    wireless = {
+      enable = lib.mkDefault true;
+      userControlled.enable = lib.mkDefault true;
+
+      extraConfig = ''
+        ap_scan=1
+        eapol_version=2
+      '';
+
+      networks.eduroam = {
+        hidden = true;
+        auth = ''
+          disabled=0
+          auth_alg=OPEN
+          key_mgmt=WPA-EAP
+          proto=WPA RSN
+          pairwise=CCMP TKIP
+          eap=PEAP
+          identity="edmundwu@buffalo.edu"
+          anonymous_identity="notastudentatbuffalo@buffalo.edu"
+          password=hash:${builtins.readFile ../../credentials/eduroam}
+          ca_cert="${builtins.toString ../../credentials/ca.pem}"
+          phase1="peaplabel=0"
+          phase2="auth=MSCHAPV2"
+        '';
+      };
+    };
   };
 
   services.resolved.extraConfig = ''
