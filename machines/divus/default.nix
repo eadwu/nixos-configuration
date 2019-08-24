@@ -348,20 +348,13 @@
     wireless = {
       enable = true;
 
-      extraConfig = ''
-        ap_scan=1
-        eapol_version=2
-      '';
-
-      networks.eduroam = {
-        hidden = true;
-        auth = ''
-          disabled=0
+      networks.eduroam.auth = ''
+        eap=PEAP
           auth_alg=OPEN
           key_mgmt=WPA-EAP
           proto=WPA RSN
-          pairwise=CCMP TKIP
-          eap=PEAP
+        pairwise=CCMP
+        group=CCMP TKIP
           identity="edmundwu@buffalo.edu"
           anonymous_identity="notastudentatbuffalo@buffalo.edu"
           password=hash:${builtins.readFile /etc/eduroam}
@@ -371,7 +364,6 @@
         '';
       };
     };
-  };
 
   services.resolved.extraConfig = ''
     MulticastDNS=false
