@@ -248,7 +248,7 @@
 
     networks = {
       eth = {
-        matchConfig.Name = "eth*";
+        matchConfig.Name = "eth* ens*";
         dhcpConfig.RouteMetric = 10;
       };
 
