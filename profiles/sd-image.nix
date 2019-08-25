@@ -8,7 +8,7 @@ with lib; {
   # Adjustments to base image
   sdImage.firmwareSize = 32;
   boot.kernelPackages = mkForce (pkgs.linuxPackagesFor pkgs.linux_rpi_4_19);
-  nixpkgs.overlays = [ (import ../overlays/partials/linux.nix) ];
+  nixpkgs.overlays = [ (import ../overlays/partials/linux_rpi.nix) ];
 
   # Zsh shell
   environment.shells = [ "${pkgs.zsh}/bin/zsh" ];
