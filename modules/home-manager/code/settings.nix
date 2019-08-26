@@ -192,6 +192,7 @@ with pkgs; {
   "python.autoUpdateLanguageServer" = false;
   "python.formatting.provider" = "yapf";
   "python.formatting.yapfPath" = "${python3.pkgs.yapf}/bin/yapf";
+  "python.jediEnabled" = false;
   "python.linting.flake8Enabled" = true;
   "python.linting.flake8Path" = "${python3.pkgs.flake8}/bin/flake8";
   "python.linting.mypyEnabled" = false;
