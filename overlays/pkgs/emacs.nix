@@ -11,10 +11,10 @@ let
   }).overrideAttrs (oldAttrs: rec {
     name = "${pname}-${version}";
     pname = stdenv.lib.removeSuffix "-${oldAttrs.version}" oldAttrs.name;
-    version = "unstable-2019-08-11";
+    version = "unstable-2019-08-26";
 
     src = builtins.fetchTarball {
-      url = "https://git.savannah.gnu.org/cgit/emacs.git/snapshot/emacs-94644d862c9a54a5ebe8265fbba04bdd0c973065.tar.gz";
+      url = "https://git.savannah.gnu.org/cgit/emacs.git/snapshot/emacs-f87ace2aed492d5d605da59b59af6fad5f0e33e4.tar.gz";
     };
 
     patches = [
