@@ -349,6 +349,9 @@
   security.allowSimultaneousMultithreading = true;
 
   # systemd-networkd
+  security.pki.certificateFiles = [ /etc/wpa_supplicant/ca.pem /etc/wpa_supplicant/melon-ca.pem ];
+
+  networking.wireless.driver = "wext,nl80211";
   networking = {
     dhcpcd.enable = false;
 
@@ -364,8 +367,7 @@
         group=CCMP TKIP
           identity="edmundwu@buffalo.edu"
           anonymous_identity="notastudentatbuffalo@buffalo.edu"
-          password=hash:${builtins.readFile /etc/eduroam}
-          ca_cert="${builtins.toString /etc/ca.pem}"
+        password=hash:${builtins.readFile /etc/wpa_supplicant/eduroam}
           phase1="peaplabel=0"
           phase2="auth=MSCHAPV2"
         '';

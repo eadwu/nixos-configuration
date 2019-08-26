@@ -6,6 +6,8 @@ with config.nixos; {
       ./kresd.nix
     ];
 
+  security.pki.certificateFiles = [ ../../credentials/ca.pem ../../credentials/melon-ca.pem ];
+
   networking = {
     hostName = settings.machine.hostname;
     dhcpcd.enable = lib.mkDefault false;
@@ -24,7 +26,6 @@ with config.nixos; {
         identity="edmundwu@buffalo.edu"
         anonymous_identity="notastudentatbuffalo@buffalo.edu"
         password=hash:${builtins.readFile ../../credentials/eduroam}
-        ca_cert="${builtins.toString ../../credentials/ca.pem}"
         phase1="peaplabel=0"
         phase2="auth=MSCHAPV2"
       '';
