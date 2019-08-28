@@ -31,10 +31,7 @@ in {
       colorscheme faded_material
     '';
 
-    plugins = [
-      "vim-nix"
-      "vim-airline"
-    ];
+    plugins = with pkgs.vimPlugins; [ vim-airline ];
 
     settings = {
       background = "dark";

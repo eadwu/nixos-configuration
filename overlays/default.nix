@@ -127,4 +127,8 @@ in with self.pkgs; subOverlays // {
   vaapiIntel = super.vaapiIntel.override {
     enableHybridCodec = true;
   };
+
+  vim_configurable = super.vim_configurable.override {
+    ftNixSupport = true;
+  };
 }
