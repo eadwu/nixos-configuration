@@ -38,27 +38,26 @@ in {
       signByDefault = true;
     };
 
-    extraConfig = ''
-      [alias]
-        plfs = !git -c filter.lfs.smudge= -c filter.lfs.required=false pull && git lfs pull
+    extraConfig = {
+      alias.plfs = "!git -c filter.lfs.smudge= -c filter.lfs.required=false pull && git lfs pull";
 
-      [core]
-        autocrlf = input
-        editor = vim
-        excludesfile = ${gitignore}
-        fsmonitor = ${queryWatchman}
+      core = {
+        autocrlf = "input";
+        editor = "vim";
+        excludesfile = gitignore.outPath;
+        fsmonitor = queryWatchman.outPath;
+      };
 
-      [lfs]
-        pruneverifyremotealways = true
+      lfs.pruneverifyremotealways = true;
 
-      [protocol]
-        version = 2
+      protocol.version = 2;
 
-      [filter "lfs"]
-        clean = ${git-lfs}/bin/git-lfs clean -- %f
-        smudge = ${git-lfs}/bin/git-lfs smudge -- %f
-        process = ${git-lfs}/bin/git-lfs filter-process
-        required = true
-    '';
+      "filter \"lfs\"" = {
+        clean = "${git-lfs}/bin/git-lfs clean -- %f";
+        smudge = "${git-lfs}/bin/git-lfs smudge -- %f";
+        process = "${git-lfs}/bin/git-lfs filter-process";
+        required = true;
+      };
+    };
   };
 }
