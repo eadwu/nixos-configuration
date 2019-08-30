@@ -2,7 +2,10 @@ vo=gpu
 hwdec=vaapi
 
 profile=gpu-hq
+scale=ewa_lanczossharp
+cscale=ewa_lanczossharp
 video-sync=display-resample
 interpolation
 tscale=oversample
+
 glsl-shaders="~~/shaders/Anime4K_Adaptive.glsl"
