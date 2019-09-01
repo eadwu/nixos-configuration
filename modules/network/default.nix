@@ -6,10 +6,9 @@ with config.nixos; {
       ./kresd.nix
     ];
 
-  security.pki.certificateFiles = [ ../../credentials/ca.pem ../../credentials/melon-ca.pem ];
-
   networking = {
     hostName = settings.machine.hostname;
+    enableIPv6 = false;
     dhcpcd.enable = lib.mkDefault false;
 
     wireless = {
