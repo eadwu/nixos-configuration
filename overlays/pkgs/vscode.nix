@@ -42,8 +42,8 @@ self: super:
 
       { name = "latex-workshop";
         publisher = "James-Yu";
-        version = "8.0.7";
-        sha256 = "0ysb7nvb6gdx7bjnxhqn8hrqhik6q9a539wlas4lmp6sh6pxmyim"; }
+        version = "8.1.0";
+        sha256 = "1hf2slx3pwa8zllh18lhnzni4z7w3ja50qybp9smprbjpvq43zdf"; }
 
       { name = "better-comments";
         publisher = "aaron-bond";
@@ -112,8 +112,8 @@ self: super:
 
       { name = "noctis";
         publisher = "liviuschera";
-        version = "10.5.0";
-        sha256 = "0fydy1842gbpq4357fbp6m5r6blk28y61azdpjc1vyjigakj38i4"; }
+        version = "10.6.0";
+        sha256 = "12551vzaw8zlnsg8bj4hs58k84qnpchl98abvbcnichf5fk0wq01"; }
 
       { name = "vscode-language-babel";
         publisher = "mgmcdermott";
@@ -152,8 +152,8 @@ self: super:
 
       { name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.721";
-        sha256 = "0pa9q1jkz14vjmxcxdwnn5y0xb1yfgq7i57kd1walgmzisvlainf"; }
+        version = "1.0.752";
+        sha256 = "1vnf21hkhcnhr678ay6f9lh261n6z2xr1hgbxfx40wgvfdslx291"; }
 
       { name = "debugger-for-chrome";
         publisher = "msjsdiag";
@@ -167,8 +167,8 @@ self: super:
 
       { name = "ruby";
         publisher = "rebornix";
-        version = "0.24.2";
-        sha256 = "1qyjh57k89b90db97qfhqzjbmqpkqpv6il0gv09djamv80mw9wd9"; }
+        version = "0.25.0";
+        sha256 = "1rmfavyhwam2dhxl2zvad8i1srsqk8q6qdvli30sxdfipwsw1qs0"; }
 
       { name = "java";
         publisher = "redhat";
