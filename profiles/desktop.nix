@@ -50,7 +50,6 @@ in with config.nixos; {
       pywal
       xclip
       # Version Control
-      gitlab
       gitAndTools.hub
       git-lfs
       # Languages / SDKs
