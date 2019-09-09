@@ -23,22 +23,6 @@ in with self.pkgs; subOverlays // {
     };
   });
 
-  clight = super.clight.overrideAttrs (_: rec {
-    version = "master";
-
-    src = builtins.fetchTarball {
-      url = "https://github.com/FedeDP/Clight/archive/${version}.tar.gz";
-    };
-  });
-
-  clightd = super.clightd.overrideAttrs (_: rec {
-    version = "master";
-
-    src = builtins.fetchTarball {
-      url = "https://github.com/FedeDP/Clightd/archive/${version}.tar.gz";
-    };
-  });
-
   discord = super.discord-canary.overrideAttrs (_: rec {
     pname = "discord";
     version = "canary";
