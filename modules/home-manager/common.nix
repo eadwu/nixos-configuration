@@ -41,6 +41,7 @@
     google-musicmanager
     jetbrains.idea-ultimate
     rstudioWrapper
+    typora
     vivaldi
     winusb
     xfce.mousepad
