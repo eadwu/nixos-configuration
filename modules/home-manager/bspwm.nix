@@ -7,7 +7,8 @@ let
   gmail = builtins.fetchTarball {
     url = "https://github.com/vyachkonovalov/polybar-gmail/archive/master.tar.gz";
   };
-in {
+in
+{
   home = {
     file = {
       ".bspwm/external_rules" = {

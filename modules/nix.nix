@@ -26,10 +26,12 @@ with config.nixos; {
     ];
 
     buildMachines = [
-      { hostName = "builder";
+      {
+        hostName = "builder";
         system = "aarch64-linux";
         maxJobs = 2;
-        supportedFeatures = [ "benchmark" "big-parallel" "kvm" "nixos-test" ]; }
+        supportedFeatures = [ "benchmark" "big-parallel" "kvm" "nixos-test" ];
+      }
     ];
 
     extraOptions = ''
@@ -41,14 +43,16 @@ with config.nixos; {
     '';
 
     nixPath = [ "/etc/nixos" ]
-      ++ (if builtins.pathExists ../../nixpkgs
-        then [ "nixpkgs=${builtins.toString ../../nixpkgs}" ]
-        else [
-          "nixpkgs=https://gitlab.com/eadwu/nixpkgs/-/archive/develop/nixpkgs-develop.tar.gz"
-          "nixpkgs=https://api.github.com/repos/eadwu/nixpkgs/tarball/develop"
-        ])
-      ++ lib.optional (builtins.pathExists ../overlays)
-        "nixpkgs-overlays=${builtins.toString ../overlays}";
+    ++ (
+      if builtins.pathExists ../../nixpkgs
+      then [ "nixpkgs=${builtins.toString ../../nixpkgs}" ]
+      else [
+        "nixpkgs=https://gitlab.com/eadwu/nixpkgs/-/archive/develop/nixpkgs-develop.tar.gz"
+        "nixpkgs=https://api.github.com/repos/eadwu/nixpkgs/tarball/develop"
+      ]
+    )
+    ++ lib.optional (builtins.pathExists ../overlays)
+      "nixpkgs-overlays=${builtins.toString ../overlays}";
   };
 
   nixpkgs = {

@@ -21,10 +21,12 @@ with config.nixos; {
         privateKeyFile = settings.wireguard.client.credentials;
 
         peers = [
-          { publicKey = settings.wireguard.server.credentials;
+          {
+            publicKey = settings.wireguard.server.credentials;
             endpoint = "${settings.wireguard.server.address}:51820";
             persistentKeepalive = 25;
-            allowedIPs = [ "0.0.0.0/0" ]; }
+            allowedIPs = [ "0.0.0.0/0" ];
+          }
         ];
 
         postSetup = ''

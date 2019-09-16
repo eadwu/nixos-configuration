@@ -8,7 +8,8 @@
   };
 
   environment.systemPackages = with pkgs; [
-    glxinfo cudatoolkit
+    glxinfo
+    cudatoolkit
     vdpauinfo
   ];
 

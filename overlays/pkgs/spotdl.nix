@@ -18,8 +18,17 @@ let
         '';
 
         propagatedBuildInputs = [
-          pafy pyyaml appdirs logzero mutagen spotipy titlecase
-          lyricwikia youtube-dl beautifulsoup4 unicode-slugify
+          pafy
+          pyyaml
+          appdirs
+          logzero
+          mutagen
+          spotipy
+          titlecase
+          lyricwikia
+          youtube-dl
+          beautifulsoup4
+          unicode-slugify
         ];
       };
 
@@ -35,13 +44,17 @@ let
         };
 
         propagatedBuildInputs = [
-          six requests pytestrunner beautifulsoup4
+          six
+          requests
+          pytestrunner
+          beautifulsoup4
         ];
 
         doCheck = false;
 
         checkInputs = [
-          pytest responses
+          pytest
+          responses
         ];
       };
 
@@ -55,7 +68,8 @@ let
         };
 
         propagatedBuildInputs = [
-          six unidecode
+          six
+          unidecode
         ];
 
         checkInputs = [
@@ -64,6 +78,7 @@ let
       };
     };
   };
-in with python.pkgs; {
-  spotdl = toPythonApplication spotdl;
-}
+in
+  with python.pkgs; {
+    spotdl = toPythonApplication spotdl;
+  }

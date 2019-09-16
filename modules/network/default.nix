@@ -50,8 +50,8 @@ with config.nixos; {
     networks.default = {
       DHCP = "yes";
       dns = config.networking.nameservers
-        # backup dns nameservers
-        ++ [ "1.1.1.1" "9.9.9.9" ];
+      # backup dns nameservers
+      ++ [ "1.1.1.1" "9.9.9.9" ];
 
       matchConfig.Name = "!docker0* virbr0*";
 

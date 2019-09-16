@@ -16,7 +16,8 @@ let
       find . -mindepth 1 -maxdepth 1 -type d -exec cp -r "{}" $out/share/themes \;
     '';
   };
-in {
+in
+{
   gtk = {
     enable = true;
 

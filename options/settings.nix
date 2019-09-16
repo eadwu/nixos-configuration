@@ -4,7 +4,8 @@ with lib;
 
 let
   cfg = config.nixos.settings;
-in {
+in
+{
   options.nixos.settings = {
     credentials = mkOption {
       type = types.nullOr types.path;

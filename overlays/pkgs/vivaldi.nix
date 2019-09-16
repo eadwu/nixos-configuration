@@ -12,16 +12,21 @@ let
   } ''
     xml-to-json $src > $out
   '';
-in {
-  vivaldi = (super.vivaldi.override {
-    isSnapshot = true;
-    enableWidevine = true;
-    proprietaryCodecs = true;
-  }).overrideAttrs (_: rec {
-    version = lib.getAttrFromPath versionAttrPath (builtins.fromJSON (builtins.readFile "${vivaldiVersion}"));
+in
+{
+  vivaldi = (
+    super.vivaldi.override {
+      isSnapshot = true;
+      enableWidevine = true;
+      proprietaryCodecs = true;
+    }
+  ).overrideAttrs (
+    _: rec {
+      version = lib.getAttrFromPath versionAttrPath (builtins.fromJSON (builtins.readFile "${vivaldiVersion}"));
 
-    src = builtins.fetchurl {
-      url = "https://downloads.vivaldi.com/snapshot/vivaldi-snapshot_${version}-1_amd64.deb";
-    };
-  });
+      src = builtins.fetchurl {
+        url = "https://downloads.vivaldi.com/snapshot/vivaldi-snapshot_${version}-1_amd64.deb";
+      };
+    }
+  );
 }

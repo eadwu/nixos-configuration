@@ -34,7 +34,8 @@ let
   blender_2_8x = {
     "blender/2.80/sculpt_brushes".source = sculptBrushes;
   };
-in {
+in
+{
   home.packages = [ pkgs.blender ];
   xdg.configFile = blender_2_8x;
 }

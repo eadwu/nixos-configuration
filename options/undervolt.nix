@@ -5,18 +5,24 @@ with lib;
 let
   cfg = config.services.undervolt;
 
-  toArgs = attrs: concatStringsSep " " (mapAttrsToList
-    (arg: v: let
-      value =
-        if null == v       then ""
-        else if isInt v    then toString v
-        else if isString v then ''"${escape [''"''] v}"''
-        else abort "undervolt.toArgs: unexpected type (v = ${v})";
-    in "--${arg} ${value}")
-    attrs);
+  toArgs = attrs: concatStringsSep " " (
+    mapAttrsToList
+      (
+        arg: v: let
+          value =
+            if null == v then ""
+            else if isInt v then toString v
+            else if isString v then ''"${escape [ ''"'' ] v}"''
+            else abort "undervolt.toArgs: unexpected type (v = ${v})";
+        in
+          "--${arg} ${value}"
+      )
+      attrs
+  );
 
   undervoltCmd = "${pkgs.undervolt}/bin/undervolt ${toArgs cfg.options}";
-in {
+in
+{
   options.services.undervolt = {
     enable = mkOption {
       type = types.bool;

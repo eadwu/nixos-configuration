@@ -8,8 +8,10 @@
 
     # Started through home-manager
     session = [
-      { name = "hm";
-        start = ""; }
+      {
+        name = "hm";
+        start = "";
+      }
     ];
   };
 }

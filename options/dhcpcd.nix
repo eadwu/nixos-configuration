@@ -10,13 +10,12 @@ let
 
   interfaces = attrValues config.networking.interfaces;
 
-  enableDHCP = config.networking.dhcpcd.enable &&
-        (config.networking.useDHCP || any (i: i.useDHCP == true) interfaces);
+  enableDHCP = config.networking.dhcpcd.enable && (config.networking.useDHCP || any (i: i.useDHCP == true) interfaces);
 
   # Don't start dhcpcd on explicitly configured interfaces or on
   # interfaces that are part of a bridge, bond or sit device.
   ignoredInterfaces =
-    map (i: i.name) (filter (i: if i.useDHCP != null then !i.useDHCP else i.ipv4.addresses != [ ]) interfaces)
+    map (i: i.name) (filter (i: if i.useDHCP != null then !i.useDHCP else i.ipv4.addresses != []) interfaces)
     ++ mapAttrsToList (i: _: i) config.networking.sits
     ++ concatLists (attrValues (mapAttrs (n: v: v.interfaces) config.networking.bridges))
     ++ concatLists (attrValues (mapAttrs (n: v: v.interfaces) config.networking.vswitches))
@@ -24,14 +23,16 @@ let
     ++ config.networking.dhcpcd.denyInterfaces;
 
   arrayAppendOrNull = a1: a2: if a1 == null && a2 == null then null
-    else if a1 == null then a2 else if a2 == null then a1
-      else a1 ++ a2;
+  else if a1 == null then a2 else if a2 == null then a1
+  else a1 ++ a2;
 
   # If dhcp is disabled but explicit interfaces are enabled,
   # we need to provide dhcp just for those interfaces.
   allowInterfaces = arrayAppendOrNull cfg.allowInterfaces
-    (if !config.networking.useDHCP && enableDHCP then
-      map (i: i.name) (filter (i: i.useDHCP == true) interfaces) else null);
+    (
+      if !config.networking.useDHCP && enableDHCP then
+        map (i: i.name) (filter (i: i.useDHCP == true) interfaces) else null
+    );
 
   # Config file adapted from the one that ships with dhcpcd.
   dhcpcdConf = pkgs.writeText "dhcpcd.conf"
@@ -98,11 +99,11 @@ in
       type = types.bool;
       default = false;
       description = ''
-          Whenever to leave interfaces configured on dhcpcd daemon
-          shutdown. Set to true if you have your root or store mounted
-          over the network or this machine accepts SSH connections
-          through DHCP interfaces and clients should be notified when
-          it shuts down.
+        Whenever to leave interfaces configured on dhcpcd daemon
+        shutdown. Set to true if you have your root or store mounted
+        over the network or this machine accepts SSH connections
+        through DHCP interfaces and clients should be notified when
+        it shuts down.
       '';
     };
 
@@ -110,10 +111,10 @@ in
       type = types.listOf types.str;
       default = [];
       description = ''
-         Disable the DHCP client for any interface whose name matches
-         any of the shell glob patterns in this list. The purpose of
-         this option is to blacklist virtual interfaces such as those
-         created by Xen, libvirt, LXC, etc.
+        Disable the DHCP client for any interface whose name matches
+        any of the shell glob patterns in this list. The purpose of
+        this option is to blacklist virtual interfaces such as those
+        created by Xen, libvirt, LXC, etc.
       '';
     };
 
@@ -121,10 +122,10 @@ in
       type = types.nullOr (types.listOf types.str);
       default = null;
       description = ''
-         Enable the DHCP client for any interface whose name matches
-         any of the shell glob patterns in this list. Any interface not
-         explicitly matched by this pattern will be denied. This pattern only
-         applies when non-null.
+        Enable the DHCP client for any interface whose name matches
+        any of the shell glob patterns in this list. Any interface not
+        explicitly matched by this pattern will be denied. This pattern only
+        applies when non-null.
       '';
     };
 
@@ -132,7 +133,7 @@ in
       type = types.lines;
       default = "";
       description = ''
-         Literal string to append to the config file generated for dhcpcd.
+        Literal string to append to the config file generated for dhcpcd.
       '';
     };
 
@@ -141,8 +142,8 @@ in
       default = "";
       example = "if [[ $reason =~ BOUND ]]; then echo $interface: Routers are $new_routers - were $old_routers; fi";
       description = ''
-         Shell code that will be run after all other hooks. See
-         `man dhcpcd-run-hooks` for details on what is possible.
+        Shell code that will be run after all other hooks. See
+        `man dhcpcd-run-hooks` for details on what is possible.
       '';
     };
 
@@ -156,9 +157,10 @@ in
     systemd.services.dhcpcd = let
       cfgN = config.networking;
       hasDefaultGatewaySet = (cfgN.defaultGateway != null && cfgN.defaultGateway.address != "")
-                          && (!cfgN.enableIPv6 || (cfgN.defaultGateway6 != null && cfgN.defaultGateway6.address != ""));
+      && (!cfgN.enableIPv6 || (cfgN.defaultGateway6 != null && cfgN.defaultGateway6.address != ""));
     in
-      { description = "DHCP Client";
+      {
+        description = "DHCP Client";
 
         wantedBy = [ "multi-user.target" ] ++ optional (!hasDefaultGatewaySet) "network-online.target";
         wants = [ "network.target" "systemd-udev-settle.service" ];
@@ -175,20 +177,21 @@ in
         unitConfig.ConditionCapability = "CAP_NET_ADMIN";
 
         serviceConfig = let
-            iw-dhcpcd = pkgs.writeScript "iw-dhcpcd" ''
-              #! ${pkgs.stdenv.shell}
-              for i in $(${pkgs.iproute}/bin/ip link | ${pkgs.gnugrep}/bin/grep -Po 'wl.*?(?=:)'); do
-                ifaces="$ifaces''${ifaces:+ -N} $i"
-              done
+          iw-dhcpcd = pkgs.writeScript "iw-dhcpcd" ''
+            #! ${pkgs.stdenv.shell}
+            for i in $(${pkgs.iproute}/bin/ip link | ${pkgs.gnugrep}/bin/grep -Po 'wl.*?(?=:)'); do
+              ifaces="$ifaces''${ifaces:+ -N} $i"
+            done
 
-              exec ${dhcpcd}/sbin/dhcpcd \
-                -w \
-                --quiet \
-                ${optionalString cfg.persistent "--persistent"} \
-                --config ${dhcpcdConf} \
-                $ifaces
-            '';
-          in {
+            exec ${dhcpcd}/sbin/dhcpcd \
+              -w \
+              --quiet \
+              ${optionalString cfg.persistent "--persistent"} \
+              --config ${dhcpcdConf} \
+              $ifaces
+          '';
+        in
+          {
             Type = "forking";
             PrivateMounts = true;
             PIDFile = "/run/dhcpcd.pid";
@@ -201,7 +204,9 @@ in
     environment.systemPackages = [ dhcpcd ];
 
     environment.etc =
-      [ { source = exitHook;
+      [
+        {
+          source = exitHook;
           target = "dhcpcd.exit-hook";
         }
       ];

@@ -2,7 +2,8 @@
 
 let
   cfg = config.services.sourcehut;
-in {
+in
+{
   services.sourcehut.services = lib.singleton "man";
   services.nginx.virtualHosts.mansrht = {
     addSSL = true;

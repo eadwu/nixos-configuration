@@ -15,7 +15,8 @@ let
     url = "https://raw.githubusercontent.com/atom/atom/6fc3a364e1c43921fe0987e4e91ca254b364d33e/dot-atom/snippets.cson";
     sha256 = "1r7jmgilqn54yg4p4mjnlngzi485qqj9k6cf52ayn0d8hrp1a2rk";
   };
-in {
+in
+{
   home.file = {
     ".atom/config.cson".source = ./atom/config.cson;
     ".atom/init.coffee".source = init;

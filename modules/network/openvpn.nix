@@ -55,7 +55,7 @@ with config.nixos; {
 
       remote-cert-tls server
       auth-user-pass ${lib.optionalString (builtins.pathExists settings.protonvpn.credentials)
-        settings.protonvpn.credentials}
+      settings.protonvpn.credentials}
       pull
       fast-io
 

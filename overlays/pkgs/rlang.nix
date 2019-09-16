@@ -7,7 +7,8 @@ let
     rmarkdown
     RDocumentation
   ];
-in {
+in
+{
   rWrapper = super.rWrapper.override {
     packages = rPackages;
   };

@@ -26,7 +26,8 @@ let
     sed 's@/usr@${perl}@' $src > $out
     chmod +x $out
   '';
-in {
+in
+{
   programs.git = {
     enable = true;
     package = gitAndTools.gitFull;

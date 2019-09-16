@@ -40,10 +40,14 @@
     includeSystemBuildDependencies = true;
 
     contents = [
-      { source = <nixpkgs>;
-        target = "nixpkgs"; }
-      { source = ./..;
-        target = "nixos-configuration"; }
+      {
+        source = <nixpkgs>;
+        target = "nixpkgs";
+      }
+      {
+        source = ./..;
+        target = "nixos-configuration";
+      }
     ];
   };
 

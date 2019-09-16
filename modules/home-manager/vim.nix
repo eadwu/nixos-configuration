@@ -10,7 +10,8 @@ let
     url = "https://raw.githubusercontent.com/dylanaraps/wal.vim/1edf653c0f2848eac6d3c4d45fdc75bc4524c7b5/autoload/airline/themes/wal.vim";
     sha256 = "0livirsczgwsh0267fanp1axcx8swzha5wpdgi3ikaxps6pdvgn9";
   };
-in {
+in
+{
   home.file = {
     ".vim/colors/faded_material.vim".source = fadedMaterial;
     ".vim/autoload/airline/themes/wal.vim".source = walAirline;

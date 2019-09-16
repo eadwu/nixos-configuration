@@ -210,83 +210,88 @@ let
     assert (values.privateKey != null) != (values.privateKeyFile != null);
     let
       privateKey = if values.privateKeyFile != null
-        then values.privateKeyFile
-        else pkgs.writeText "${name}-key" values.privateKey;
-    in nameValuePair "wireguard-${name}" {
-      after = [ "network.target" "network-online.target" "wireguard-netns.service" ];
-      bindsTo = [ "wireguard-netns.service" ];
-      requires = [ "network-online.target" "wireguard-netns.service" ];
-      wantedBy = [ "multi-user.target" ];
+      then values.privateKeyFile
+      else pkgs.writeText "${name}-key" values.privateKey;
+    in
+      nameValuePair "wireguard-${name}" {
+        after = [ "network.target" "network-online.target" "wireguard-netns.service" ];
+        bindsTo = [ "wireguard-netns.service" ];
+        requires = [ "network-online.target" "wireguard-netns.service" ];
+        wantedBy = [ "multi-user.target" ];
 
-      description = "WireGuard Tunnel - ${name}";
-      environment = {
-        BLACKLIST = toString (cfg.blacklist ++ values.blacklist);
-        WHITELIST = toString (cfg.whitelist ++ values.whitelist);
-      };
-      path = with pkgs; [ iw kmod iproute systemd wireguard ];
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-      };
+        description = "WireGuard Tunnel - ${name}";
+        environment = {
+          BLACKLIST = toString (cfg.blacklist ++ values.blacklist);
+          WHITELIST = toString (cfg.whitelist ++ values.whitelist);
+        };
+        path = with pkgs; [ iw kmod iproute systemd wireguard ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+        };
 
-      script = ''
-        ${optionalString (!config.boot.isContainer) "modprobe wireguard"}
+        script = ''
+          ${optionalString (!config.boot.isContainer) "modprobe wireguard"}
 
-        ${values.preSetup}
+          ${values.preSetup}
 
-        ip -n ${cfg.namespace} link add dev ${name} type wireguard
-        ip -n ${cfg.namespace} link set ${name} netns 1
+          ip -n ${cfg.namespace} link add dev ${name} type wireguard
+          ip -n ${cfg.namespace} link set ${name} netns 1
 
-        ${concatMapStringsSep "\n" (ip:
-          "ip address add ${ip} dev ${name}"
+          ${concatMapStringsSep "\n" (
+          ip:
+            "ip address add ${ip} dev ${name}"
         ) values.ips}
 
-        wg set ${name} \
-          private-key ${privateKey} \
-          ${optionalString (values.listenPort != null) " listen-port ${toString values.listenPort}"}
+          wg set ${name} \
+            private-key ${privateKey} \
+            ${optionalString (values.listenPort != null) " listen-port ${toString values.listenPort}"}
 
-        ${concatMapStringsSep "\n" (peer:
-          assert (peer.presharedKeyFile == null) || (peer.presharedKey == null);
-          let
-            psk = if peer.presharedKey != null
+          ${concatMapStringsSep "\n" (
+          peer:
+            assert (peer.presharedKeyFile == null) || (peer.presharedKey == null);
+            let
+              psk = if peer.presharedKey != null
               then pkgs.writeText "${name}-psk" peer.presharedKey
               else peer.presharedKeyFile;
-          in ''
-            wg set ${name} \
-              peer ${peer.publicKey} \
-              ${optionalString (psk != null) "preshared-key ${psk}"} \
-              ${optionalString (peer.endpoint != null) "endpoint ${peer.endpoint}"} \
-              ${optionalString (peer.persistentKeepalive != null) "persistent-keepalive ${toString peer.persistentKeepalive}"} \
-              ${optionalString (peer.allowedIPs != []) "allowed-ips ${concatStringsSep "," peer.allowedIPs}"}
-          ''
+            in
+              ''
+                wg set ${name} \
+                  peer ${peer.publicKey} \
+                  ${optionalString (psk != null) "preshared-key ${psk}"} \
+                  ${optionalString (peer.endpoint != null) "endpoint ${peer.endpoint}"} \
+                  ${optionalString (peer.persistentKeepalive != null) "persistent-keepalive ${toString peer.persistentKeepalive}"} \
+                  ${optionalString (peer.allowedIPs != []) "allowed-ips ${concatStringsSep "," peer.allowedIPs}"}
+              ''
         ) values.peers}
 
-        # TODO: Ethernet support
-        # ip link set eth0 netns ${cfg.namespace}
-        iw phy phy0 set netns name ${cfg.namespace}
+          # TODO: Ethernet support
+          # ip link set eth0 netns ${cfg.namespace}
+          iw phy phy0 set netns name ${cfg.namespace}
 
-        ip link set up dev ${name}
-        ip route add default dev ${name}
+          ip link set up dev ${name}
+          ip route add default dev ${name}
 
-        ${values.postSetup}
-      '';
+          ${values.postSetup}
+        '';
 
-      postStop = ''
-        # ip -n ${cfg.namespace} link set eth0 down
-        # ip -n ${cfg.namespace} link set wlan down
+        postStop = ''
+          # ip -n ${cfg.namespace} link set eth0 down
+          # ip -n ${cfg.namespace} link set wlan down
 
-        # ip -n ${cfg.namespace} link set eth0 netns 1
-        ip netns exec ${cfg.namespace} iw phy phy0 set netns 1
-        ip link del ${name}
+          # ip -n ${cfg.namespace} link set eth0 netns 1
+          ip netns exec ${cfg.namespace} iw phy phy0 set netns 1
+          ip link del ${name}
 
-        ${values.postShutdown}
-      '';
-    };
-in {
+          ${values.postShutdown}
+        '';
+      };
+in
+{
   options = {
     networking.wireguard = {
       enable = mkOption {
-        default = cfg.interfaces != { };
+        default = cfg.interfaces != {};
         type = types.bool;
         description = ''
           Whether or not to activate the WireGuard configuration.
@@ -328,9 +333,11 @@ in {
             ips = [ "192.168.20.4/24" ];
             privateKey = "yAnz5TF+lXXJte14tji3zlMNq+hd2rYUIgJBgB3fBmk=";
             peers = [
-              { allowedIPs = [ "192.168.20.1/32" ];
-                publicKey  = "xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg=";
-                endpoint   = "demo.wireguard.io:12913"; }
+              {
+                allowedIPs = [ "192.168.20.1/32" ];
+                publicKey = "xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg=";
+                endpoint = "demo.wireguard.io:12913";
+              }
             ];
           };
         };
@@ -349,32 +356,35 @@ in {
     systemd.services = let
       netns = { serviceConfig.PrivateNetwork = true; };
       netnsDepend = netns // { unitConfig.JoinsNamespaceOf = "wireguard-netns.service"; };
-    in mapAttrs' generateUnit cfg.interfaces // {
-      dhcpcd = netnsDepend;
-      wpa_supplicant = netnsDepend;
+    in
+      mapAttrs' generateUnit cfg.interfaces // {
+        dhcpcd = netnsDepend;
+        wpa_supplicant = netnsDepend;
 
-      wireguard-netns = {
-        description = "WireGuard Network Namespace - ${cfg.namespace}";
-        documentation = [ "https://github.com/systemd/systemd/issues/2741#issuecomment-433979748"
-                          "https://paste.gnugen.ch/raw/LmAV"
-                          "https://paste.gnugen.ch/raw/Dpdz" ];
-        path = with pkgs; [ iproute utillinux ];
-        unitConfig.StopWhenUnneeded = true;
-        serviceConfig = netns.serviceConfig // {
-          Type = "oneshot";
-          RemainAfterExit = true;
+        wireguard-netns = {
+          description = "WireGuard Network Namespace - ${cfg.namespace}";
+          documentation = [
+            "https://github.com/systemd/systemd/issues/2741#issuecomment-433979748"
+            "https://paste.gnugen.ch/raw/LmAV"
+            "https://paste.gnugen.ch/raw/Dpdz"
+          ];
+          path = with pkgs; [ iproute utillinux ];
+          unitConfig.StopWhenUnneeded = true;
+          serviceConfig = netns.serviceConfig // {
+            Type = "oneshot";
+            RemainAfterExit = true;
+          };
+
+          script = ''
+            ip netns add ${cfg.namespace}
+            umount /var/run/netns/${cfg.namespace}
+            mount --bind /proc/self/ns/net /var/run/netns/${cfg.namespace}
+          '';
+
+          postStop = ''
+            ip netns del ${cfg.namespace}
+          '';
         };
-
-        script = ''
-          ip netns add ${cfg.namespace}
-          umount /var/run/netns/${cfg.namespace}
-          mount --bind /proc/self/ns/net /var/run/netns/${cfg.namespace}
-        '';
-
-        postStop = ''
-          ip netns del ${cfg.namespace}
-        '';
       };
-    };
   };
 }

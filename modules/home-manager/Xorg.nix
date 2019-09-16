@@ -1,10 +1,13 @@
 { pkgs, ... }:
 
 let
-  system-config = (import <nixpkgs/nixos/lib/eval-config.nix> {
-    modules = [ <nixos-config> ];
-  }).config.nixos.settings;
-in {
+  system-config = (
+    import <nixpkgs/nixos/lib/eval-config.nix> {
+      modules = [ <nixos-config> ];
+    }
+  ).config.nixos.settings;
+in
+{
   xresources.properties = {
     "*foreground" = "#d9c5c8";
     "*background" = "#0c0e14";

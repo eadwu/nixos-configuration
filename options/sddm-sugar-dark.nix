@@ -6,11 +6,13 @@ let
   scfg = config.services.xserver.displayManager.sddm;
   cfg = scfg.greeters.sugar-dark;
 
-  sddm-sugar-dark-custom = pkgs.sddm-sugar-dark.overrideAttrs (oldAttrs: {
-    postInstall = (oldAttrs.postInstall or "") + ''
-      cp -f ${sugarConfig} $out/$installPrefix/$themeName/theme.conf
-    '';
-  });
+  sddm-sugar-dark-custom = pkgs.sddm-sugar-dark.overrideAttrs (
+    oldAttrs: {
+      postInstall = (oldAttrs.postInstall or "") + ''
+        cp -f ${sugarConfig} $out/$installPrefix/$themeName/theme.conf
+      '';
+    }
+  );
 
   sugarConfig = pkgs.writeText "theme.conf" ''
     [General]
@@ -138,7 +140,8 @@ let
       };
     };
   };
-in {
+in
+{
   options = {
     services.xserver.displayManager.sddm.greeters.sugar-dark = {
       background = mkOption {
