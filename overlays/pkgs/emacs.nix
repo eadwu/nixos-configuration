@@ -10,11 +10,11 @@ let
     withGTK3 = true;
   }).overrideAttrs (oldAttrs: rec {
     name = "${pname}-${version}";
-    pname = stdenv.lib.removeSuffix "-${oldAttrs.version}" oldAttrs.name;
-    version = "unstable-2019-09-01";
+    pname = (stdenv.lib.removeSuffix "-${oldAttrs.version}" oldAttrs.name) + "-unstable";
+    version = "2019-09-15";
 
     src = builtins.fetchTarball {
-      url = "https://git.savannah.gnu.org/cgit/emacs.git/snapshot/emacs-dd162a3f2264940e3e329d0bfb195f56d00ed08f.tar.gz";
+      url = "https://git.savannah.gnu.org/cgit/emacs.git/snapshot/emacs-a625ca5c2675a41c5c0d277def6b8cb4f4c4d6db.tar.gz";
     };
 
     patches = [
