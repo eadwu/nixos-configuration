@@ -8,12 +8,12 @@
         setopt histignorespace
 
         nix-clean () {
-          nix-env --delete-generations old
+          nix-env --delete-generations $1
           nix-store --gc
           nix-channel --update
           nix-env -u --always
           for link in /nix/var/nix/gcroots/auto/*; do rm $(readlink "$link"); done
-          nix-collect-garbage -d
+          nix-collect-garbage --delete-older-than $1
         }
 
         nix-derive-output () {
