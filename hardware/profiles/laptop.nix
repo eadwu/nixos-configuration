@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 
 {
   boot.kernelParams = [
@@ -19,6 +19,7 @@
 
   powerManagement.enable = true;
 
+  services.irqbalance.enable = lib.mkDefault true;
   services.udev.extraRules = ''
     # Set scheduler for NVMe
     ACTION=="add|change", KERNEL=="nvme[0-9]*", ATTR{queue/scheduler}="none"
