@@ -21,7 +21,10 @@
     config = {
       "bar/data" = {
         enable-ipc = true;
-        modules-right = "temperature0 temperature1 temperature2 temperature3 cpu memory seperator filesystem network0 network1 network2 network3 battery backlight volume date time";
+        modules-right =
+          "temperature0 temperature1 temperature2 temperature3 temperature4 temperature5 cpu memory"
+          + " seperator "
+          + "filesystem network0 network1 network2 network3 battery backlight volume date time";
       };
 
       "module/seperator" = {
@@ -63,6 +66,16 @@
       "module/temperature3" = {
         "inherit" = "section/temperature";
         hwmon-path = "/sys/devices/platform/coretemp.0/hwmon/hwmon3/temp1_input";
+      };
+
+      "module/temperature4" = {
+        "inherit" = "section/temperature";
+        hwmon-path = "/sys/devices/platform/coretemp.0/hwmon/hwmon4/temp1_input";
+      };
+
+      "module/temperature5" = {
+        "inherit" = "section/temperature";
+        hwmon-path = "/sys/devices/platform/coretemp.0/hwmon/hwmon5/temp1_input";
       };
 
       "module/cpu" = {
