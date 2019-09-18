@@ -23,6 +23,7 @@
       openssl
       nixopsUnstable
       nix-index
+      nixpkgs-fmt
       pass
       ripgrep
       tree
