@@ -4,14 +4,14 @@ with self.pkgs; rec {
   linux_rpi_4_19 = (
     super.linux_rpi.override {
       argsOverride = rec {
-        version = "4.19.67";
+        version = "4.19.73";
         modDirVersion = with lib; concatStrings (intersperse "." (take 3 (splitString "." "${version}.0")));
       };
     }
   ).overrideDerivation (
     _: {
       src = builtins.fetchTarball {
-        url = "https://github.com/raspberrypi/linux/archive/174fcab91765ef8fe3562c9858fb62f1a471c2d6.tar.gz";
+        url = "https://github.com/raspberrypi/linux/archive/4d486c17f636bb339c10cd73a07292220a973e01.tar.gz";
       };
     }
   );
@@ -26,7 +26,7 @@ with self.pkgs; rec {
   raspberrypifw = super.raspberrypifw.overrideAttrs (
     _: {
       src = builtins.fetchTarball {
-        url = "https://github.com/raspberrypi/firmware/archive/7163480fff007dc98978899b556dcf06f8a462c8.tar.gz";
+        url = "https://github.com/raspberrypi/firmware/archive/f8e05108dbb3b5640f48b6b301296e979876836b.tar.gz";
       };
     }
   );
