@@ -126,6 +126,10 @@ in
       }
     );
 
+    typora = super.typora.override {
+      withPandoc = true;
+    };
+
     vaapiIntel = super.vaapiIntel.override {
       enableHybridCodec = true;
     };
