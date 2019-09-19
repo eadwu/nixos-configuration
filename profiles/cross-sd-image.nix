@@ -22,13 +22,34 @@ with lib; {
   fonts.fontconfig.enable = mkForce false;
   security.polkit.enable = mkForce false;
 
-  security.pki.certificateFiles = [ ../credentials/ca.pem ../credentials/melon-ca.pem ];
-  environment.etc = {
-    "wpa_supplicant/ca.pem".source = ../credentials/ca.pem;
-    "wpa_supplicant/melon-ca.pem".source = ../credentials/melon-ca.pem;
-    "wpa_supplicant/eduroam".source = ../credentials/eduroam;
+  systemd.services.spew-debug-flies = {
+    wantedBy = [ "network.target" "multi-user.target" ];
+
+    enable = true;
+
+    script = ''
+      ${pkgs.iproute}/bin/ip a
+
+      if [ -e /sys/class/net/eth0 ]; then
+        echo "eth0"
+        cat /sys/class/net/eth0/address
+        ${pkgs.iproute}/bin/ip link show eth0
+      fi
+
+      if [ -e /sys/class/net/enx* ]; then
+        echo "enx*"
+        cat /sys/class/net/enx*/address
+      fi
+
+      if [ -e /sys/class/net/wlan0 ]; then
+        echo "wlan0"
+        cat /sys/class/net/wlan0/address
+        ${pkgs.iproute}/bin/ip link show wlan0
+      fi
+    '';
   };
 
+  networking.enableIPv6 = false;
   networking.wireless = {
     enable = true;
     driver = "wext,nl80211";
