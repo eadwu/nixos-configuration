@@ -125,7 +125,7 @@ in
         type = types.str;
         visible = false;
         readOnly = true;
-        default = "192.168.1.209";
+        default = "8.22.110.73";
         description = ''
           Private IP of my raspberry pi 3 b+
         '';
