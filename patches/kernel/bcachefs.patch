@@ -722,7 +722,7 @@ index 0000000000000..cb62d502a7ff3
 +#endif /* _BCACHEFS_ACL_H */
 diff --git a/fs/bcachefs/alloc_background.c b/fs/bcachefs/alloc_background.c
 new file mode 100644
-index 0000000000000..7a457729cf189
+index 0000000000000..9814179a6406e
 --- /dev/null
 +++ b/fs/bcachefs/alloc_background.c
 @@ -0,0 +1,1650 @@
@@ -1892,7 +1892,7 @@ index 0000000000000..7a457729cf189
 +			 */
 +			if (!nr ||
 +			    (nr < ALLOC_SCAN_BATCH(ca) &&
-+			     !fifo_full(&ca->free[RESERVE_MOVINGGC]))) {
++			     !fifo_empty(&ca->free[RESERVE_NONE]))) {
 +				ret = wait_buckets_available(c, ca);
 +				if (ret) {
 +					up_read(&c->gc_lock);
@@ -2484,10 +2484,10 @@ index 0000000000000..501c444353fbf
 +#endif /* _BCACHEFS_ALLOC_BACKGROUND_H */
 diff --git a/fs/bcachefs/alloc_foreground.c b/fs/bcachefs/alloc_foreground.c
 new file mode 100644
-index 0000000000000..e64f8449462fc
+index 0000000000000..697d576802b65
 --- /dev/null
 +++ b/fs/bcachefs/alloc_foreground.c
-@@ -0,0 +1,1045 @@
+@@ -0,0 +1,1044 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Primary bucket allocation code
@@ -3183,8 +3183,7 @@ index 0000000000000..e64f8449462fc
 +}
 +
 +void bch2_open_buckets_stop_dev(struct bch_fs *c, struct bch_dev *ca,
-+				struct open_buckets *obs,
-+				enum bch_data_type data_type)
++				struct open_buckets *obs)
 +{
 +	struct open_buckets ptrs = { .nr = 0 };
 +	struct open_bucket *ob, *ob2;
@@ -3215,7 +3214,7 @@ index 0000000000000..e64f8449462fc
 +			  struct write_point *wp)
 +{
 +	mutex_lock(&wp->lock);
-+	bch2_open_buckets_stop_dev(c, ca, &wp->ptrs, wp->type);
++	bch2_open_buckets_stop_dev(c, ca, &wp->ptrs);
 +	mutex_unlock(&wp->lock);
 +}
 +
@@ -3535,7 +3534,7 @@ index 0000000000000..e64f8449462fc
 +}
 diff --git a/fs/bcachefs/alloc_foreground.h b/fs/bcachefs/alloc_foreground.h
 new file mode 100644
-index 0000000000000..6d8ffb0cd06df
+index 0000000000000..687f973e4b3a9
 --- /dev/null
 +++ b/fs/bcachefs/alloc_foreground.h
 @@ -0,0 +1,133 @@
@@ -3647,7 +3646,7 @@ index 0000000000000..6d8ffb0cd06df
 +void bch2_alloc_sectors_done(struct bch_fs *, struct write_point *);
 +
 +void bch2_open_buckets_stop_dev(struct bch_fs *, struct bch_dev *,
-+				struct open_buckets *, enum bch_data_type);
++				struct open_buckets *);
 +
 +void bch2_writepoint_stop(struct bch_fs *, struct bch_dev *,
 +			  struct write_point *);
@@ -16139,10 +16138,10 @@ index 0000000000000..c817aeed878ad
 +#endif /* _BCACHEFS_BTREE_IO_H */
 diff --git a/fs/bcachefs/btree_iter.c b/fs/bcachefs/btree_iter.c
 new file mode 100644
-index 0000000000000..da38950b4336f
+index 0000000000000..40cd87d73a4fb
 --- /dev/null
 +++ b/fs/bcachefs/btree_iter.c
-@@ -0,0 +1,2064 @@
+@@ -0,0 +1,2107 @@
 +// SPDX-License-Identifier: GPL-2.0
 +
 +#include "bcachefs.h"
@@ -16687,14 +16686,14 @@ index 0000000000000..da38950b4336f
 +		goto fixup_done;
 +	} else {
 +		/* Iterator is after key that changed */
-+		goto out_verify;
++		return;
 +	}
 +found:
 +	set->end = t->end_offset;
 +
 +	/* Iterator hasn't gotten to the key that changed yet: */
 +	if (set->k < offset)
-+		goto out_verify;
++		return;
 +
 +	if (new_u64s &&
 +	    btree_iter_pos_cmp(iter, b, where) > 0) {
@@ -16706,7 +16705,7 @@ index 0000000000000..da38950b4336f
 +	} else {
 +		/* Iterator is after key that changed */
 +		set->k = (int) set->k + shift;
-+		goto out_verify;
++		return;
 +	}
 +
 +	bch2_btree_node_iter_sort(node_iter, b);
@@ -16765,8 +16764,6 @@ index 0000000000000..da38950b4336f
 +
 +		btree_iter_set_dirty(iter, BTREE_ITER_NEED_PEEK);
 +	}
-+out_verify:
-+	bch2_btree_node_iter_verify(node_iter, b);
 +}
 +
 +void bch2_btree_node_iter_fix(struct btree_iter *iter,
@@ -16779,14 +16776,18 @@ index 0000000000000..da38950b4336f
 +	struct bset_tree *t = bch2_bkey_to_bset(b, where);
 +	struct btree_iter *linked;
 +
-+	if (node_iter != &iter->l[b->level].iter)
++	if (node_iter != &iter->l[b->level].iter) {
 +		__bch2_btree_node_iter_fix(iter, b, node_iter, t,
-+					  where, clobber_u64s, new_u64s);
++					   where, clobber_u64s, new_u64s);
++		bch2_btree_node_iter_verify(node_iter, b);
++	}
 +
-+	trans_for_each_iter_with_node(iter->trans, b, linked)
++	trans_for_each_iter_with_node(iter->trans, b, linked) {
 +		__bch2_btree_node_iter_fix(linked, b,
-+					  &linked->l[b->level].iter, t,
-+					  where, clobber_u64s, new_u64s);
++					   &linked->l[b->level].iter, t,
++					   where, clobber_u64s, new_u64s);
++		__bch2_btree_iter_verify(linked, b);
++	}
 +}
 +
 +static inline struct bkey_s_c __btree_iter_unpack(struct btree_iter *iter,
@@ -16827,6 +16828,13 @@ index 0000000000000..da38950b4336f
 +{
 +	return __btree_iter_unpack(iter, l, &iter->k,
 +			bch2_btree_node_iter_peek(&l->iter, l->b));
++}
++
++static inline struct bkey_s_c __btree_iter_prev(struct btree_iter *iter,
++						struct btree_iter_level *l)
++{
++	return __btree_iter_unpack(iter, l, &iter->k,
++			bch2_btree_node_iter_prev(&l->iter, l->b));
 +}
 +
 +static inline bool btree_iter_advance_to_pos(struct btree_iter *iter,
@@ -17486,14 +17494,20 @@ index 0000000000000..da38950b4336f
 +	struct bkey_s_c ret = { .k = &iter->k };
 +
 +	if (!bkey_deleted(&iter->k)) {
-+		EBUG_ON(bch2_btree_node_iter_end(&l->iter));
-+		ret.v = bkeyp_val(&l->b->format,
-+			__bch2_btree_node_iter_peek_all(&l->iter, l->b));
++		struct bkey_packed *_k =
++			__bch2_btree_node_iter_peek_all(&l->iter, l->b);
++
++		ret.v = bkeyp_val(&l->b->format, _k);
++
++		if (debug_check_iterators(iter->trans->c)) {
++			struct bkey k = bkey_unpack_key(l->b, _k);
++			BUG_ON(memcmp(&k, &iter->k, sizeof(k)));
++		}
++
++		if (debug_check_bkeys(iter->trans->c))
++			bch2_bkey_debugcheck(iter->trans->c, l->b, ret);
 +	}
 +
-+	if (debug_check_bkeys(iter->trans->c) &&
-+	    !bkey_deleted(ret.k))
-+		bch2_bkey_debugcheck(iter->trans->c, l->b, ret);
 +	return ret;
 +}
 +
@@ -17583,48 +17597,76 @@ index 0000000000000..da38950b4336f
 +	return k;
 +}
 +
-+struct bkey_s_c bch2_btree_iter_prev(struct btree_iter *iter)
++/**
++ * bch2_btree_iter_peek_prev: returns first key less than or equal to
++ * iterator's current position
++ */
++struct bkey_s_c bch2_btree_iter_peek_prev(struct btree_iter *iter)
 +{
 +	struct btree_iter_level *l = &iter->l[0];
-+	struct bkey_packed *p;
 +	struct bkey_s_c k;
 +	int ret;
 +
 +	bch2_btree_iter_checks(iter, BTREE_ITER_KEYS);
 +
-+	if (unlikely(iter->uptodate != BTREE_ITER_UPTODATE)) {
-+		k = bch2_btree_iter_peek(iter);
-+		if (IS_ERR(k.k))
-+			return k;
-+	}
++	if (iter->uptodate == BTREE_ITER_UPTODATE)
++		return btree_iter_peek_uptodate(iter);
 +
 +	while (1) {
-+		p = bch2_btree_node_iter_prev(&l->iter, l->b);
-+		if (likely(p))
-+			break;
-+
-+		iter->pos = l->b->data->min_key;
-+		if (!bkey_cmp(iter->pos, POS_MIN))
-+			return bkey_s_c_null;
-+
-+		bch2_btree_iter_set_pos(iter,
-+			btree_type_predecessor(iter->btree_id, iter->pos));
-+
 +		ret = bch2_btree_iter_traverse(iter);
 +		if (unlikely(ret))
 +			return bkey_s_c_err(ret);
 +
-+		p = bch2_btree_node_iter_peek(&l->iter, l->b);
-+		if (p)
++		k = __btree_iter_peek(iter, l);
++		if (!k.k ||
++		    bkey_cmp(bkey_start_pos(k.k), iter->pos) > 0)
++			k = __btree_iter_prev(iter, l);
++
++		if (likely(k.k))
 +			break;
++
++		if (!btree_iter_set_pos_to_prev_leaf(iter))
++			return bkey_s_c_null;
 +	}
 +
-+	k = __btree_iter_unpack(iter, l, &iter->k, p);
-+
 +	EBUG_ON(bkey_cmp(bkey_start_pos(k.k), iter->pos) > 0);
-+
 +	iter->pos	= bkey_start_pos(k.k);
 +	iter->uptodate	= BTREE_ITER_UPTODATE;
++	return k;
++}
++
++/**
++ * bch2_btree_iter_prev: returns first key less than iterator's current
++ * position
++ */
++struct bkey_s_c bch2_btree_iter_prev(struct btree_iter *iter)
++{
++	struct btree_iter_level *l = &iter->l[0];
++	struct bkey_s_c k;
++
++	bch2_btree_iter_checks(iter, BTREE_ITER_KEYS);
++
++	if (unlikely(iter->uptodate != BTREE_ITER_UPTODATE)) {
++		/*
++		 * XXX: when we just need to relock we should be able to avoid
++		 * calling traverse, but we need to kill BTREE_ITER_NEED_PEEK
++		 * for that to work
++		 */
++		iter->pos	= btree_type_predecessor(iter->btree_id,
++							 iter->pos);
++		iter->uptodate	= BTREE_ITER_NEED_TRAVERSE;
++
++		return bch2_btree_iter_peek_prev(iter);
++	}
++
++	k = __btree_iter_prev(iter, l);
++	if (unlikely(!k.k))
++		return btree_iter_set_pos_to_prev_leaf(iter)
++			? bch2_btree_iter_peek(iter)
++			: bkey_s_c_null;
++
++	EBUG_ON(bkey_cmp(bkey_start_pos(k.k), iter->pos) >= 0);
++	iter->pos	= bkey_start_pos(k.k);
 +	return k;
 +}
 +
@@ -18209,10 +18251,10 @@ index 0000000000000..da38950b4336f
 +}
 diff --git a/fs/bcachefs/btree_iter.h b/fs/bcachefs/btree_iter.h
 new file mode 100644
-index 0000000000000..846c360fb5c2c
+index 0000000000000..e4967215e1d91
 --- /dev/null
 +++ b/fs/bcachefs/btree_iter.h
-@@ -0,0 +1,318 @@
+@@ -0,0 +1,320 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +#ifndef _BCACHEFS_BTREE_ITER_H
 +#define _BCACHEFS_BTREE_ITER_H
@@ -18366,6 +18408,8 @@ index 0000000000000..846c360fb5c2c
 +
 +struct bkey_s_c bch2_btree_iter_peek(struct btree_iter *);
 +struct bkey_s_c bch2_btree_iter_next(struct btree_iter *);
++
++struct bkey_s_c bch2_btree_iter_peek_prev(struct btree_iter *);
 +struct bkey_s_c bch2_btree_iter_prev(struct btree_iter *);
 +
 +struct bkey_s_c bch2_btree_iter_peek_slot(struct btree_iter *);
@@ -22044,10 +22088,10 @@ index 0000000000000..e5156e9081106
 +#endif /* _BCACHEFS_BTREE_UPDATE_INTERIOR_H */
 diff --git a/fs/bcachefs/btree_update_leaf.c b/fs/bcachefs/btree_update_leaf.c
 new file mode 100644
-index 0000000000000..baff86cca9b46
+index 0000000000000..0d32fb8726c71
 --- /dev/null
 +++ b/fs/bcachefs/btree_update_leaf.c
-@@ -0,0 +1,1110 @@
+@@ -0,0 +1,1106 @@
 +// SPDX-License-Identifier: GPL-2.0
 +
 +#include "bcachefs.h"
@@ -22201,7 +22245,6 @@ index 0000000000000..baff86cca9b46
 +				bch2_bset_delete(b, k, clobber_u64s);
 +				bch2_btree_node_iter_fix(iter, b, node_iter,
 +							 k, clobber_u64s, 0);
-+				bch2_btree_iter_verify(iter, b);
 +				return true;
 +			}
 +
@@ -22211,7 +22254,6 @@ index 0000000000000..baff86cca9b46
 +		k->type = KEY_TYPE_deleted;
 +		bch2_btree_node_iter_fix(iter, b, node_iter, k,
 +					 k->u64s, k->u64s);
-+		bch2_btree_iter_verify(iter, b);
 +
 +		if (bkey_whiteout(&insert->k)) {
 +			reserve_whiteout(b, k);
@@ -22233,10 +22275,8 @@ index 0000000000000..baff86cca9b46
 +	clobber_u64s = 0;
 +overwrite:
 +	bch2_bset_insert(b, node_iter, k, insert, clobber_u64s);
-+	if (k->u64s != clobber_u64s || bkey_whiteout(&insert->k))
-+		bch2_btree_node_iter_fix(iter, b, node_iter, k,
-+					 clobber_u64s, k->u64s);
-+	bch2_btree_iter_verify(iter, b);
++	bch2_btree_node_iter_fix(iter, b, node_iter, k,
++				 clobber_u64s, k->u64s);
 +	return true;
 +}
 +
@@ -29704,10 +29744,10 @@ index 0000000000000..c8e0c37a5e1a4
 +#endif /* _BCACHEFS_DISK_GROUPS_H */
 diff --git a/fs/bcachefs/ec.c b/fs/bcachefs/ec.c
 new file mode 100644
-index 0000000000000..0742d2c12047e
+index 0000000000000..be2eca0fcdf7f
 --- /dev/null
 +++ b/fs/bcachefs/ec.c
-@@ -0,0 +1,1407 @@
+@@ -0,0 +1,1403 @@
 +// SPDX-License-Identifier: GPL-2.0
 +
 +/* erasure coding */
@@ -30883,12 +30923,8 @@ index 0000000000000..0742d2c12047e
 +		struct ec_stripe_new *s = NULL;
 +
 +		mutex_lock(&h->lock);
-+		bch2_open_buckets_stop_dev(c, ca,
-+					   &h->blocks,
-+					   BCH_DATA_USER);
-+		bch2_open_buckets_stop_dev(c, ca,
-+					   &h->parity,
-+					   BCH_DATA_USER);
++		bch2_open_buckets_stop_dev(c, ca, &h->blocks);
++		bch2_open_buckets_stop_dev(c, ca, &h->parity);
 +
 +		if (!h->s)
 +			goto unlock;
@@ -31739,10 +31775,10 @@ index 0000000000000..2591e12305b71
 +#endif /* _BCACHEFS_ERROR_H */
 diff --git a/fs/bcachefs/extents.c b/fs/bcachefs/extents.c
 new file mode 100644
-index 0000000000000..fbae9720c0803
+index 0000000000000..4b1c652cdbce9
 --- /dev/null
 +++ b/fs/bcachefs/extents.c
-@@ -0,0 +1,1909 @@
+@@ -0,0 +1,1897 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Copyright (C) 2010 Kent Overstreet <kent.overstreet@gmail.com>
@@ -32621,13 +32657,6 @@ index 0000000000000..fbae9720c0803
 +#endif
 +}
 +
-+static void verify_modified_extent(struct btree_iter *iter,
-+				   struct bkey_packed *k)
-+{
-+	bch2_btree_iter_verify(iter, iter->l[0].b);
-+	bch2_verify_insert_pos(iter->l[0].b, k, k, k->u64s);
-+}
-+
 +static void extent_bset_insert(struct bch_fs *c, struct btree_iter *iter,
 +			       struct bkey_i *insert)
 +{
@@ -32669,7 +32698,6 @@ index 0000000000000..fbae9720c0803
 +
 +	bch2_bset_insert(l->b, &l->iter, k, insert, 0);
 +	bch2_btree_node_iter_fix(iter, l->b, &l->iter, k, 0, k->u64s);
-+	bch2_btree_iter_verify(iter, l->b);
 +}
 +
 +static unsigned bch2_bkey_nr_alloc_ptrs(struct bkey_s_c k)
@@ -32884,17 +32912,16 @@ index 0000000000000..fbae9720c0803
 +	case BCH_EXTENT_OVERLAP_FRONT:
 +		/* insert overlaps with start of k: */
 +		__bch2_cut_front(insert->k.p, k);
-+		BUG_ON(bkey_deleted(k.k));
++		EBUG_ON(bkey_deleted(k.k));
 +		extent_save(l->b, _k, k.k);
 +		bch2_btree_node_iter_fix(iter, l->b, &l->iter,
 +					 _k, _k->u64s, _k->u64s);
-+		verify_modified_extent(iter, _k);
 +		break;
 +
 +	case BCH_EXTENT_OVERLAP_BACK:
 +		/* insert overlaps with end of k: */
 +		bch2_cut_back(bkey_start_pos(&insert->k), k.k);
-+		BUG_ON(bkey_deleted(k.k));
++		EBUG_ON(bkey_deleted(k.k));
 +		extent_save(l->b, _k, k.k);
 +
 +		/*
@@ -32905,7 +32932,6 @@ index 0000000000000..fbae9720c0803
 +		bch2_bset_fix_invalidated_key(l->b, _k);
 +		bch2_btree_node_iter_fix(iter, l->b, &l->iter,
 +					 _k, _k->u64s, _k->u64s);
-+		verify_modified_extent(iter, _k);
 +		break;
 +
 +	case BCH_EXTENT_OVERLAP_ALL: {
@@ -32922,12 +32948,10 @@ index 0000000000000..fbae9720c0803
 +			bch2_bset_delete(l->b, _k, _k->u64s);
 +			bch2_btree_node_iter_fix(iter, l->b, &l->iter,
 +						 _k, u64s, 0);
-+			bch2_btree_iter_verify(iter, l->b);
 +		} else {
 +			extent_save(l->b, _k, k.k);
 +			bch2_btree_node_iter_fix(iter, l->b, &l->iter,
 +						 _k, _k->u64s, _k->u64s);
-+			verify_modified_extent(iter, _k);
 +		}
 +
 +		break;
@@ -32959,7 +32983,6 @@ index 0000000000000..fbae9720c0803
 +		extent_save(l->b, _k, k.k);
 +		bch2_btree_node_iter_fix(iter, l->b, &l->iter,
 +					 _k, _k->u64s, _k->u64s);
-+		verify_modified_extent(iter, _k);
 +
 +		extent_bset_insert(c, iter, &split.k);
 +		break;
@@ -33016,6 +33039,8 @@ index 0000000000000..fbae9720c0803
 +				btree_account_key_drop(l->b, _k);
 +				_k->type = KEY_TYPE_discard;
 +				reserve_whiteout(l->b, _k);
++				bch2_btree_node_iter_fix(iter, l->b, &l->iter,
++							_k, _k->u64s, _k->u64s);
 +			}
 +			break;
 +		}
@@ -33550,7 +33575,6 @@ index 0000000000000..fbae9720c0803
 +	bch2_bset_fix_invalidated_key(b, m);
 +	bch2_btree_node_iter_fix(iter, b, node_iter,
 +				 m, m->u64s, m->u64s);
-+	verify_modified_extent(iter, m);
 +
 +	return ret == BCH_MERGE_MERGE;
 +}
@@ -34709,10 +34733,10 @@ index 0000000000000..cdb272708a4bd
 +#endif /* _BCACHEFS_FIFO_H */
 diff --git a/fs/bcachefs/fs-io.c b/fs/bcachefs/fs-io.c
 new file mode 100644
-index 0000000000000..6e165ab22830e
+index 0000000000000..ad7b70e7910d0
 --- /dev/null
 +++ b/fs/bcachefs/fs-io.c
-@@ -0,0 +1,3280 @@
+@@ -0,0 +1,3353 @@
 +// SPDX-License-Identifier: GPL-2.0
 +#ifndef NO_BCACHEFS_FS
 +
@@ -35495,6 +35519,8 @@ index 0000000000000..6e165ab22830e
 +	struct address_space *mapping = inode->v.i_mapping;
 +	struct bch_fs *c = inode->v.i_sb->s_fs_info;
 +	struct bch2_page_reservation res;
++	unsigned len;
++	loff_t isize;
 +	int ret = VM_FAULT_LOCKED;
 +
 +	bch2_page_reservation_init(c, inode, &res);
@@ -35512,21 +35538,27 @@ index 0000000000000..6e165ab22830e
 +		pagecache_add_get(&mapping->add_lock);
 +
 +	lock_page(page);
-+	if (page->mapping != mapping ||
-+	    page_offset(page) > i_size_read(&inode->v)) {
++	isize = i_size_read(&inode->v);
++
++	if (page->mapping != mapping || page_offset(page) >= isize) {
 +		unlock_page(page);
 +		ret = VM_FAULT_NOPAGE;
 +		goto out;
 +	}
 +
-+	if (bch2_page_reservation_get(c, inode, page, &res,
-+				      0, PAGE_SIZE, true)) {
++	/* page is wholly or partially inside EOF */
++	if (((page->index + 1) << PAGE_SHIFT) <= isize)
++		len = PAGE_SIZE;
++	else
++		len = offset_in_page(isize);
++
++	if (bch2_page_reservation_get(c, inode, page, &res, 0, len, true)) {
 +		unlock_page(page);
 +		ret = VM_FAULT_SIGBUS;
 +		goto out;
 +	}
 +
-+	bch2_set_page_dirty(c, inode, page, &res, 0, PAGE_SIZE);
++	bch2_set_page_dirty(c, inode, page, &res, 0, len);
 +	wait_for_stable_page(page);
 +out:
 +	if (current->pagecache_lock != &mapping->add_lock)
@@ -36001,7 +36033,7 @@ index 0000000000000..6e165ab22830e
 +	struct bio *bio = &io->op.op.wbio.bio;
 +	struct bvec_iter_all iter;
 +	struct bio_vec *bvec;
-+	unsigned j;
++	unsigned i;
 +
 +	if (io->op.op.error) {
 +		bio_for_each_segment_all(bvec, bio, iter) {
@@ -36012,8 +36044,8 @@ index 0000000000000..6e165ab22830e
 +
 +			lock_page(bvec->bv_page);
 +			s = bch2_page_state(bvec->bv_page);
-+			for (j = 0; j < PAGE_SECTORS; j++)
-+				s->s[j].nr_replicas = 0;
++			for (i = 0; i < PAGE_SECTORS; i++)
++				s->s[i].nr_replicas = 0;
 +			unlock_page(bvec->bv_page);
 +		}
 +	}
@@ -36203,6 +36235,10 @@ index 0000000000000..6e165ab22830e
 +		BUG_ON(inode != w->io->op.inode);
 +		BUG_ON(!bio_add_page(&w->io->op.op.wbio.bio, page,
 +				     sectors << 9, offset << 9));
++
++		/* Check for writing past i_size: */
++		BUG_ON((bio_end_sector(&w->io->op.op.wbio.bio) << 9) >
++		       round_up(i_size, block_bytes(c)));
 +
 +		w->io->op.op.res.sectors += reserved_sectors;
 +		w->io->op.new_i_size = i_size;
@@ -37243,6 +37279,16 @@ index 0000000000000..6e165ab22830e
 +	if (unlikely(ret))
 +		goto err;
 +
++	/*
++	 * When extending, we're going to write the new i_size to disk
++	 * immediately so we need to flush anything above the current on disk
++	 * i_size first:
++	 *
++	 * Also, when extending we need to flush the page that i_size currently
++	 * straddles - if it's mapped to userspace, we need to ensure that
++	 * userspace has to redirty it and call .mkwrite -> set_page_dirty
++	 * again to allocate the part of the page that was extended.
++	 */
 +	if (iattr->ia_size > inode->ei_inode.bi_size)
 +		ret = filemap_write_and_wait_range(mapping,
 +				inode->ei_inode.bi_size,
@@ -37321,14 +37367,16 @@ index 0000000000000..6e165ab22830e
 +	return ret;
 +}
 +
-+static long bch2_fcollapse(struct bch_inode_info *inode,
-+			   loff_t offset, loff_t len)
++static long bch2_fcollapse_finsert(struct bch_inode_info *inode,
++				   loff_t offset, loff_t len,
++				   bool insert)
 +{
 +	struct bch_fs *c = inode->v.i_sb->s_fs_info;
 +	struct address_space *mapping = inode->v.i_mapping;
 +	struct btree_trans trans;
 +	struct btree_iter *src, *dst, *del = NULL;
-+	loff_t new_size;
++	loff_t shift, new_size;
++	u64 src_start;
 +	int ret;
 +
 +	if ((offset | len) & (block_bytes(c) - 1))
@@ -37346,33 +37394,52 @@ index 0000000000000..6e165ab22830e
 +	inode_dio_wait(&inode->v);
 +	pagecache_block_get(&mapping->add_lock);
 +
-+	ret = -EINVAL;
-+	if (offset + len >= inode->v.i_size)
-+		goto err;
++	if (insert) {
++		ret = -EFBIG;
++		if (inode->v.i_sb->s_maxbytes - inode->v.i_size < len)
++			goto err;
 +
-+	if (inode->v.i_size < len)
-+		goto err;
++		ret = -EINVAL;
++		if (offset >= inode->v.i_size)
++			goto err;
 +
-+	new_size = inode->v.i_size - len;
++		src_start	= U64_MAX;
++		shift		= len;
++	} else {
++		ret = -EINVAL;
++		if (offset + len >= inode->v.i_size)
++			goto err;
++
++		src_start	= offset + len;
++		shift		= -len;
++	}
++
++	new_size = inode->v.i_size + shift;
 +
 +	ret = write_invalidate_inode_pages_range(mapping, offset, LLONG_MAX);
 +	if (ret)
 +		goto err;
 +
-+	ret = __bch2_fpunch(c, inode, offset >> 9,
-+			    (offset + len) >> 9);
-+	if (ret)
-+		goto err;
-+
-+	dst = bch2_trans_get_iter(&trans, BTREE_ID_EXTENTS,
-+			POS(inode->v.i_ino, offset >> 9),
-+			BTREE_ITER_INTENT);
-+	BUG_ON(IS_ERR_OR_NULL(dst));
++	if (insert) {
++		i_size_write(&inode->v, new_size);
++		mutex_lock(&inode->ei_update_lock);
++		ret = bch2_write_inode_size(c, inode, new_size,
++					    ATTR_MTIME|ATTR_CTIME);
++		mutex_unlock(&inode->ei_update_lock);
++	} else {
++		ret = __bch2_fpunch(c, inode, offset >> 9,
++				    (offset + len) >> 9);
++		if (ret)
++			goto err;
++	}
 +
 +	src = bch2_trans_get_iter(&trans, BTREE_ID_EXTENTS,
-+			POS(inode->v.i_ino, (offset + len) >> 9),
++			POS(inode->v.i_ino, src_start >> 9),
 +			BTREE_ITER_INTENT);
 +	BUG_ON(IS_ERR_OR_NULL(src));
++
++	dst = bch2_trans_copy_iter(&trans, src);
++	BUG_ON(IS_ERR_OR_NULL(dst));
 +
 +	while (1) {
 +		struct disk_reservation disk_res =
@@ -37381,38 +37448,61 @@ index 0000000000000..6e165ab22830e
 +		struct bkey_i delete;
 +		struct bkey_s_c k;
 +		struct bpos next_pos;
++		struct bpos move_pos = POS(inode->v.i_ino, offset >> 9);
++		struct bpos atomic_end;
 +		unsigned commit_flags = BTREE_INSERT_NOFAIL|
 +			BTREE_INSERT_ATOMIC|
 +			BTREE_INSERT_USE_RESERVE;
 +
-+		k = bch2_btree_iter_peek(src);
++		k = insert
++			? bch2_btree_iter_peek_prev(src)
++			: bch2_btree_iter_peek(src);
 +		if ((ret = bkey_err(k)))
 +			goto bkey_err;
 +
 +		if (!k.k || k.k->p.inode != inode->v.i_ino)
 +			break;
 +
-+		BUG_ON(src->pos.offset != bkey_start_offset(k.k));
++		BUG_ON(bkey_cmp(src->pos, bkey_start_pos(k.k)));
 +
-+		bch2_btree_iter_set_pos(dst,
-+			POS(inode->v.i_ino, src->pos.offset - (len >> 9)));
++		if (insert &&
++		    bkey_cmp(k.k->p, POS(inode->v.i_ino, offset >> 9)) <= 0)
++			break;
++reassemble:
++		bkey_reassemble(&copy.k, k);
++
++		if (insert &&
++		    bkey_cmp(bkey_start_pos(k.k), move_pos) < 0) {
++			bch2_cut_front(move_pos, &copy.k);
++			bch2_btree_iter_set_pos(src, bkey_start_pos(&copy.k.k));
++		}
++
++		copy.k.k.p.offset += shift >> 9;
++		bch2_btree_iter_set_pos(dst, bkey_start_pos(&copy.k.k));
 +
 +		ret = bch2_btree_iter_traverse(dst);
 +		if (ret)
 +			goto bkey_err;
 +
-+		bkey_reassemble(&copy.k, k);
-+		copy.k.k.p = dst->pos;
-+		copy.k.k.p.offset += copy.k.k.size;
-+		ret = bch2_extent_trim_atomic(&copy.k, dst);
++		ret = bch2_extent_atomic_end(dst, &copy.k, &atomic_end);
 +		if (ret)
 +			goto bkey_err;
++
++		if (bkey_cmp(atomic_end, copy.k.k.p)) {
++			if (insert) {
++				move_pos = atomic_end;
++				move_pos.offset -= shift >> 9;
++				goto reassemble;
++			} else {
++				bch2_cut_back(atomic_end, &copy.k.k);
++			}
++		}
 +
 +		bkey_init(&delete.k);
 +		delete.k.p = src->pos;
 +		bch2_key_resize(&delete.k, copy.k.k.size);
 +
-+		next_pos = delete.k.p;
++		next_pos = insert ? bkey_start_pos(&delete.k) : delete.k.p;
 +
 +		/*
 +		 * If the new and old keys overlap (because we're moving an
@@ -37422,7 +37512,12 @@ index 0000000000000..6e165ab22830e
 +		 * triggers are run, so the overwrite will get double counted
 +		 * by the triggers machinery:
 +		 */
-+		if (bkey_cmp(copy.k.k.p, bkey_start_pos(&delete.k)) > 0) {
++		if (insert &&
++		    bkey_cmp(bkey_start_pos(&copy.k.k), delete.k.p) < 0) {
++			bch2_cut_back(bkey_start_pos(&copy.k.k), &delete.k);
++		} else if (!insert &&
++			   bkey_cmp(copy.k.k.p,
++				    bkey_start_pos(&delete.k)) > 0) {
 +			bch2_cut_front(copy.k.k.p, &delete);
 +
 +			del = bch2_trans_copy_iter(&trans, src);
@@ -37430,14 +37525,11 @@ index 0000000000000..6e165ab22830e
 +
 +			bch2_btree_iter_set_pos(del,
 +				bkey_start_pos(&delete.k));
-+			bch2_trans_update(&trans,
-+				BTREE_INSERT_ENTRY(del, &delete));
-+		} else {
-+			bch2_trans_update(&trans,
-+				BTREE_INSERT_ENTRY(src, &delete));
 +		}
 +
 +		bch2_trans_update(&trans, BTREE_INSERT_ENTRY(dst, &copy.k));
++		bch2_trans_update(&trans,
++				  BTREE_INSERT_ENTRY(del ?: src, &delete));
 +
 +		if (copy.k.k.size == k.k->size) {
 +			/*
@@ -37477,11 +37569,13 @@ index 0000000000000..6e165ab22830e
 +	}
 +	bch2_trans_unlock(&trans);
 +
-+	i_size_write(&inode->v, new_size);
-+	mutex_lock(&inode->ei_update_lock);
-+	ret = bch2_write_inode_size(c, inode, new_size,
-+				    ATTR_MTIME|ATTR_CTIME);
-+	mutex_unlock(&inode->ei_update_lock);
++	if (!insert) {
++		i_size_write(&inode->v, new_size);
++		mutex_lock(&inode->ei_update_lock);
++		ret = bch2_write_inode_size(c, inode, new_size,
++					    ATTR_MTIME|ATTR_CTIME);
++		mutex_unlock(&inode->ei_update_lock);
++	}
 +err:
 +	bch2_trans_exit(&trans);
 +	pagecache_block_put(&mapping->add_lock);
@@ -37650,8 +37744,11 @@ index 0000000000000..6e165ab22830e
 +	if (mode == (FALLOC_FL_PUNCH_HOLE|FALLOC_FL_KEEP_SIZE))
 +		return bch2_fpunch(inode, offset, len);
 +
++	if (mode == FALLOC_FL_INSERT_RANGE)
++		return bch2_fcollapse_finsert(inode, offset, len, true);
++
 +	if (mode == FALLOC_FL_COLLAPSE_RANGE)
-+		return bch2_fcollapse(inode, offset, len);
++		return bch2_fcollapse_finsert(inode, offset, len, false);
 +
 +	return -EOPNOTSUPP;
 +}
@@ -40502,7 +40599,7 @@ index 0000000000000..226223b058a90
 +#endif /* _BCACHEFS_FS_H */
 diff --git a/fs/bcachefs/fsck.c b/fs/bcachefs/fsck.c
 new file mode 100644
-index 0000000000000..e3738757b6a0c
+index 0000000000000..50a7d8c1fabaf
 --- /dev/null
 +++ b/fs/bcachefs/fsck.c
 @@ -0,0 +1,1477 @@
@@ -41017,7 +41114,7 @@ index 0000000000000..e3738757b6a0c
 +		if (fsck_err_on(w.have_inode &&
 +			!(w.inode.bi_flags & BCH_INODE_I_SIZE_DIRTY) &&
 +			k.k->type != KEY_TYPE_reservation &&
-+			k.k->p.offset > round_up(w.inode.bi_size, PAGE_SIZE) >> 9, c,
++			k.k->p.offset > round_up(w.inode.bi_size, block_bytes(c)) >> 9, c,
 +			"extent type %u offset %llu past end of inode %llu, i_size %llu",
 +			k.k->type, k.k->p.offset, k.k->p.inode, w.inode.bi_size)) {
 +			bch2_trans_unlock(&trans);
@@ -54420,10 +54517,10 @@ index 0000000000000..327618c36d33e
 +#endif /* _BCACHEFS_REFLINK_H */
 diff --git a/fs/bcachefs/replicas.c b/fs/bcachefs/replicas.c
 new file mode 100644
-index 0000000000000..d06027256e0bc
+index 0000000000000..bb9da2bb5a92c
 --- /dev/null
 +++ b/fs/bcachefs/replicas.c
-@@ -0,0 +1,1072 @@
+@@ -0,0 +1,1078 @@
 +// SPDX-License-Identifier: GPL-2.0
 +
 +#include "bcachefs.h"
@@ -54442,10 +54539,15 @@ index 0000000000000..d06027256e0bc
 +	return cmp_int(l, r);
 +}
 +
-+static void verify_replicas_entry_sorted(struct bch_replicas_entry *e)
++static void verify_replicas_entry(struct bch_replicas_entry *e)
 +{
-+#ifdef CONFIG_BCACHES_DEBUG
++#ifdef CONFIG_BCACHEFS_DEBUG
 +	unsigned i;
++
++	BUG_ON(e->data_type >= BCH_DATA_NR);
++	BUG_ON(!e->nr_devs);
++	BUG_ON(e->nr_required > 1 &&
++	       e->nr_required >= e->nr_devs);
 +
 +	for (i = 0; i + 1 < e->nr_devs; i++)
 +		BUG_ON(e->devs[i] >= e->devs[i + 1]);
@@ -54584,7 +54686,7 @@ index 0000000000000..d06027256e0bc
 +	};
 +
 +	BUG_ON(!new_entry->data_type);
-+	verify_replicas_entry_sorted(new_entry);
++	verify_replicas_entry(new_entry);
 +
 +	new.entries = kcalloc(new.nr, new.entry_size, GFP_NOIO);
 +	if (!new.entries)
@@ -54611,7 +54713,7 @@ index 0000000000000..d06027256e0bc
 +	if (unlikely(entry_size > r->entry_size))
 +		return -1;
 +
-+	verify_replicas_entry_sorted(search);
++	verify_replicas_entry(search);
 +
 +#define entry_cmp(_l, _r, size)	memcmp(_l, _r, entry_size)
 +	idx = eytzinger0_find(r->entries, r->nr, r->entry_size,
@@ -54642,7 +54744,7 @@ index 0000000000000..d06027256e0bc
 +	if (!search->nr_devs)
 +		return true;
 +
-+	verify_replicas_entry_sorted(search);
++	verify_replicas_entry(search);
 +
 +	return __replicas_has_entry(&c->replicas, search) &&
 +		(!check_gc_replicas ||
@@ -54785,6 +54887,8 @@ index 0000000000000..d06027256e0bc
 +{
 +	struct bch_replicas_cpu new_r, new_gc;
 +	int ret = -ENOMEM;
++
++	verify_replicas_entry(new_entry);
 +
 +	memset(&new_r, 0, sizeof(new_r));
 +	memset(&new_gc, 0, sizeof(new_gc));
@@ -55301,9 +55405,8 @@ index 0000000000000..d06027256e0bc
 +			goto err;
 +
 +		err = "invalid replicas entry: bad nr_required";
-+		if (!e->nr_required ||
-+		    (e->nr_required > 1 &&
-+		     e->nr_required >= e->nr_devs))
++		if (e->nr_required > 1 &&
++		    e->nr_required >= e->nr_devs)
 +			goto err;
 +
 +		err = "invalid replicas entry: invalid device";
@@ -67000,7 +67103,7 @@ index 446b956c91888..1237c213f52bc 100644
  		return xas_load(xas);
  
 diff --git a/mm/filemap.c b/mm/filemap.c
-index d0cf700bf201c..c50c0cfed256f 100644
+index d0cf700bf201c..0bcc07d3ef895 100644
 --- a/mm/filemap.c
 +++ b/mm/filemap.c
 @@ -115,6 +115,115 @@
@@ -67119,7 +67222,7 @@ index d0cf700bf201c..c50c0cfed256f 100644
  static void page_cache_delete(struct address_space *mapping,
  				   struct page *page, void *shadow)
  {
-@@ -838,118 +947,179 @@ int replace_page_cache_page(struct page *old, struct page *new, gfp_t gfp_mask)
+@@ -838,118 +947,180 @@ int replace_page_cache_page(struct page *old, struct page *new, gfp_t gfp_mask)
  }
  EXPORT_SYMBOL_GPL(replace_page_cache_page);
  
@@ -67291,6 +67394,7 @@ index d0cf700bf201c..c50c0cfed256f 100644
  }
 -EXPORT_SYMBOL(add_to_page_cache_locked);
 +EXPORT_SYMBOL(add_to_page_cache);
++ALLOW_ERROR_INJECTION(add_to_page_cache, ERRNO);
  
 -int add_to_page_cache_lru(struct page *page, struct address_space *mapping,
 -				pgoff_t offset, gfp_t gfp_mask)
@@ -67376,7 +67480,7 @@ index d0cf700bf201c..c50c0cfed256f 100644
  }
  EXPORT_SYMBOL_GPL(add_to_page_cache_lru);
  
-@@ -1849,6 +2019,7 @@ unsigned find_get_pages_range(struct address_space *mapping, pgoff_t *start,
+@@ -1849,6 +2020,7 @@ unsigned find_get_pages_range(struct address_space *mapping, pgoff_t *start,
  
  	return ret;
  }
@@ -67384,7 +67488,7 @@ index d0cf700bf201c..c50c0cfed256f 100644
  
  /**
   * find_get_pages_contig - gang contiguous pagecache lookup
-@@ -2010,6 +2181,222 @@ static void shrink_readahead_size_eio(struct file *filp,
+@@ -2010,6 +2182,222 @@ static void shrink_readahead_size_eio(struct file *filp,
  	ra->ra_pages /= 4;
  }
  
