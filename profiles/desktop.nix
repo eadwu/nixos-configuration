@@ -122,13 +122,15 @@ in
     programs.zsh = {
       interactiveShellInit = ''
         nix-generate-iso () {
-          nix build -f "<nixpkgs/nixos>" \
+          nix build $@ \
+            -f "<nixpkgs/nixos>" \
             -I nixos-config=${builtins.toString ./iso.nix} \
             config.system.build.isoImage
         }
 
         nix-generate-sd () {
-          nix build -f "<nixpkgs/nixos>" \
+          nix build $@ \
+            -f "<nixpkgs/nixos>" \
             --builders "ssh://builder" \
             --arg system '"aarch64-linux"' \
             -I nixos-config=${builtins.toString ./sd-image.nix} \
@@ -136,13 +138,15 @@ in
         }
 
         nix-cross-compile-sd () {
-          nix build -f "<nixpkgs/nixos>" \
+          nix build $@ \
+            -f "<nixpkgs/nixos>" \
             -I nixos-config=${builtins.toString ./cross-sd-image.nix} \
             config.system.build.sdImage
         }
 
         nix-generate-vm () {
-          nix build -f "<nixpkgs/nixos>" \
+          nix build $@ \
+            -f "<nixpkgs/nixos>" \
             -I nixos-config=${builtins.toString ./vm.nix} \
             config.system.build.virtualBoxOVA
         }
