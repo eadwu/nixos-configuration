@@ -28,7 +28,6 @@ with lib; {
 
   users.mutableUsers = false;
   users.defaultUserShell = "${pkgs.zsh}/bin/zsh";
-  users.users.root.initialHashedPassword = mkForce "$6$LzwNPjjIU$WN0jrxLKdpO33fdUE.rpc.6RN2YdU8tCoI8Kmk2xNkqWUH01tLFW.nDJcF9wDrcIhHAxL5eVYmxzSkN.RWyMa0";
   users.users.root.openssh.authorizedKeys.keyFiles =
     optional (builtins.pathExists ../credentials/aarch64.pub) ../credentials/aarch64.pub;
 
