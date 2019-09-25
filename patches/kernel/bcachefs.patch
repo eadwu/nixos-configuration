@@ -11888,10 +11888,10 @@ index 0000000000000..643bd9e8bc4d9
 +#endif /* _BCACHEFS_BSET_H */
 diff --git a/fs/bcachefs/btree_cache.c b/fs/bcachefs/btree_cache.c
 new file mode 100644
-index 0000000000000..046524c8d5ea6
+index 0000000000000..416949512057c
 --- /dev/null
 +++ b/fs/bcachefs/btree_cache.c
-@@ -0,0 +1,940 @@
+@@ -0,0 +1,934 @@
 +// SPDX-License-Identifier: GPL-2.0
 +
 +#include "bcachefs.h"
@@ -12568,10 +12568,7 @@ index 0000000000000..046524c8d5ea6
 +	EBUG_ON(!btree_node_locked(iter, level + 1));
 +	EBUG_ON(level >= BTREE_MAX_DEPTH);
 +retry:
-+	rcu_read_lock();
 +	b = btree_cache_find(bc, k);
-+	rcu_read_unlock();
-+
 +	if (unlikely(!b)) {
 +		/*
 +		 * We must have the parent locked to call bch2_btree_node_fill(),
@@ -12772,10 +12769,7 @@ index 0000000000000..046524c8d5ea6
 +	BUG_ON(!btree_node_locked(iter, level + 1));
 +	BUG_ON(level >= BTREE_MAX_DEPTH);
 +
-+	rcu_read_lock();
 +	b = btree_cache_find(bc, k);
-+	rcu_read_unlock();
-+
 +	if (b)
 +		return;
 +
@@ -18577,7 +18571,7 @@ index 0000000000000..e4967215e1d91
 +#endif /* _BCACHEFS_BTREE_ITER_H */
 diff --git a/fs/bcachefs/btree_locking.h b/fs/bcachefs/btree_locking.h
 new file mode 100644
-index 0000000000000..ea07ba19c5dc1
+index 0000000000000..592c3b4eed649
 --- /dev/null
 +++ b/fs/bcachefs/btree_locking.h
 @@ -0,0 +1,221 @@
@@ -18795,7 +18789,7 @@ index 0000000000000..ea07ba19c5dc1
 +	EBUG_ON(iter->l[b->level].b != b);
 +	EBUG_ON(iter->l[b->level].lock_seq != b->lock.state.seq);
 +
-+	if (!six_trylock_write(&b->lock))
++	if (unlikely(!six_trylock_write(&b->lock)))
 +		__bch2_btree_node_lock_write(b, iter);
 +}
 +
@@ -22088,10 +22082,10 @@ index 0000000000000..e5156e9081106
 +#endif /* _BCACHEFS_BTREE_UPDATE_INTERIOR_H */
 diff --git a/fs/bcachefs/btree_update_leaf.c b/fs/bcachefs/btree_update_leaf.c
 new file mode 100644
-index 0000000000000..0d32fb8726c71
+index 0000000000000..7d983b2104b4c
 --- /dev/null
 +++ b/fs/bcachefs/btree_update_leaf.c
-@@ -0,0 +1,1106 @@
+@@ -0,0 +1,1107 @@
 +// SPDX-License-Identifier: GPL-2.0
 +
 +#include "bcachefs.h"
@@ -22138,7 +22132,7 @@ index 0000000000000..0d32fb8726c71
 +{
 +	bch2_btree_node_lock_write(b, iter);
 +
-+	if (btree_node_just_written(b) &&
++	if (unlikely(btree_node_just_written(b)) &&
 +	    bch2_btree_post_write_cleanup(c, b))
 +		bch2_btree_iter_reinit_node(iter, b);
 +
@@ -22699,8 +22693,9 @@ index 0000000000000..0d32fb8726c71
 +				goto out_clear_replicas;
 +		}
 +
-+	trans_for_each_update(trans, i)
-+		btree_insert_entry_checks(trans, i);
++	if (IS_ENABLED(CONFIG_BCACHEFS_DEBUG))
++		trans_for_each_update(trans, i)
++			btree_insert_entry_checks(trans, i);
 +	bch2_btree_trans_verify_locks(trans);
 +
 +	/*
@@ -31775,10 +31770,10 @@ index 0000000000000..2591e12305b71
 +#endif /* _BCACHEFS_ERROR_H */
 diff --git a/fs/bcachefs/extents.c b/fs/bcachefs/extents.c
 new file mode 100644
-index 0000000000000..4b1c652cdbce9
+index 0000000000000..e10ea43b71a34
 --- /dev/null
 +++ b/fs/bcachefs/extents.c
-@@ -0,0 +1,1897 @@
+@@ -0,0 +1,1912 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Copyright (C) 2010 Kent Overstreet <kent.overstreet@gmail.com>
@@ -32717,12 +32712,13 @@ index 0000000000000..4b1c652cdbce9
 +	return ret;
 +}
 +
-+static int __bch2_extent_atomic_end(struct btree_trans *trans,
-+				    struct bkey_s_c k,
-+				    unsigned offset,
-+				    struct bpos *end,
-+				    unsigned *nr_iters,
-+				    unsigned max_iters)
++static int count_iters_for_insert(struct btree_trans *trans,
++				  struct bkey_s_c k,
++				  unsigned offset,
++				  struct bpos *end,
++				  unsigned *nr_iters,
++				  unsigned max_iters,
++				  bool overwrite)
 +{
 +	int ret = 0;
 +
@@ -32752,6 +32748,20 @@ index 0000000000000..4b1c652cdbce9
 +				break;
 +
 +			*nr_iters += 1;
++
++			if (overwrite &&
++			    k.k->type == KEY_TYPE_reflink_v) {
++				struct bkey_s_c_reflink_v r = bkey_s_c_to_reflink_v(k);
++
++				if (le64_to_cpu(r.v->refcount) == 1)
++					*nr_iters += bch2_bkey_nr_alloc_ptrs(k);
++			}
++
++			/*
++			 * if we're going to be deleting an entry from
++			 * the reflink btree, need more iters...
++			 */
++
 +			if (*nr_iters >= max_iters) {
 +				struct bpos pos = bkey_start_pos(k.k);
 +				pos.offset += r_k.k->p.offset - idx;
@@ -32786,8 +32796,8 @@ index 0000000000000..4b1c652cdbce9
 +
 +	*end = bpos_min(insert->k.p, b->key.k.p);
 +
-+	ret = __bch2_extent_atomic_end(trans, bkey_i_to_s_c(insert),
-+				       0, end, &nr_iters, 10);
++	ret = count_iters_for_insert(trans, bkey_i_to_s_c(insert),
++				     0, end, &nr_iters, 10, false);
 +	if (ret)
 +		return ret;
 +
@@ -32806,8 +32816,8 @@ index 0000000000000..4b1c652cdbce9
 +			offset = bkey_start_offset(&insert->k) -
 +				bkey_start_offset(k.k);
 +
-+		ret = __bch2_extent_atomic_end(trans, k, offset,
-+					       end, &nr_iters, 20);
++		ret = count_iters_for_insert(trans, k, offset,
++					     end, &nr_iters, 20, true);
 +		if (ret)
 +			return ret;
 +
@@ -34733,10 +34743,10 @@ index 0000000000000..cdb272708a4bd
 +#endif /* _BCACHEFS_FIFO_H */
 diff --git a/fs/bcachefs/fs-io.c b/fs/bcachefs/fs-io.c
 new file mode 100644
-index 0000000000000..ad7b70e7910d0
+index 0000000000000..cf97ed8efa104
 --- /dev/null
 +++ b/fs/bcachefs/fs-io.c
-@@ -0,0 +1,3353 @@
+@@ -0,0 +1,3373 @@
 +// SPDX-License-Identifier: GPL-2.0
 +#ifndef NO_BCACHEFS_FS
 +
@@ -35488,6 +35498,9 @@ index 0000000000000..ad7b70e7910d0
 +	struct bch_page_state *s = bch2_page_state(page);
 +	unsigned i, dirty_sectors = 0;
 +
++	WARN_ON(page_offset(page) + offset + len >
++		round_up(i_size_read(&inode->v), block_bytes(c)));
++
 +	for (i = round_down(offset, block_bytes(c)) >> 9;
 +	     i < round_up(offset + len, block_bytes(c)) >> 9;
 +	     i++) {
@@ -36237,8 +36250,8 @@ index 0000000000000..ad7b70e7910d0
 +				     sectors << 9, offset << 9));
 +
 +		/* Check for writing past i_size: */
-+		BUG_ON((bio_end_sector(&w->io->op.op.wbio.bio) << 9) >
-+		       round_up(i_size, block_bytes(c)));
++		WARN_ON((bio_end_sector(&w->io->op.op.wbio.bio) << 9) >
++			round_up(i_size, block_bytes(c)));
 +
 +		w->io->op.op.res.sectors += reserved_sectors;
 +		w->io->op.new_i_size = i_size;
@@ -36744,12 +36757,14 @@ index 0000000000000..ad7b70e7910d0
 +static long bch2_dio_write_loop(struct dio_write *dio)
 +{
 +	bool kthread = (current->flags & PF_KTHREAD) != 0;
++	struct bch_fs *c = dio->iop.op.c;
 +	struct kiocb *req = dio->req;
 +	struct address_space *mapping = req->ki_filp->f_mapping;
 +	struct bch_inode_info *inode = dio->iop.inode;
 +	struct bio *bio = &dio->iop.op.wbio.bio;
 +	struct bvec_iter_all iter;
 +	struct bio_vec *bv;
++	unsigned unaligned;
 +	loff_t offset;
 +	bool sync;
 +	long ret;
@@ -36784,6 +36799,21 @@ index 0000000000000..ad7b70e7910d0
 +
 +		if (unlikely(ret < 0))
 +			goto err;
++
++		unaligned = bio->bi_iter.bi_size & (block_bytes(c) - 1);
++		bio->bi_iter.bi_size -= unaligned;
++		iov_iter_revert(&dio->iter, unaligned);
++
++		if (!bio->bi_iter.bi_size) {
++			/*
++			 * bio_iov_iter_get_pages was only able to get <
++			 * blocksize worth of pages:
++			 */
++			bio_for_each_segment_all(bv, bio, iter)
++				put_page(bv->bv_page);
++			ret = -EFAULT;
++			goto err;
++		}
 +
 +		/* gup might have faulted pages back in: */
 +		ret = write_invalidate_inode_pages_range(mapping,
@@ -36835,8 +36865,8 @@ index 0000000000000..ad7b70e7910d0
 +	ret = dio->iop.op.error ?: ((long) dio->iop.op.written << 9);
 +err:
 +	__pagecache_block_put(&mapping->add_lock);
-+	bch2_disk_reservation_put(dio->iop.op.c, &dio->iop.op.res);
-+	bch2_quota_reservation_put(dio->iop.op.c, inode, &dio->quota_res);
++	bch2_disk_reservation_put(c, &dio->iop.op.res);
++	bch2_quota_reservation_put(c, inode, &dio->quota_res);
 +
 +	if (dio->free_iov)
 +		kfree(dio->iter.iov);
@@ -67103,7 +67133,7 @@ index 446b956c91888..1237c213f52bc 100644
  		return xas_load(xas);
  
 diff --git a/mm/filemap.c b/mm/filemap.c
-index d0cf700bf201c..0bcc07d3ef895 100644
+index d0cf700bf201c..3c4e96dcf873d 100644
 --- a/mm/filemap.c
 +++ b/mm/filemap.c
 @@ -115,6 +115,115 @@
@@ -67711,6 +67741,316 @@ index d0cf700bf201c..0bcc07d3ef895 100644
  /**
   * generic_file_buffered_read - generic file read routine
   * @iocb:	the iocb to read
+@@ -2030,252 +2418,96 @@ static ssize_t generic_file_buffered_read(struct kiocb *iocb,
+ 		struct iov_iter *iter, ssize_t written)
+ {
+ 	struct file *filp = iocb->ki_filp;
++	struct file_ra_state *ra = &filp->f_ra;
+ 	struct address_space *mapping = filp->f_mapping;
+ 	struct inode *inode = mapping->host;
+-	struct file_ra_state *ra = &filp->f_ra;
+-	loff_t *ppos = &iocb->ki_pos;
+-	pgoff_t index;
+-	pgoff_t last_index;
+-	pgoff_t prev_index;
+-	unsigned long offset;      /* offset into pagecache page */
+-	unsigned int prev_offset;
+-	int error = 0;
+-
+-	if (unlikely(*ppos >= inode->i_sb->s_maxbytes))
++	size_t orig_count = iov_iter_count(iter);
++	struct page *pages[64];
++	int i, pg_nr, error = 0;
++	bool writably_mapped;
++	loff_t isize, end_offset;
++
++	if (unlikely(iocb->ki_pos >= inode->i_sb->s_maxbytes))
+ 		return 0;
+ 	iov_iter_truncate(iter, inode->i_sb->s_maxbytes);
+ 
+-	index = *ppos >> PAGE_SHIFT;
+-	prev_index = ra->prev_pos >> PAGE_SHIFT;
+-	prev_offset = ra->prev_pos & (PAGE_SIZE-1);
+-	last_index = (*ppos + iter->count + PAGE_SIZE-1) >> PAGE_SHIFT;
+-	offset = *ppos & ~PAGE_MASK;
+-
+-	for (;;) {
+-		struct page *page;
+-		pgoff_t end_index;
+-		loff_t isize;
+-		unsigned long nr, ret;
+-
++	do {
+ 		cond_resched();
+-find_page:
+-		if (fatal_signal_pending(current)) {
+-			error = -EINTR;
+-			goto out;
+-		}
+ 
+-		page = find_get_page(mapping, index);
+-		if (!page) {
+-			if (iocb->ki_flags & IOCB_NOWAIT)
+-				goto would_block;
+-			page_cache_sync_readahead(mapping,
+-					ra, filp,
+-					index, last_index - index);
+-			page = find_get_page(mapping, index);
+-			if (unlikely(page == NULL))
+-				goto no_cached_page;
+-		}
+-		if (PageReadahead(page)) {
+-			page_cache_async_readahead(mapping,
+-					ra, filp, page,
+-					index, last_index - index);
++		i = 0;
++		pg_nr = generic_file_buffered_read_get_pages(iocb, iter, pages,
++							     ARRAY_SIZE(pages));
++		if (pg_nr < 0) {
++			error = pg_nr;
++			break;
+ 		}
+-		if (!PageUptodate(page)) {
+-			if (iocb->ki_flags & IOCB_NOWAIT) {
+-				put_page(page);
+-				goto would_block;
+-			}
+ 
+-			/*
+-			 * See comment in do_read_cache_page on why
+-			 * wait_on_page_locked is used to avoid unnecessarily
+-			 * serialisations and why it's safe.
+-			 */
+-			error = wait_on_page_locked_killable(page);
+-			if (unlikely(error))
+-				goto readpage_error;
+-			if (PageUptodate(page))
+-				goto page_ok;
+-
+-			if (inode->i_blkbits == PAGE_SHIFT ||
+-					!mapping->a_ops->is_partially_uptodate)
+-				goto page_not_up_to_date;
+-			/* pipes can't handle partially uptodate pages */
+-			if (unlikely(iov_iter_is_pipe(iter)))
+-				goto page_not_up_to_date;
+-			if (!trylock_page(page))
+-				goto page_not_up_to_date;
+-			/* Did it get truncated before we got the lock? */
+-			if (!page->mapping)
+-				goto page_not_up_to_date_locked;
+-			if (!mapping->a_ops->is_partially_uptodate(page,
+-							offset, iter->count))
+-				goto page_not_up_to_date_locked;
+-			unlock_page(page);
+-		}
+-page_ok:
+ 		/*
+-		 * i_size must be checked after we know the page is Uptodate.
++		 * i_size must be checked after we know the pages are Uptodate.
+ 		 *
+ 		 * Checking i_size after the check allows us to calculate
+ 		 * the correct value for "nr", which means the zero-filled
+ 		 * part of the page is not copied back to userspace (unless
+ 		 * another truncate extends the file - this is desired though).
+ 		 */
+-
+ 		isize = i_size_read(inode);
+-		end_index = (isize - 1) >> PAGE_SHIFT;
+-		if (unlikely(!isize || index > end_index)) {
+-			put_page(page);
+-			goto out;
+-		}
++		if (unlikely(iocb->ki_pos >= isize))
++			goto put_pages;
+ 
+-		/* nr is the maximum number of bytes to copy from this page */
+-		nr = PAGE_SIZE;
+-		if (index == end_index) {
+-			nr = ((isize - 1) & ~PAGE_MASK) + 1;
+-			if (nr <= offset) {
+-				put_page(page);
+-				goto out;
+-			}
+-		}
+-		nr = nr - offset;
++		end_offset = min_t(loff_t, isize, iocb->ki_pos + iter->count);
+ 
+-		/* If users can be writing to this page using arbitrary
+-		 * virtual addresses, take care about potential aliasing
+-		 * before reading the page on the kernel side.
+-		 */
+-		if (mapping_writably_mapped(mapping))
+-			flush_dcache_page(page);
++		while ((iocb->ki_pos >> PAGE_SHIFT) + pg_nr >
++		       (end_offset + PAGE_SIZE - 1) >> PAGE_SHIFT)
++			put_page(pages[--pg_nr]);
+ 
+ 		/*
+-		 * When a sequential read accesses a page several times,
+-		 * only mark it as accessed the first time.
++		 * Once we start copying data, we don't want to be touching any
++		 * cachelines that might be contended:
+ 		 */
+-		if (prev_index != index || offset != prev_offset)
+-			mark_page_accessed(page);
+-		prev_index = index;
+-
+-		/*
+-		 * Ok, we have the page, and it's up-to-date, so
+-		 * now we can copy it to user space...
+-		 */
+-
+-		ret = copy_page_to_iter(page, offset, nr, iter);
+-		offset += ret;
+-		index += offset >> PAGE_SHIFT;
+-		offset &= ~PAGE_MASK;
+-		prev_offset = offset;
+-
+-		put_page(page);
+-		written += ret;
+-		if (!iov_iter_count(iter))
+-			goto out;
+-		if (ret < nr) {
+-			error = -EFAULT;
+-			goto out;
+-		}
+-		continue;
++		writably_mapped = mapping_writably_mapped(mapping);
+ 
+-page_not_up_to_date:
+-		/* Get exclusive access to the page ... */
+-		error = lock_page_killable(page);
+-		if (unlikely(error))
+-			goto readpage_error;
+-
+-page_not_up_to_date_locked:
+-		/* Did it get truncated before we got the lock? */
+-		if (!page->mapping) {
+-			unlock_page(page);
+-			put_page(page);
+-			continue;
+-		}
+-
+-		/* Did somebody else fill it already? */
+-		if (PageUptodate(page)) {
+-			unlock_page(page);
+-			goto page_ok;
+-		}
+-
+-readpage:
+ 		/*
+-		 * A previous I/O error may have been due to temporary
+-		 * failures, eg. multipath errors.
+-		 * PG_error will be set again if readpage fails.
++		 * When a sequential read accesses a page several times, only
++		 * mark it as accessed the first time.
+ 		 */
+-		ClearPageError(page);
+-		/* Start the actual read. The read will unlock the page. */
+-		error = mapping->a_ops->readpage(filp, page);
++		if (iocb->ki_pos >> PAGE_SHIFT !=
++		    ra->prev_pos >> PAGE_SHIFT)
++			mark_page_accessed(pages[0]);
++		for (i = 1; i < pg_nr; i++)
++			mark_page_accessed(pages[i]);
++
++		for (i = 0; i < pg_nr; i++) {
++			unsigned offset = iocb->ki_pos & ~PAGE_MASK;
++			unsigned bytes = min_t(loff_t, end_offset - iocb->ki_pos,
++					       PAGE_SIZE - offset);
++			unsigned copied;
+ 
+-		if (unlikely(error)) {
+-			if (error == AOP_TRUNCATED_PAGE) {
+-				put_page(page);
+-				error = 0;
+-				goto find_page;
+-			}
+-			goto readpage_error;
+-		}
+-
+-		if (!PageUptodate(page)) {
+-			error = lock_page_killable(page);
+-			if (unlikely(error))
+-				goto readpage_error;
+-			if (!PageUptodate(page)) {
+-				if (page->mapping == NULL) {
+-					/*
+-					 * invalidate_mapping_pages got it
+-					 */
+-					unlock_page(page);
+-					put_page(page);
+-					goto find_page;
+-				}
+-				unlock_page(page);
+-				shrink_readahead_size_eio(filp, ra);
+-				error = -EIO;
+-				goto readpage_error;
+-			}
+-			unlock_page(page);
+-		}
++			/*
++			 * If users can be writing to this page using arbitrary
++			 * virtual addresses, take care about potential aliasing
++			 * before reading the page on the kernel side.
++			 */
++			if (writably_mapped)
++				flush_dcache_page(pages[i]);
+ 
+-		goto page_ok;
++			copied = copy_page_to_iter(pages[i], offset, bytes, iter);
+ 
+-readpage_error:
+-		/* UHHUH! A synchronous read error occurred. Report it */
+-		put_page(page);
+-		goto out;
++			iocb->ki_pos += copied;
++			ra->prev_pos = iocb->ki_pos;
+ 
+-no_cached_page:
+-		/*
+-		 * Ok, it wasn't cached, so we need to create a new
+-		 * page..
+-		 */
+-		page = page_cache_alloc(mapping);
+-		if (!page) {
+-			error = -ENOMEM;
+-			goto out;
+-		}
+-		error = add_to_page_cache_lru(page, mapping, index,
+-				mapping_gfp_constraint(mapping, GFP_KERNEL));
+-		if (error) {
+-			put_page(page);
+-			if (error == -EEXIST) {
+-				error = 0;
+-				goto find_page;
++			if (copied < bytes) {
++				error = -EFAULT;
++				break;
+ 			}
+-			goto out;
+ 		}
+-		goto readpage;
+-	}
+-
+-would_block:
+-	error = -EAGAIN;
+-out:
+-	ra->prev_pos = prev_index;
+-	ra->prev_pos <<= PAGE_SHIFT;
+-	ra->prev_pos |= prev_offset;
++put_pages:
++		for (i = 0; i < pg_nr; i++)
++			put_page(pages[i]);
++	} while (iov_iter_count(iter) && iocb->ki_pos < isize && !error);
+ 
+-	*ppos = ((loff_t)index << PAGE_SHIFT) + offset;
+ 	file_accessed(filp);
++	written += orig_count - iov_iter_count(iter);
++
+ 	return written ? written : error;
+ }
+ 
 diff --git a/mm/page-writeback.c b/mm/page-writeback.c
 index 1804f64ff43c1..089329d8a9e1f 100644
 --- a/mm/page-writeback.c
