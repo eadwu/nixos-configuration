@@ -38,6 +38,13 @@ with lib; {
     publish.addresses = true;
   };
 
+  networking.firewall.extraCommands = ''
+    # Allow 8 connections in 120 seconds, then ban the IP for 120 seconds
+    ip46tables -A INPUT -p tcp --dport 22 -m tcp -m state --state NEW -m recent --set --name SSHD --rsource
+    ip46tables -A INPUT -p tcp --dport 22 -m tcp -m state --state NEW -m recent --update --seconds 120 --hitcount 8 --name SSHD --rsource -j DROP
+    ip46tables -A INPUT -p tcp --dport 22 -m tcp -m state --state NEW -j ACCEPT
+  '';
+
   # Pin system in the event of a cross compilation
   nixpkgs = {
     config = {};

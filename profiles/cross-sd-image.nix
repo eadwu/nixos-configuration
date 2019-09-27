@@ -6,6 +6,9 @@ with lib; {
   # Setup cross compilation
   nixpkgs.crossSystem = systems.elaborate systems.examples.aarch64-multiplatform;
 
+  # Upstream kernel cross compilies the nicest
+  boot.kernelPackages = mkOverride 32 pkgs.linuxPackages_latest;
+
   # Only redistributable firmware that fails is alsa-firmware
   # Though only raspberrypiWirelessFirmware is needed for the rpi3b+
   hardware.firmware = mkForce [ pkgs.raspberrypiWirelessFirmware ];
@@ -49,23 +52,5 @@ with lib; {
     '';
   };
 
-  networking.enableIPv6 = false;
-  networking.wireless = {
-    enable = true;
-    driver = "wext,nl80211";
-
-    networks.eduroam.auth = ''
-      eap=PEAP
-      auth_alg=OPEN
-      key_mgmt=WPA-EAP
-      proto=WPA RSN
-      pairwise=CCMP
-      group=CCMP TKIP
-      identity="edmundwu@buffalo.edu"
-      anonymous_identity="notastudentatbuffalo@buffalo.edu"
-      password=hash:${builtins.readFile ../credentials/eduroam}
-      phase1="peaplabel=0"
-      phase2="auth=MSCHAPV2"
-    '';
-  };
+  services.irqbalance.enable = true;
 }
