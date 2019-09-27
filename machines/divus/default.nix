@@ -10,6 +10,15 @@
     ];
 
   boot.cleanTmpDir = true;
+  boot.kernelPackages = pkgs.rpiPackages_4_19;
+  boot.kernelParams = [
+    "cma=32M"
+    "console=tty0"
+    "console=ttyS0,115200n8"
+
+    # deadline I/O scheduler
+    "elevator=deadline"
+  ];
   boot.loader.grub.enable = false;
   boot.loader.raspberryPi = {
     enable = true;
