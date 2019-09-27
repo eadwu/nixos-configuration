@@ -123,15 +123,20 @@
           linux_rpi_4_19 = (
             super.linux_rpi.override {
               argsOverride = rec {
-                version = "4.19.73";
+                version = "4.19.75";
                 modDirVersion = with lib; concatStrings (intersperse "." (take 3 (splitString "." "${version}.0")));
               };
             }
           ).overrideDerivation (
-            _: {
+            oldAttrs: {
               src = builtins.fetchTarball {
-                url = "https://github.com/raspberrypi/linux/archive/4d486c17f636bb339c10cd73a07292220a973e01.tar.gz";
+                url = "https://github.com/raspberrypi/linux/archive/6d8bf28fa4b1ca0a35c0cd1dcb267fb216daf720.tar.gz";
               };
+
+              nativeBuildInputs = (oldAttrs.nativeBuildInputs or []) ++ [
+                flex
+                bison
+              ];
             }
           );
 
@@ -145,7 +150,7 @@
           raspberrypifw = super.raspberrypifw.overrideAttrs (
             _: {
               src = builtins.fetchTarball {
-                url = "https://github.com/raspberrypi/firmware/archive/f8e05108dbb3b5640f48b6b301296e979876836b.tar.gz";
+                url = "https://github.com/raspberrypi/firmware/archive/f5c626c64874d6e1482edf4a76aa22e5e54be63d.tar.gz";
               };
             }
           );
