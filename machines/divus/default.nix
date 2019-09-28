@@ -1,4 +1,4 @@
-{ pkgs, lib, ... }:
+{ pkgs, ... }:
 
 {
   imports =
@@ -10,7 +10,7 @@
     ];
 
   boot.cleanTmpDir = true;
-  boot.kernelPackages = pkgs.rpiPackages_4_19;
+  boot.kernelPackages = pkgs.rpi3Packages_4_19;
   boot.kernelParams = [
     "cma=32M"
     "console=tty0"
@@ -130,8 +130,8 @@
 
       (
         self: super: with self.pkgs; rec {
-          linux_rpi_4_19 = (
-            super.linux_rpi.override {
+          linux_rpi3_4_19 = (
+            super.linux_rpi3.override {
               argsOverride = rec {
                 version = "4.19.75";
                 modDirVersion = with lib; concatStrings (intersperse "." (take 3 (splitString "." "${version}.0")));
@@ -150,12 +150,12 @@
             }
           );
 
-          linux_rpi_4_19_hardened = linux_rpi_4_19.override {
-            argsOverride.modDirVersion = linux_rpi_4_19.modDirVersion + "-hardened";
+          linux_rpi3_4_19_hardened = linux_rpi3_4_19.override {
+            argsOverride.modDirVersion = linux_rpi3_4_19.modDirVersion + "-hardened";
           };
 
-          rpiPackages_4_19 = self.pkgs.linuxPackagesFor linux_rpi_4_19;
-          rpiPackages_4_19_hardened = self.pkgs.hardenedLinuxPackagesFor linux_rpi_4_19_hardened;
+          rpi3Packages_4_19 = self.pkgs.linuxPackagesFor linux_rpi3_4_19;
+          rpi3Packages_4_19_hardened = self.pkgs.hardenedLinuxPackagesFor linux_rpi3_4_19_hardened;
 
           raspberrypifw = super.raspberrypifw.overrideAttrs (
             _: {
