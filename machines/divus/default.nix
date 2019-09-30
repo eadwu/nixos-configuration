@@ -172,7 +172,7 @@
   ];
 
   services.avahi = {
-    enable = true;
+    enable = false;
     nssmdns = true;
     publish.enable = true;
     publish.addresses = true;
@@ -216,7 +216,7 @@
 
   services.openssh = {
     enable = true;
-    permitRootLogin = "yes";
+    passwordAuthentication = false;
   };
 
   system = {
