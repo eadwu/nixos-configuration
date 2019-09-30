@@ -196,7 +196,7 @@
   };
 
   system = {
-    stateVersion = "20.03";
+    stateVersion = "19.08";
 
     autoUpgrade = {
       enable = false;

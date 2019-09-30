@@ -12,10 +12,7 @@
 
     links.default = {
       matchConfig.OriginalName = "!docker0* virbr0*";
-
-      linkConfig = {
-        NamePolicy = "kernel database onboard slot path";
-      };
+      linkConfig.NamePolicy = "kernel database onboard slot path";
     };
 
     networks.default = {
@@ -29,9 +26,7 @@
         UseDNS = false;
       };
 
-      networkConfig = {
-        DNSSEC = "no";
-      };
+      networkConfig.DNSSEC = "no";
     };
 
     networks = {
