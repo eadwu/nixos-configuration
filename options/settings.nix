@@ -122,12 +122,12 @@ in
 
     machines.rpi = {
       hostName = mkOption {
-        type = types.str;
+        type = with types; (listOf str);
         visible = false;
         readOnly = true;
-        default = "8.22.110.73";
+        default = [ "8.22.110.73" "10.84.13.105" ];
         description = ''
-          Private IP of my raspberry pi 3 b+
+          Private IP(s) of my raspberry pi 3 b+
         '';
       };
 
