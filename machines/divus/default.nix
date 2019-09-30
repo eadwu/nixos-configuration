@@ -3,14 +3,14 @@
 {
   imports =
     [
-      ./kvm-support.nix
+      # ./kvm-support.nix
       ./hardened.nix
-      ./libvirtd.nix
+      # ./libvirtd.nix
       ./networkd.nix
     ];
 
   boot.cleanTmpDir = true;
-  boot.kernelPackages = pkgs.rpi3Packages_4_19;
+  boot.kernelPackages = pkgs.linuxPackages_latest;
   boot.kernelParams = [
     "cma=32M"
     "console=tty0"
@@ -44,7 +44,6 @@
     htop
     libarchive
     openssl
-    nixopsUnstable
     nix-index
     nixpkgs-fmt
     pass
@@ -113,61 +112,7 @@
     ];
   };
 
-  nixpkgs = {
-    config.allowUnfree = true;
-    overlays = [
-      (
-        self: super: {
-          nixopsUnstable = (
-            import "${builtins.fetchGit {
-              url = "https://git.sr.ht/~eadwu/nixops";
-              rev = "e8f8d012a6b9ed51d067eb5ae34f26e91c2c0e51";
-              ref = "libvirtd/support-aarch64-linux";
-            }}/release.nix" {}
-          ).build.aarch64-linux;
-        }
-      )
-
-      (
-        self: super: with self.pkgs; rec {
-          linux_rpi3_4_19 = (
-            super.linux_rpi3.override {
-              argsOverride = rec {
-                version = "4.19.75";
-                modDirVersion = with lib; concatStrings (intersperse "." (take 3 (splitString "." "${version}.0")));
-              };
-            }
-          ).overrideDerivation (
-            oldAttrs: {
-              src = builtins.fetchTarball {
-                url = "https://github.com/raspberrypi/linux/archive/6d8bf28fa4b1ca0a35c0cd1dcb267fb216daf720.tar.gz";
-              };
-
-              nativeBuildInputs = (oldAttrs.nativeBuildInputs or []) ++ [
-                flex
-                bison
-              ];
-            }
-          );
-
-          linux_rpi3_4_19_hardened = linux_rpi3_4_19.override {
-            argsOverride.modDirVersion = linux_rpi3_4_19.modDirVersion + "-hardened";
-          };
-
-          rpi3Packages_4_19 = self.pkgs.linuxPackagesFor linux_rpi3_4_19;
-          rpi3Packages_4_19_hardened = self.pkgs.hardenedLinuxPackagesFor linux_rpi3_4_19_hardened;
-
-          raspberrypifw = super.raspberrypifw.overrideAttrs (
-            _: {
-              src = builtins.fetchTarball {
-                url = "https://github.com/raspberrypi/firmware/archive/f5c626c64874d6e1482edf4a76aa22e5e54be63d.tar.gz";
-              };
-            }
-          );
-        }
-      )
-    ];
-  };
+  nixpkgs.config.allowUnfree = true;
 
   networking = {
     hostName = "divus";

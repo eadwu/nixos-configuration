@@ -6,7 +6,7 @@
   #     <nixpkgs/nixos/modules/profiles/hardened.nix>
   #   ];
 
-  boot.kernelPackages = lib.mkForce pkgs.rpi3Packages_4_19_hardened;
+  boot.kernelPackages = lib.mkForce pkgs.linuxPackages_latest_hardened;
 
   environment.memoryAllocator.provider = "libc";
 
