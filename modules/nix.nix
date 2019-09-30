@@ -66,16 +66,17 @@ with config.nixos; {
   programs.ssh.extraConfig = ''
     Host builder
       User root
-      ${lib.concatMapStringsSep "  "
-        (hn: ''
-          Match exec "${pkgs.libressl.nc}/bin/nc -w 1 -z ${hn} %p"
-            HostName ${hn}
-        '') settings.machines.rpi.hostName}
 
       IdentitiesOnly yes
       IdentityFile ${settings.machines.rpi.identityFile}
 
       ServerAliveInterval 4
+
+      ${lib.concatMapStringsSep "  "
+        (hn: ''
+          Match exec "${pkgs.libressl.nc}/bin/nc -w 1 -z ${hn} %p"
+              HostName ${hn}
+        '') settings.machines.rpi.hostName}
   '';
 
   system = {
