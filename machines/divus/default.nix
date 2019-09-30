@@ -188,10 +188,9 @@
     jails.sshd = ''
       enabled = true
       port = ssh
-      logpath = %(sshd_log)s
-      backend = %(sshd_backend)s
       banaction = iptables-multiport
 
+      filter = sshd
       maxretry = 4
       findtime = 43200
       bantime = 86400
@@ -201,8 +200,6 @@
     jails.sshdgank = ''
       enabled = true
       port = ssh
-      logpath = %(sshd_log)s
-      backend = %(sshd_backend)s
       banaction = iptables-multiport
 
       filter = sshd
