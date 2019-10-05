@@ -32,14 +32,18 @@ with config.nixos; {
       dev tun
       proto udp
 
-      remote ${settings.protonvpn.region}-free-01.protonvpn.com 1194
+      remote ${settings.protonvpn.region}-free-02.protonvpn.com 80
+      remote ${settings.protonvpn.region}-free-02.protonvpn.com 443
+      remote ${settings.protonvpn.region}-free-02.protonvpn.com 4569
+      remote ${settings.protonvpn.region}-free-02.protonvpn.com 1194
+      remote ${settings.protonvpn.region}-free-02.protonvpn.com 5060
 
       remote-random
       resolv-retry infinite
       nobind
       cipher AES-256-CBC
       auth SHA512
-      comp-lzo
+      comp-lzo no
       verb 3
 
       tun-mtu 1500
@@ -48,20 +52,21 @@ with config.nixos; {
       persist-key
       persist-tun
 
+      reneg-sec 0
       ping 15
       ping-restart 0
       ping-timer-rem
       reneg-sec 0
 
       remote-cert-tls server
-      auth-user-pass ${lib.optionalString (builtins.pathExists settings.protonvpn.credentials)
-      settings.protonvpn.credentials}
+      auth-user-pass ${lib.optionalString (builtins.pathExists settings.protonvpn.credentials) settings.protonvpn.credentials}
       pull
       fast-io
 
       script-security 2
-      up ${pkgs.update-resolv-conf}/libexec/openvpn/update-resolv-conf
-      down ${pkgs.update-resolv-conf}/libexec/openvpn/update-resolv-conf
+      up ${pkgs.update-systemd-resolved}/libexec/openvpn/update-systemd-resolved
+      up-restart
+      down ${pkgs.update-systemd-resolved}/libexec/openvpn/update-systemd-resolved
       down-pre
 
       <ca>

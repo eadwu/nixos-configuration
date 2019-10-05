@@ -4,6 +4,7 @@ with config.nixos; {
   imports =
     [
       ./kresd.nix
+      # ./openvpn.nix
     ];
 
   networking = {
@@ -74,6 +75,11 @@ with config.nixos; {
       wlan = {
         matchConfig.Type = "wlan";
         dhcpConfig.RouteMetric = 20;
+      };
+
+      tun = {
+        matchConfig.Name = "tun*";
+        linkConfig.Unmanaged = true;
       };
     };
   };
