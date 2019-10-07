@@ -118,8 +118,8 @@ self: super:
       {
         name = "gitlens";
         publisher = "eamodio";
-        version = "10.0.1";
-        sha256 = "0jp1hj3n5xc179afrvarjldnfg3h8sw16kjxcxv1a8wkwzir7iid";
+        version = "10.1.0";
+        sha256 = "1j3mi0lwjy8va5mx6vkg9rx3k1lzjhrwaichg22hm7n5sgg8bgrd";
       }
 
       {
@@ -153,8 +153,8 @@ self: super:
       {
         name = "noctis";
         publisher = "liviuschera";
-        version = "10.10.1";
-        sha256 = "13ys0lmwrkvh4knckbdgbs2mx2gfjvsljdyl0v5jzix9p9kywary";
+        version = "10.11.0";
+        sha256 = "1v3b0ywfahw6yk36pfyxv39ssy1d4sswqxzqi3h2w347c6dczaj9";
       }
 
       {
@@ -188,8 +188,8 @@ self: super:
       {
         name = "pyright";
         publisher = "ms-pyright";
-        version = "1.0.66";
-        sha256 = "0z6s60zslqzcbyzp8knzy5clwsh6yr9r9c4nzggsh53cjybcw1qg";
+        version = "1.0.71";
+        sha256 = "0akyaa4v95bsdkhjjpqzbb2l356rp7x4x5n6cyi1g6b9y2xf7rw4";
       }
 
       {
@@ -209,8 +209,8 @@ self: super:
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.869";
-        sha256 = "1ik9qib69srzy3qhxrsxa9ahms8lq50cpbz5ipd0idczz21kamsp";
+        version = "1.0.905";
+        sha256 = "0rqikkzc1izkw661m8ig0g1nakzlngr9ysijn52z2ppvw3c6y1c3";
       }
 
       {
@@ -237,8 +237,8 @@ self: super:
       {
         name = "java";
         publisher = "redhat";
-        version = "0.49.0";
-        sha256 = "1bh0psk3047x7kik4rdh30b38rb9cv5q6nkc9d9i34d2gcgj0bqh";
+        version = "0.50.0";
+        sha256 = "108h77a3prxdx47h84l02v2dxcw0vpp9k9yksrgpc6vfsm1hnk46";
       }
 
       {
@@ -265,8 +265,8 @@ self: super:
       {
         name = "metals";
         publisher = "scalameta";
-        version = "1.5.5";
-        sha256 = "1rxymk047y4ppch30kx5fhqjkjwkhw0sdfla9d5v2sybapihlv99";
+        version = "1.5.7";
+        sha256 = "0n99gw1imnm2hbizxrwnbrk8sxz5ysbzll4hn3jqy1xv3ky1pkix";
       }
 
       {
