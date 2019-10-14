@@ -7,6 +7,7 @@
 
   boot.kernelPackages = pkgs.linuxPackages_latest_hardened;
   environment.memoryAllocator.provider = "libc";
-  security.allowUserNamespaces = true;
-  security.allowSimultaneousMultithreading = true;
+  nix.useSandbox = false;
+  # security.allowUserNamespaces = true;
+  # security.allowSimultaneousMultithreading = true;
 }

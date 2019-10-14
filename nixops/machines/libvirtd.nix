@@ -3,14 +3,12 @@
 {
   imports = [ ./. ];
 
-  deployment = {
-    targetEnv = "libvirtd";
-    libvirtd = {
-      vcpu = lib.mkDefault 1;
-      memorySize = lib.mkDefault 1024;
-      headless = lib.mkDefault true;
-      baseImageSize = lib.mkDefault 10;
-    };
+  deployment.targetEnv = "libvirtd";
+  deployment.libvirtd = {
+    vcpu = lib.mkDefault 1;
+    memorySize = lib.mkDefault 1024;
+    headless = lib.mkDefault true;
+    baseImageSize = lib.mkDefault 10;
   };
 
   # See https://github.com/NixOS/nixops/issues/931
