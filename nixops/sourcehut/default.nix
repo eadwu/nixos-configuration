@@ -63,11 +63,15 @@
   };
 
   defaults = { config, pkgs, ... }: {
-    imports = [ ../machines/libvirtd.nix ];
+    imports = [ ../machines/virtualbox.nix ];
 
     deployment.libvirtd = {
       memorySize = 512;
       baseImageSize = 4;
+    };
+
+    deployment.virtualbox = {
+      memorySize = 512;
     };
 
     networking.firewall.allowedTCPPorts = [ 80 443 ];
