@@ -48,8 +48,8 @@ self: super:
       {
         name = "Ionide-fsharp";
         publisher = "Ionide";
-        version = "4.1.0";
-        sha256 = "039wkn0a4s7xn222v3wnb1scm3h95vmsxzrxxiymz1694zznakln";
+        version = "4.2.0";
+        sha256 = "019fv64ah6mxp92mqn2bvi0yjgvsk6g1dqv2lr824r2ny3f70drz";
       }
 
       {
@@ -118,8 +118,8 @@ self: super:
       {
         name = "gitlens";
         publisher = "eamodio";
-        version = "10.1.0";
-        sha256 = "1j3mi0lwjy8va5mx6vkg9rx3k1lzjhrwaichg22hm7n5sgg8bgrd";
+        version = "10.1.1";
+        sha256 = "0kr8wdpfv6n61frpxwrs2fr07x0879h7r3hd61v36q3k8cajb3py";
       }
 
       {
@@ -153,8 +153,8 @@ self: super:
       {
         name = "noctis";
         publisher = "liviuschera";
-        version = "10.11.0";
-        sha256 = "1v3b0ywfahw6yk36pfyxv39ssy1d4sswqxzqi3h2w347c6dczaj9";
+        version = "10.12.0";
+        sha256 = "06g5i1vl9jrqh9nq4iapc6d7gwbnw5459cl7w2s3ffwv0lczsx1d";
       }
 
       {
@@ -188,8 +188,8 @@ self: super:
       {
         name = "pyright";
         publisher = "ms-pyright";
-        version = "1.0.71";
-        sha256 = "0akyaa4v95bsdkhjjpqzbb2l356rp7x4x5n6cyi1g6b9y2xf7rw4";
+        version = "1.0.72";
+        sha256 = "1yylzf5xx5adrkb26vyv4205z3hbbxvfb73fs481sj4hsv6x55kx";
       }
 
       {
@@ -209,8 +209,8 @@ self: super:
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.905";
-        sha256 = "0rqikkzc1izkw661m8ig0g1nakzlngr9ysijn52z2ppvw3c6y1c3";
+        version = "1.0.950";
+        sha256 = "1xz59rbvq5iak76y30hg6a4lf59yhcyb31wbkmikzkh62pm8y02m";
       }
 
       {
@@ -258,8 +258,8 @@ self: super:
       {
         name = "scala";
         publisher = "scala-lang";
-        version = "0.3.6";
-        sha256 = "184mc2qiaigs8fc9qbbxk7wdjgn1mx7ajkgymhh989m42bmaxavv";
+        version = "0.3.8";
+        sha256 = "17dl10m3ayf57sqgil4mr9fjdm7i8gb5clrs227b768pp2d39ll9";
       }
 
       {

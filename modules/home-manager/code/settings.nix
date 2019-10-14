@@ -1,6 +1,10 @@
 { pkgs, ... }:
 
-with pkgs; {
+with pkgs;
+
+let
+  JAVA_HOME = "${openjdk}/lib/openjdk";
+in {
   "editor.codeActionsOnSave" = {
     "source.organizeImports" = true;
   };
@@ -135,7 +139,7 @@ with pkgs; {
     "blocks"
   ];
   "gitlens.keymap" = "alternate";
-  "java.home" = "${openjdk}/lib/openjdk";
+  "java.home" = JAVA_HOME;
   "java.implementationsCodeLens.enabled" = true;
   "java.referencesCodeLens.enabled" = true;
   "java.saveActions.organizeImports" = true;
@@ -208,6 +212,8 @@ with pkgs; {
   "python.unitTest.pyTestEnabled" = false;
   "python.unitTest.pyTestPath" = "${python3.pkgs.pytest}/bin/pytest";
   "python.unitTest.unittestEnabled" = true;
+  "maven.terminal.useJavaHome" = true;
+  "metals.javaHome" = JAVA_HOME;
   "rust.rustfmt_path" = "${rustPlatform.rust}/bin/rustfmt";
   "rust-client.channel" = "nightly";
   "rust-client.disableRustup" = true;
