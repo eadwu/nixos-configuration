@@ -8,9 +8,9 @@ with config.nixos; {
       ../../profiles/desktop.nix
 
       ../../hardware/dell/9570.nix
-      # ../../hardware/gpu/nvidia/disable
+      ../../hardware/gpu/nvidia/disable
+      # ../../hardware/gpu/nvidia/offload
       # ../../hardware/gpu/nvidia/sync
-      ../../hardware/gpu/nvidia/offload
 
       # ../../modules/network/wireguard.nix
       # ../../modules/network/openvpn.nix
@@ -55,8 +55,6 @@ with config.nixos; {
     '';
 
     undervolt.options = rec {
-      temp = with config.hardware.nvidia.prime; if offload.enable || sync.enable then 97 else 80;
-      temp-bat = 75;
       core = (-100);
       gpu = (-75);
       cache = core;
