@@ -5,7 +5,7 @@
     enable = lib.mkDefault true;
     extraConfig = ''
       CPU_SCALING_GOVERNOR_ON_AC=performance
-      CPU_SCALING_GOVERNOR_ON_BAT=schedutil
+      CPU_SCALING_GOVERNOR_ON_BAT=powersave
 
       CPU_MIN_PERF_ON_AC=0
       CPU_MAX_PERF_ON_AC=100

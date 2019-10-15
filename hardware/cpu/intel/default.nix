@@ -11,15 +11,11 @@
       <nixpkgs/nixos/modules/services/hardware/undervolt.nix>
     ];
 
-  boot.kernelParams = [
-    # Allow the use of other cpu frequency governors
-    "intel_pstate=passive"
-  ];
-
   environment.systemPackages = with pkgs; [ pcm ];
 
   hardware.cpu.intel.updateMicrocode = true;
   hardware.opengl.extraPackages = with pkgs; [ intel-ocl ];
 
   services.undervolt.enable = lib.mkDefault true;
+  services.thermald.enable = lib.mkDefault true;
 }

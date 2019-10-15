@@ -27,7 +27,7 @@
         galliumDrivers = [ "iris" "r300" "r600" "radeonsi" "nouveau" "virgl" "svga" "swrast" ];
       }
     ).drivers;
-    extraPackages = with pkgs; [ vaapiIntel intel-media-driver ];
+    extraPackages = with pkgs; [ vaapiIntel intel-media-driver intel-compute-runtime ];
   };
 
   services.xserver = {
