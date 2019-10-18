@@ -1,12 +1,6 @@
 { pkgs, ... }:
 
 {
-  environment.variables = {
-    # Experimental environment variable for better gpu clock boost handling
-    # https://devtalk.nvidia.com/default/topic/1048768/linux/if-you-have-gpu-clock-boost-problems-please-try-__gl_experimentalperfstrategy-1/3
-    __GL_ExperimentalPerfStrategy = "1";
-  };
-
   environment.systemPackages = with pkgs; [
     glxinfo
     cudatoolkit
@@ -20,12 +14,9 @@
 
   services.xserver.useGlamor = true;
   services.xserver.videoDrivers = [ "nvidiaBeta" ];
-  services.xserver.deviceSection = ''
-    Option "HardDPMS" "true"
-  '';
 
   # PCI-Express Runtime D3 (RTD3) Power Management
-  # http://download.nvidia.com/XFree86/Linux-x86_64/435.17/README/dynamicpowermanagement.html
+  # https://download.nvidia.com/XFree86/Linux-x86_64/440.26/README/dynamicpowermanagement.html
   boot.kernelParams = [
     "nvidia.NVreg_DynamicPowerManagement=0x02"
   ];
