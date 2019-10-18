@@ -726,10 +726,10 @@ index 000000000000..cb62d502a7ff
 +#endif /* _BCACHEFS_ACL_H */
 diff --git a/fs/bcachefs/alloc_background.c b/fs/bcachefs/alloc_background.c
 new file mode 100644
-index 000000000000..c627cdd1ea7f
+index 000000000000..990701a680b1
 --- /dev/null
 +++ b/fs/bcachefs/alloc_background.c
-@@ -0,0 +1,1650 @@
+@@ -0,0 +1,1653 @@
 +// SPDX-License-Identifier: GPL-2.0
 +#include "bcachefs.h"
 +#include "alloc_background.h"
@@ -2169,6 +2169,9 @@ index 000000000000..c627cdd1ea7f
 +again:
 +	cond_resched();
 +	nodes_unwritten = false;
++
++	if (bch2_journal_error(&c->journal))
++		return true;
 +
 +	rcu_read_lock();
 +	for_each_cached_btree(b, c, tbl, i, pos)
@@ -31681,10 +31684,10 @@ index 000000000000..2591e12305b7
 +#endif /* _BCACHEFS_ERROR_H */
 diff --git a/fs/bcachefs/extents.c b/fs/bcachefs/extents.c
 new file mode 100644
-index 000000000000..b1f9269a54e3
+index 000000000000..34eb70cea206
 --- /dev/null
 +++ b/fs/bcachefs/extents.c
-@@ -0,0 +1,1916 @@
+@@ -0,0 +1,1903 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Copyright (C) 2010 Kent Overstreet <kent.overstreet@gmail.com>
@@ -32659,20 +32662,7 @@ index 000000000000..b1f9269a54e3
 +				     POS(0, idx + sectors)) >= 0)
 +				break;
 +
-+			*nr_iters += 1;
-+
-+			if (overwrite &&
-+			    r_k.k->type == KEY_TYPE_reflink_v) {
-+				struct bkey_s_c_reflink_v r = bkey_s_c_to_reflink_v(r_k);
-+
-+				if (le64_to_cpu(r.v->refcount) == 1)
-+					*nr_iters += bch2_bkey_nr_alloc_ptrs(r_k);
-+			}
-+
-+			/*
-+			 * if we're going to be deleting an entry from
-+			 * the reflink btree, need more iters...
-+			 */
++			*nr_iters += 1 + bch2_bkey_nr_alloc_ptrs(r_k);
 +
 +			if (*nr_iters >= max_iters) {
 +				struct bpos pos = bkey_start_pos(k.k);
@@ -64070,10 +64060,10 @@ index 000000000000..4151065ab853
 +
 +#endif /* _BCACHEFS_XATTR_H */
 diff --git a/fs/cifs/file.c b/fs/cifs/file.c
-index 97090693d182..31daf77fed3d 100644
+index 4c1aeb2cf7f5..ea771e2d1162 100644
 --- a/fs/cifs/file.c
 +++ b/fs/cifs/file.c
-@@ -4126,20 +4126,12 @@ readpages_get_pages(struct address_space *mapping, struct list_head *page_list,
+@@ -4129,20 +4129,12 @@ readpages_get_pages(struct address_space *mapping, struct list_head *page_list,
  
  	page = lru_to_page(page_list);
  
@@ -64097,7 +64087,7 @@ index 97090693d182..31daf77fed3d 100644
  
  	/* move first page to the tmplist */
  	*offset = (loff_t)page->index << PAGE_SHIFT;
-@@ -4158,11 +4150,8 @@ readpages_get_pages(struct address_space *mapping, struct list_head *page_list,
+@@ -4161,11 +4153,8 @@ readpages_get_pages(struct address_space *mapping, struct list_head *page_list,
  		if (*bytes + PAGE_SIZE > rsize)
  			break;
  
