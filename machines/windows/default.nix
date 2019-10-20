@@ -12,6 +12,8 @@ with config.nixos; {
       # ../../hardware/gpu/nvidia/offload
       # ../../hardware/gpu/nvidia/sync
 
+      ../../hardware/profiles/yubikey.nix
+
       # ../../modules/network/wireguard.nix
       # ../../modules/network/openvpn.nix
     ];
