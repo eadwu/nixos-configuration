@@ -153,8 +153,8 @@ self: super:
       {
         name = "noctis";
         publisher = "liviuschera";
-        version = "10.12.0";
-        sha256 = "06g5i1vl9jrqh9nq4iapc6d7gwbnw5459cl7w2s3ffwv0lczsx1d";
+        version = "10.13.0";
+        sha256 = "1manvg3c8vfab1vyaafni3gd1c5nral4g3rjdj79mcbxhixm6q1m";
       }
 
       {
@@ -188,8 +188,8 @@ self: super:
       {
         name = "pyright";
         publisher = "ms-pyright";
-        version = "1.0.72";
-        sha256 = "1yylzf5xx5adrkb26vyv4205z3hbbxvfb73fs481sj4hsv6x55kx";
+        version = "1.0.78";
+        sha256 = "172x2mfz27hxpa0hhkfrmzqiyrz1r3706255fpgldsvbajpzwami";
       }
 
       {
@@ -209,8 +209,8 @@ self: super:
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.950";
-        sha256 = "1xz59rbvq5iak76y30hg6a4lf59yhcyb31wbkmikzkh62pm8y02m";
+        version = "1.0.988";
+        sha256 = "0n6kj7dlbmsbhmh65akpl0h3kx3pri8mh1zd6w4rsh0h3dpnwwfw";
       }
 
       {
@@ -237,15 +237,15 @@ self: super:
       {
         name = "java";
         publisher = "redhat";
-        version = "0.50.0";
-        sha256 = "108h77a3prxdx47h84l02v2dxcw0vpp9k9yksrgpc6vfsm1hnk46";
+        version = "0.51.0";
+        sha256 = "0zvgzs7dvgr8iia6nbq075khqs7xxn7mw2yfiqa30k07cm8x5xka";
       }
 
       {
         name = "rust";
         publisher = "rust-lang";
-        version = "0.6.3";
-        sha256 = "1r5q1iclr64wmgglsr3na3sv0fha5di8xyccv7xwcv5jf8w5rz5y";
+        version = "0.7.0";
+        sha256 = "16n787agjjfa68r6xv0lyqvx25nfwqw7bqbxf8x8mbb61qhbkws0";
       }
 
       {
@@ -265,8 +265,8 @@ self: super:
       {
         name = "metals";
         publisher = "scalameta";
-        version = "1.5.7";
-        sha256 = "0n99gw1imnm2hbizxrwnbrk8sxz5ysbzll4hn3jqy1xv3ky1pkix";
+        version = "1.6.0";
+        sha256 = "1ynwsn96dgjn6nwqln5r3vrkvpsv23aza06lss3asd6ynbfijaxl";
       }
 
       {
