@@ -1,8 +1,8 @@
 diff --git a/block/bio.c b/block/bio.c
-index 299a0e7651ec..d288c163d7aa 100644
+index 8f0ed6228fc5..6413f2a00abe 100644
 --- a/block/bio.c
 +++ b/block/bio.c
-@@ -960,6 +960,7 @@ int bio_iov_iter_get_pages(struct bio *bio, struct iov_iter *iter)
+@@ -945,6 +945,7 @@ int bio_iov_iter_get_pages(struct bio *bio, struct iov_iter *iter)
  		bio_set_flag(bio, BIO_NO_PAGE_REF);
  	return bio->bi_vcnt ? 0 : ret;
  }
@@ -10,7 +10,7 @@ index 299a0e7651ec..d288c163d7aa 100644
  
  static void submit_bio_wait_endio(struct bio *bio)
  {
-@@ -1650,6 +1651,7 @@ void bio_set_pages_dirty(struct bio *bio)
+@@ -1638,6 +1639,7 @@ void bio_set_pages_dirty(struct bio *bio)
  			set_page_dirty_lock(bvec->bv_page);
  	}
  }
@@ -18,7 +18,7 @@ index 299a0e7651ec..d288c163d7aa 100644
  
  /*
   * bio_check_pages_dirty() will check that all the BIO's pages are still dirty.
-@@ -1709,6 +1711,7 @@ void bio_check_pages_dirty(struct bio *bio)
+@@ -1697,6 +1699,7 @@ void bio_check_pages_dirty(struct bio *bio)
  	spin_unlock_irqrestore(&bio_dirty_lock, flags);
  	schedule_work(&bio_dirty_work);
  }
@@ -121,7 +121,7 @@ index c029f7443190..59093f9f1793 100644
  
  struct closure;
 diff --git a/fs/Kconfig b/fs/Kconfig
-index bfb1c6095c7a..5baec8263f24 100644
+index 2501e6f1f965..2ef96d36d192 100644
 --- a/fs/Kconfig
 +++ b/fs/Kconfig
 @@ -40,6 +40,7 @@ source "fs/ocfs2/Kconfig"
@@ -133,10 +133,10 @@ index bfb1c6095c7a..5baec8263f24 100644
  config FS_DAX
  	bool "Direct Access (DAX) support"
 diff --git a/fs/Makefile b/fs/Makefile
-index d60089fd689b..4d06ea7ed3af 100644
+index 14231b4cf383..5d08d0304afd 100644
 --- a/fs/Makefile
 +++ b/fs/Makefile
-@@ -127,6 +127,7 @@ obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
+@@ -128,6 +128,7 @@ obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
  obj-$(CONFIG_BTRFS_FS)		+= btrfs/
  obj-$(CONFIG_GFS2_FS)           += gfs2/
  obj-$(CONFIG_F2FS_FS)		+= f2fs/
@@ -34978,10 +34978,10 @@ index 000000000000..c1621485a526
 +#endif /* _BCACHEFS_FS_COMMON_H */
 diff --git a/fs/bcachefs/fs-io.c b/fs/bcachefs/fs-io.c
 new file mode 100644
-index 000000000000..05a8d1ebc125
+index 000000000000..2c61842938a7
 --- /dev/null
 +++ b/fs/bcachefs/fs-io.c
-@@ -0,0 +1,3101 @@
+@@ -0,0 +1,3102 @@
 +// SPDX-License-Identifier: GPL-2.0
 +#ifndef NO_BCACHEFS_FS
 +
@@ -36188,6 +36188,7 @@ index 000000000000..05a8d1ebc125
 +		if (w->io &&
 +		    (w->io->op.res.nr_replicas != nr_replicas_this_write ||
 +		     bio_full(&w->io->op.wbio.bio, i_size) ||
++		     w->io->op.wbio.bio.bi_iter.bi_size >= (256U << 20) ||
 +		     bio_end_sector(&w->io->op.wbio.bio) != sector))
 +			bch2_writepage_do_io(w);
 +
@@ -64060,10 +64061,10 @@ index 000000000000..4151065ab853
 +
 +#endif /* _BCACHEFS_XATTR_H */
 diff --git a/fs/cifs/file.c b/fs/cifs/file.c
-index 4c1aeb2cf7f5..ea771e2d1162 100644
+index 5ad15de2bb4f..72293833cc31 100644
 --- a/fs/cifs/file.c
 +++ b/fs/cifs/file.c
-@@ -4129,20 +4129,12 @@ readpages_get_pages(struct address_space *mapping, struct list_head *page_list,
+@@ -4191,20 +4191,12 @@ readpages_get_pages(struct address_space *mapping, struct list_head *page_list,
  
  	page = lru_to_page(page_list);
  
@@ -64087,7 +64088,7 @@ index 4c1aeb2cf7f5..ea771e2d1162 100644
  
  	/* move first page to the tmplist */
  	*offset = (loff_t)page->index << PAGE_SHIFT;
-@@ -4161,11 +4153,8 @@ readpages_get_pages(struct address_space *mapping, struct list_head *page_list,
+@@ -4223,11 +4215,8 @@ readpages_get_pages(struct address_space *mapping, struct list_head *page_list,
  		if (*bytes + PAGE_SIZE > rsize)
  			break;
  
@@ -64130,10 +64131,10 @@ index e88cf0554e65..0cb4172ff0ae 100644
  }
  EXPORT_SYMBOL(d_tmpfile);
 diff --git a/fs/inode.c b/fs/inode.c
-index 0f1e3b563c47..3ecfa63beb13 100644
+index fef457a42882..00c832b315c9 100644
 --- a/fs/inode.c
 +++ b/fs/inode.c
-@@ -363,6 +363,7 @@ EXPORT_SYMBOL(inc_nlink);
+@@ -366,6 +366,7 @@ EXPORT_SYMBOL(inc_nlink);
  static void __address_space_init_once(struct address_space *mapping)
  {
  	xa_init_flags(&mapping->i_pages, XA_FLAGS_LOCK_IRQ | XA_FLAGS_ACCOUNT);
@@ -64141,7 +64142,7 @@ index 0f1e3b563c47..3ecfa63beb13 100644
  	init_rwsem(&mapping->i_mmap_rwsem);
  	INIT_LIST_HEAD(&mapping->private_list);
  	spin_lock_init(&mapping->private_lock);
-@@ -1491,6 +1492,46 @@ int insert_inode_locked(struct inode *inode)
+@@ -1494,6 +1495,46 @@ int insert_inode_locked(struct inode *inode)
  }
  EXPORT_SYMBOL(insert_inode_locked);
  
@@ -64189,10 +64190,10 @@ index 0f1e3b563c47..3ecfa63beb13 100644
  		int (*test)(struct inode *, void *), void *data)
  {
 diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index cd28f63bfbc7..61ad30a18859 100644
+index dae64600ccbf..9415bb8a2688 100644
 --- a/include/asm-generic/vmlinux.lds.h
 +++ b/include/asm-generic/vmlinux.lds.h
-@@ -283,6 +283,10 @@
+@@ -288,6 +288,10 @@
  	__start___verbose = .;						\
  	KEEP(*(__verbose))                                              \
  	__stop___verbose = .;						\
@@ -64386,10 +64387,10 @@ index c88cdc4ae4ec..abacb91c3565 100644
 +
  #endif /* _LINUX_CLOSURE_H */
 diff --git a/include/linux/compiler_attributes.h b/include/linux/compiler_attributes.h
-index 6b318efd8a74..48b2c6ae6fc6 100644
+index cdf016596659..d3ab422fd4bf 100644
 --- a/include/linux/compiler_attributes.h
 +++ b/include/linux/compiler_attributes.h
-@@ -253,4 +253,9 @@
+@@ -270,4 +270,9 @@
   */
  #define __weak                          __attribute__((__weak__))
  
@@ -64400,7 +64401,7 @@ index 6b318efd8a74..48b2c6ae6fc6 100644
 +
  #endif /* __LINUX_COMPILER_ATTRIBUTES_H */
 diff --git a/include/linux/dcache.h b/include/linux/dcache.h
-index 9451011ac014..cce4533f9162 100644
+index 10090f11ab95..48c0b49357c0 100644
 --- a/include/linux/dcache.h
 +++ b/include/linux/dcache.h
 @@ -254,6 +254,7 @@ extern struct dentry * d_make_root(struct inode *);
@@ -64535,10 +64536,10 @@ index 000000000000..6e7bb56ae8b4
 +
 +#endif
 diff --git a/include/linux/fs.h b/include/linux/fs.h
-index bc1b40fb0db7..d1c0b8984fef 100644
+index e0d909d35763..06e9825ae53b 100644
 --- a/include/linux/fs.h
 +++ b/include/linux/fs.h
-@@ -421,6 +421,28 @@ int pagecache_write_end(struct file *, struct address_space *mapping,
+@@ -423,6 +423,28 @@ int pagecache_write_end(struct file *, struct address_space *mapping,
  				loff_t pos, unsigned len, unsigned copied,
  				struct page *page, void *fsdata);
  
@@ -64567,7 +64568,7 @@ index bc1b40fb0db7..d1c0b8984fef 100644
  /**
   * struct address_space - Contents of a cacheable, mappable object.
   * @host: Owner, either the inode or the block_device.
-@@ -455,6 +477,8 @@ struct address_space {
+@@ -462,6 +484,8 @@ struct address_space {
  	spinlock_t		private_lock;
  	struct list_head	private_list;
  	void			*private_data;
@@ -64576,7 +64577,7 @@ index bc1b40fb0db7..d1c0b8984fef 100644
  } __attribute__((aligned(sizeof(long)))) __randomize_layout;
  	/*
  	 * On most architectures that alignment is already the case; but
-@@ -2989,6 +3013,7 @@ extern struct inode *find_inode_nowait(struct super_block *,
+@@ -3043,6 +3067,7 @@ extern struct inode *find_inode_nowait(struct super_block *,
  				       void *data);
  extern int insert_inode_locked4(struct inode *, unsigned long, int (*test)(struct inode *, void *), void *);
  extern int insert_inode_locked(struct inode *);
@@ -64585,10 +64586,10 @@ index bc1b40fb0db7..d1c0b8984fef 100644
  extern void lockdep_annotate_inode_mutex_key(struct inode *inode);
  #else
 diff --git a/include/linux/pagemap.h b/include/linux/pagemap.h
-index c7552459a15f..4a06b2ac8a12 100644
+index 37a4d9e32cd3..f1793cf3af31 100644
 --- a/include/linux/pagemap.h
 +++ b/include/linux/pagemap.h
-@@ -594,32 +594,21 @@ static inline int fault_in_pages_readable(const char __user *uaddr, int size)
+@@ -604,32 +604,21 @@ static inline int fault_in_pages_readable(const char __user *uaddr, int size)
  	return 0;
  }
  
@@ -64629,10 +64630,10 @@ index c7552459a15f..4a06b2ac8a12 100644
  {
  	return (unsigned long)(inode->i_size + PAGE_SIZE - 1) >>
 diff --git a/include/linux/sched.h b/include/linux/sched.h
-index 9f51932bd543..ebfa046b2dac 100644
+index 67a1d86981a9..8eb429952dfc 100644
 --- a/include/linux/sched.h
 +++ b/include/linux/sched.h
-@@ -43,6 +43,7 @@ struct io_context;
+@@ -45,6 +45,7 @@ struct io_context;
  struct mempolicy;
  struct nameidata;
  struct nsproxy;
@@ -64640,7 +64641,7 @@ index 9f51932bd543..ebfa046b2dac 100644
  struct perf_event_context;
  struct pid_namespace;
  struct pipe_inode_info;
-@@ -1002,6 +1003,9 @@ struct task_struct {
+@@ -991,6 +992,9 @@ struct task_struct {
  	unsigned int			in_ubsan;
  #endif
  
@@ -65502,10 +65503,10 @@ index 000000000000..d7e898b02491
 +/* This part must be outside protection */
 +#include <trace/define_trace.h>
 diff --git a/init/init_task.c b/init/init_task.c
-index 7ab773b9b3cd..ee3d9d29b812 100644
+index 9e5cbe5eab7b..ea99aa09c069 100644
 --- a/init/init_task.c
 +++ b/init/init_task.c
-@@ -116,6 +116,7 @@ struct task_struct init_task
+@@ -114,6 +114,7 @@ struct task_struct init_task
  	},
  	.blocked	= {{0}},
  	.alloc_lock	= __SPIN_LOCK_UNLOCKED(init_task.alloc_lock),
@@ -66052,7 +66053,7 @@ index 000000000000..9fa58b6fadc9
 +}
 +EXPORT_SYMBOL_GPL(six_lock_increment);
 diff --git a/lib/Kconfig b/lib/Kconfig
-index 4e6b1c3e4c98..b13cb1aaa647 100644
+index 183f92a297ca..e3c4714adb5f 100644
 --- a/lib/Kconfig
 +++ b/lib/Kconfig
 @@ -444,6 +444,9 @@ config ASSOCIATIVE_ARRAY
@@ -66066,10 +66067,10 @@ index 4e6b1c3e4c98..b13cb1aaa647 100644
  	bool
  	depends on !NO_IOMEM
 diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
-index 4d39540011e2..018b1ac6cf98 100644
+index 93d97f9b0157..a23af13e86bc 100644
 --- a/lib/Kconfig.debug
 +++ b/lib/Kconfig.debug
-@@ -1422,6 +1422,15 @@ config DEBUG_CREDENTIALS
+@@ -1405,6 +1405,15 @@ config DEBUG_CREDENTIALS
  
  source "kernel/rcu/Kconfig.debug"
  
@@ -66085,7 +66086,7 @@ index 4d39540011e2..018b1ac6cf98 100644
  config DEBUG_WQ_FORCE_RR_CPU
  	bool "Force round-robin CPU selection for unbound work items"
  	depends on DEBUG_KERNEL
-@@ -1650,6 +1659,11 @@ config LATENCYTOP
+@@ -1633,6 +1642,11 @@ config LATENCYTOP
  	  Enable this option if you want to use the LatencyTOP tool
  	  to find out which userspace is blocking on what kernel operations.
  
@@ -66098,10 +66099,10 @@ index 4d39540011e2..018b1ac6cf98 100644
  
  config PROVIDE_OHCI1394_DMA_INIT
 diff --git a/lib/Makefile b/lib/Makefile
-index 29c02a924973..e751c660a502 100644
+index c5892807e06f..7d480644876b 100644
 --- a/lib/Makefile
 +++ b/lib/Makefile
-@@ -186,6 +186,8 @@ obj-$(CONFIG_HAVE_ARCH_TRACEHOOK) += syscall.o
+@@ -182,6 +182,8 @@ obj-$(CONFIG_HAVE_ARCH_TRACEHOOK) += syscall.o
  
  obj-$(CONFIG_DYNAMIC_DEBUG) += dynamic_debug.o
  
@@ -66110,7 +66111,7 @@ index 29c02a924973..e751c660a502 100644
  obj-$(CONFIG_NLATTR) += nlattr.o
  
  obj-$(CONFIG_LRU_CACHE) += lru_cache.o
-@@ -198,6 +200,8 @@ obj-$(CONFIG_ATOMIC64_SELFTEST) += atomic64_test.o
+@@ -194,6 +196,8 @@ obj-$(CONFIG_ATOMIC64_SELFTEST) += atomic64_test.o
  
  obj-$(CONFIG_CPU_RMAP) += cpu_rmap.o
  
@@ -67024,10 +67025,10 @@ index 446b956c9188..1237c213f52b 100644
  		return xas_load(xas);
  
 diff --git a/mm/filemap.c b/mm/filemap.c
-index d0cf700bf201..b26266a72c69 100644
+index 85b7d087eb45..6ef6305b9064 100644
 --- a/mm/filemap.c
 +++ b/mm/filemap.c
-@@ -115,6 +115,136 @@
+@@ -116,6 +116,136 @@
   *   ->tasklist_lock            (memory_failure, collect_procs_ao)
   */
  
@@ -67164,7 +67165,7 @@ index d0cf700bf201..b26266a72c69 100644
  static void page_cache_delete(struct address_space *mapping,
  				   struct page *page, void *shadow)
  {
-@@ -838,118 +968,160 @@ int replace_page_cache_page(struct page *old, struct page *new, gfp_t gfp_mask)
+@@ -847,118 +977,160 @@ int replace_page_cache_page(struct page *old, struct page *new, gfp_t gfp_mask)
  }
  EXPORT_SYMBOL_GPL(replace_page_cache_page);
  
@@ -67406,7 +67407,7 @@ index d0cf700bf201..b26266a72c69 100644
  }
  EXPORT_SYMBOL_GPL(add_to_page_cache_lru);
  
-@@ -1849,6 +2021,7 @@ unsigned find_get_pages_range(struct address_space *mapping, pgoff_t *start,
+@@ -1841,6 +2013,7 @@ unsigned find_get_pages_range(struct address_space *mapping, pgoff_t *start,
  
  	return ret;
  }
@@ -67414,7 +67415,7 @@ index d0cf700bf201..b26266a72c69 100644
  
  /**
   * find_get_pages_contig - gang contiguous pagecache lookup
-@@ -2010,6 +2183,222 @@ static void shrink_readahead_size_eio(struct file *filp,
+@@ -1990,6 +2163,222 @@ static void shrink_readahead_size_eio(struct file *filp,
  	ra->ra_pages /= 4;
  }
  
@@ -67637,7 +67638,7 @@ index d0cf700bf201..b26266a72c69 100644
  /**
   * generic_file_buffered_read - generic file read routine
   * @iocb:	the iocb to read
-@@ -2030,252 +2419,96 @@ static ssize_t generic_file_buffered_read(struct kiocb *iocb,
+@@ -2010,252 +2399,96 @@ static ssize_t generic_file_buffered_read(struct kiocb *iocb,
  		struct iov_iter *iter, ssize_t written)
  {
  	struct file *filp = iocb->ki_filp;
@@ -67948,10 +67949,10 @@ index d0cf700bf201..b26266a72c69 100644
  }
  
 diff --git a/mm/page-writeback.c b/mm/page-writeback.c
-index 1804f64ff43c..089329d8a9e1 100644
+index 50055d2e4ea8..3d0a550eb219 100644
 --- a/mm/page-writeback.c
 +++ b/mm/page-writeback.c
-@@ -2463,20 +2463,19 @@ int __set_page_dirty_nobuffers(struct page *page)
+@@ -2467,20 +2467,19 @@ int __set_page_dirty_nobuffers(struct page *page)
  	lock_page_memcg(page);
  	if (!TestSetPageDirty(page)) {
  		struct address_space *mapping = page_mapping(page);
