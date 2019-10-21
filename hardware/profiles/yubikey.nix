@@ -1,4 +1,4 @@
-{ config, ... }:
+{ config, pkgs, ... }:
 
 let
   yubikey-config = {
@@ -21,4 +21,10 @@ in {
 
   boot.initrd.luks.devices."cryptroot".yubikey = yubikey-config;
   boot.initrd.luks.devices."cryptswap".yubikey = yubikey-config;
+
+  environment.systemPackages = with pkgs; [ pam_u2f yubikey-personalization ];
+
+  hardware.u2f.enable = true;
+  security.pam.u2f.enable = true;
+  security.pam.u2f.control = "required";
 }

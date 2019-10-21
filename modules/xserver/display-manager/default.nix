@@ -30,4 +30,9 @@ with config.nixos; {
       '';
     };
   };
+
+  security.pam.services = {
+    lightdm.u2fAuth = true;
+    sddm.u2fAuth = true;
+  };
 }
