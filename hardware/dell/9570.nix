@@ -22,4 +22,10 @@
 
   services.fwupd.enable = true;
   services.fstrim.enable = false;
+
+  boot.loader.systemd-boot = {
+    signed = true;
+    signing-key = "/boot/secureboot/db.key";
+    signing-certificate = "/boot/secureboot/db.crt";
+  };
 }
