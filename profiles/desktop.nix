@@ -119,6 +119,11 @@ in
       ];
     };
 
+    programs.gnupg.agent = {
+      enable = true;
+      pinentryFlavor = "gtk2";
+    };
+
     programs.zsh = {
       interactiveShellInit = ''
         nix-generate-iso () {
