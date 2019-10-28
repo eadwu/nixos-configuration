@@ -139,8 +139,8 @@ self: super:
       {
         name = "auto-rename-tag";
         publisher = "formulahendry";
-        version = "0.1.0";
-        sha256 = "1zcxcf269jbwpsa29mlmfs3z8awbsccrq595m6chqrspnw2l8a2b";
+        version = "0.1.1";
+        sha256 = "0r2bavgbkkly2l98sbrna0i2l0lh2axgqij1acv33kk1wr3lfxfx";
       }
 
       {
@@ -153,15 +153,15 @@ self: super:
       {
         name = "noctis";
         publisher = "liviuschera";
-        version = "10.13.0";
-        sha256 = "1manvg3c8vfab1vyaafni3gd1c5nral4g3rjdj79mcbxhixm6q1m";
+        version = "10.13.1";
+        sha256 = "1r42s7jc022qdw932k8jrz7lb28mrw0lx426ssf4c7pxca65a70j";
       }
 
       {
         name = "vscode-language-babel";
         publisher = "mgmcdermott";
-        version = "0.0.24";
-        sha256 = "0mxlvd5abballyg7ya1my2y1wgcmiw2wzhsj2l0gnfkn3zyl91bc";
+        version = "0.0.25";
+        sha256 = "1cgw353j3c78mbnqavksxizwh82f4gdnx27720p825hnyc1ddv1h";
       }
 
       {
@@ -188,8 +188,8 @@ self: super:
       {
         name = "pyright";
         publisher = "ms-pyright";
-        version = "1.0.78";
-        sha256 = "172x2mfz27hxpa0hhkfrmzqiyrz1r3706255fpgldsvbajpzwami";
+        version = "1.0.81";
+        sha256 = "0pzim3cl712lib7pwk0jb2vlk8k4kz7nfi6zy7iqd3sn8y06jqkl";
       }
 
       {
@@ -209,15 +209,15 @@ self: super:
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.988";
-        sha256 = "0n6kj7dlbmsbhmh65akpl0h3kx3pri8mh1zd6w4rsh0h3dpnwwfw";
+        version = "1.0.1056";
+        sha256 = "0cc1zj9f0k142snb6kbpiby4fa4p63jnkc73s9j97r6zgnvccq9k";
       }
 
       {
         name = "debugger-for-chrome";
         publisher = "msjsdiag";
-        version = "4.12.0";
-        sha256 = "1fwyn0qgywpwxiy1qccikjfhr5jn3rw77afiwdfmpkflfvi4h806";
+        version = "4.12.1";
+        sha256 = "0y4fjzn4iq4w9j0fn1pggp24b79d94mkxrbgxn9phr6yjj1856sh";
       }
 
       {
@@ -237,8 +237,8 @@ self: super:
       {
         name = "java";
         publisher = "redhat";
-        version = "0.51.0";
-        sha256 = "0zvgzs7dvgr8iia6nbq075khqs7xxn7mw2yfiqa30k07cm8x5xka";
+        version = "0.52.0";
+        sha256 = "01f9vpbccscxj15fwxb39m876nchqbf6bpzyzjlizwsn5126019q";
       }
 
       {
