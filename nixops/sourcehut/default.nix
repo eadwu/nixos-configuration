@@ -90,6 +90,7 @@
       "sr.ht".owner-email = "";
       # nix-shell -p pwgen --run 'pwgen 32'
       "sr.ht".secret-key = "";
+      # nix-shell -p sourcehut.metasrht --run 'srht-webhook-keygen'
       webhooks.private-key = "";
 
       "git.sr.ht".origin = "";
