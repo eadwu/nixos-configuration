@@ -9,7 +9,8 @@
 
       # Window Manager
       # ./bspwm.nix
-      ./dwm.nix
+      # ./dwm.nix
+      ./xmonad.nix
 
       # Nvidia Optimus
       # ./bumblebee.nix
