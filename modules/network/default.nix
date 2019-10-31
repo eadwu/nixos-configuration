@@ -7,29 +7,17 @@ with config.nixos; {
       # ./openvpn.nix
     ];
 
+  environment.etc."iwd/main.conf".text = lib.generators.toINI {} {
+    General = {
+      AddressRandomization = "once";
+    };
+  };
+
   networking = {
     hostName = settings.machine.hostname;
     enableIPv6 = false;
     dhcpcd.enable = lib.mkDefault false;
-
-    wireless = {
-      enable = lib.mkDefault true;
-      userControlled.enable = lib.mkDefault true;
-
-      networks.eduroam.auth = ''
-        eap=PEAP
-        auth_alg=OPEN
-        key_mgmt=WPA-EAP
-        proto=WPA RSN
-        pairwise=CCMP
-        group=CCMP TKIP
-        identity="edmundwu@buffalo.edu"
-        anonymous_identity="notastudentatbuffalo@buffalo.edu"
-        password=hash:${builtins.readFile ../../credentials/eduroam}
-        phase1="peaplabel=0"
-        phase2="auth=MSCHAPV2"
-      '';
-    };
+    wireless.iwd.enable = lib.mkDefault true;
   };
 
   services.resolved.extraConfig = ''
