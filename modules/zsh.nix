@@ -8,7 +8,7 @@
         setopt histignorespace
 
         nix-clean () {
-          nix-env --delete-generations $1
+          nix-env -p /nix/var/nix/profiles/system --delete-generations $1
           nix-store --gc
           nix-channel --update
           nix-env -u --always
