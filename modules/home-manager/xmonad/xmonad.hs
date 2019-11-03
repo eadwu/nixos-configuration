@@ -14,9 +14,10 @@ import System.Exit
 import qualified XMonad.StackSet as W
 import qualified Data.Map        as M
 
-import Data.Maybe ( fromJust )
 import Graphics.X11.ExtraTypes.XF86
-import XMonad.Hooks.ManageDocks ( avoidStrutsOn )
+import Data.Maybe ( fromJust )
+import XMonad.Hooks.ManageDocks ( docks, avoidStrutsOn, docksEventHook, ToggleStruts(..) )
+import XMonad.Layout.Fullscreen ( fullscreenSupport, fullscreenEventHook )
 import XMonad.Layout.NoBorders ( smartBorders )
 
 import XMonad.Layout.BinarySpacePartition
@@ -141,8 +142,7 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     -- Toggle the status bar gap
     -- Use this binding with avoidStruts from Hooks.ManageDocks.
     -- See also the statusBar function from Hooks.DynamicLog.
-    --
-    -- , ((modm              , xK_b     ), sendMessage ToggleStruts)
+    , ((modm .|. shiftMask, xK_b     ), sendMessage ToggleStruts)
 
     -- Quit xmonad
     , ((modm .|. shiftMask, xF86XK_PowerOff), io (exitWith ExitSuccess))
@@ -288,7 +288,7 @@ myManageHook = composeAll
 -- return (All True) if the default handler is to be run afterwards. To
 -- combine event hooks use mappend or mconcat from Data.Monoid.
 --
-myEventHook = mempty
+myEventHook = fullscreenEventHook
 
 ------------------------------------------------------------------------
 -- Status bars and logging
@@ -313,7 +313,7 @@ myStartupHook = return ()
 
 -- Run xmonad with the settings you specify. No need to modify this.
 --
-main = xmonad defaults
+main = xmonad . docks . fullscreenSupport $ defaults
 
 -- A structure containing your configuration settings, overriding
 -- fields in the default config. Any you don't override, will
