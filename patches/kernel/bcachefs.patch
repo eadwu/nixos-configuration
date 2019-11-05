@@ -725,10 +725,10 @@ index 000000000000..cb62d502a7ff
 +#endif /* _BCACHEFS_ACL_H */
 diff --git a/fs/bcachefs/alloc_background.c b/fs/bcachefs/alloc_background.c
 new file mode 100644
-index 000000000000..990701a680b1
+index 000000000000..e252a039dc2b
 --- /dev/null
 +++ b/fs/bcachefs/alloc_background.c
-@@ -0,0 +1,1653 @@
+@@ -0,0 +1,1656 @@
 +// SPDX-License-Identifier: GPL-2.0
 +#include "bcachefs.h"
 +#include "alloc_background.h"
@@ -883,6 +883,7 @@ index 000000000000..990701a680b1
 +{
 +	unsigned idx = 0;
 +	void *d = dst->v.data;
++	unsigned bytes;
 +
 +	dst->v.fields	= 0;
 +	dst->v.gen	= src.gen;
@@ -891,7 +892,9 @@ index 000000000000..990701a680b1
 +	BCH_ALLOC_FIELDS()
 +#undef  x
 +
-+	set_bkey_val_bytes(&dst->k, (void *) d - (void *) &dst->v);
++	bytes = (void *) d - (void *) &dst->v;
++	set_bkey_val_bytes(&dst->k, bytes);
++	memset_u64s_tail(&dst->v, 0, bytes);
 +}
 +
 +static unsigned bch_alloc_val_u64s(const struct bch_alloc *a)
@@ -3791,10 +3794,10 @@ index 000000000000..832568dc9551
 +#endif /* _BCACHEFS_ALLOC_TYPES_H */
 diff --git a/fs/bcachefs/bcachefs.h b/fs/bcachefs/bcachefs.h
 new file mode 100644
-index 000000000000..498d46f1a5a0
+index 000000000000..323b663da278
 --- /dev/null
 +++ b/fs/bcachefs/bcachefs.h
-@@ -0,0 +1,852 @@
+@@ -0,0 +1,853 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +#ifndef _BCACHEFS_H
 +#define _BCACHEFS_H
@@ -4294,6 +4297,7 @@ index 000000000000..498d46f1a5a0
 +	/* misc: */
 +	BCH_FS_BDEV_MOUNTED,
 +	BCH_FS_FIXED_GENS,
++	BCH_FS_ALLOC_WRITTEN,
 +	BCH_FS_REBUILD_REPLICAS,
 +	BCH_FS_HOLD_BTREE_WRITES,
 +};
@@ -6579,7 +6583,7 @@ index 000000000000..d668ede5491a
 +#endif /* _BCACHEFS_IOCTL_H */
 diff --git a/fs/bcachefs/bkey.c b/fs/bcachefs/bkey.c
 new file mode 100644
-index 000000000000..0f9dfe37b0af
+index 000000000000..ed7ca5b0636d
 --- /dev/null
 +++ b/fs/bcachefs/bkey.c
 @@ -0,0 +1,1160 @@
@@ -6912,7 +6916,7 @@ index 000000000000..0f9dfe37b0af
 +void bch2_bkey_unpack(const struct btree *b, struct bkey_i *dst,
 +		 const struct bkey_packed *src)
 +{
-+	dst->k = bkey_unpack_key(b, src);
++	__bkey_unpack_key(b, &dst->k, src);
 +
 +	memcpy_u64s(&dst->v,
 +		    bkeyp_val(&b->format, src),
@@ -9393,10 +9397,10 @@ index 000000000000..397009181eae
 +#endif /* _BCACHEFS_BKEY_SORT_H */
 diff --git a/fs/bcachefs/bset.c b/fs/bcachefs/bset.c
 new file mode 100644
-index 000000000000..32436ed5cc80
+index 000000000000..19f13b7e61e6
 --- /dev/null
 +++ b/fs/bcachefs/bset.c
-@@ -0,0 +1,1873 @@
+@@ -0,0 +1,1881 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Code for working with individual keys, and sorted sets of keys with in a
@@ -10964,11 +10968,13 @@ index 000000000000..32436ed5cc80
 + *    So we've got to search for start_of_range, then after the lookup iterate
 + *    past any extents that compare equal to the position we searched for.
 + */
++__flatten
 +void bch2_btree_node_iter_init(struct btree_node_iter *iter,
 +			       struct btree *b, struct bpos *search)
 +{
 +	struct bset_tree *t;
 +	struct bkey_packed p, *packed_search = NULL;
++	struct btree_node_iter_set *pos = iter->data;
 +
 +	EBUG_ON(bkey_cmp(*search, b->data->min_key) < 0);
 +	bset_aux_tree_verify(b);
@@ -10987,11 +10993,17 @@ index 000000000000..32436ed5cc80
 +		return;
 +	}
 +
-+	for_each_bset(b, t)
-+		__bch2_btree_node_iter_push(iter, b,
-+					   bch2_bset_search(b, t, search,
-+							    packed_search, &p),
-+					   btree_bkey_last(b, t));
++	for_each_bset(b, t) {
++		struct bkey_packed *k = bch2_bset_search(b, t, search,
++							 packed_search, &p);
++		struct bkey_packed *end = btree_bkey_last(b, t);
++
++		if (k != end)
++			*pos++ = (struct btree_node_iter_set) {
++				__btree_node_key_to_offset(b, k),
++				__btree_node_key_to_offset(b, end)
++			};
++	}
 +
 +	bch2_btree_node_iter_sort(iter, b);
 +}
@@ -16156,10 +16168,10 @@ index 000000000000..955a80cafae3
 +#endif /* _BCACHEFS_BTREE_IO_H */
 diff --git a/fs/bcachefs/btree_iter.c b/fs/bcachefs/btree_iter.c
 new file mode 100644
-index 000000000000..492f5e5b7db0
+index 000000000000..5fab505dbea0
 --- /dev/null
 +++ b/fs/bcachefs/btree_iter.c
-@@ -0,0 +1,2146 @@
+@@ -0,0 +1,2158 @@
 +// SPDX-License-Identifier: GPL-2.0
 +
 +#include "bcachefs.h"
@@ -16226,21 +16238,9 @@ index 000000000000..492f5e5b7db0
 +
 +/* Btree node locking: */
 +
-+/*
-+ * Updates the saved lock sequence number, so that bch2_btree_node_relock() will
-+ * succeed:
-+ */
 +void bch2_btree_node_unlock_write(struct btree *b, struct btree_iter *iter)
 +{
-+	struct btree_iter *linked;
-+
-+	EBUG_ON(iter->l[b->level].b != b);
-+	EBUG_ON(iter->l[b->level].lock_seq + 1 != b->lock.state.seq);
-+
-+	trans_for_each_iter_with_node(iter->trans, b, linked)
-+		linked->l[b->level].lock_seq += 2;
-+
-+	six_unlock_write(&b->lock);
++	bch2_btree_node_unlock_write_inlined(b, iter);
 +}
 +
 +void __bch2_btree_node_lock_write(struct btree *b, struct btree_iter *iter)
@@ -16675,6 +16675,30 @@ index 000000000000..492f5e5b7db0
 +	bch2_btree_node_iter_push(iter, b, k, btree_bkey_last(b, t));
 +}
 +
++static void __bch2_btree_iter_fix_key_modified(struct btree_iter *iter,
++						    struct btree *b,
++						    struct bkey_packed *where)
++{
++	struct btree_node_iter *node_iter = &iter->l[0].iter;
++
++	if (where == bch2_btree_node_iter_peek_all(node_iter, b)) {
++		bkey_disassemble(b, where, &iter->k);
++		btree_iter_set_dirty(iter, BTREE_ITER_NEED_PEEK);
++	}
++}
++
++void bch2_btree_iter_fix_key_modified(struct btree_iter *iter,
++				      struct btree *b,
++				      struct bkey_packed *where)
++{
++	struct btree_iter *linked;
++
++	trans_for_each_iter_with_node(iter->trans, b, linked) {
++		__bch2_btree_iter_fix_key_modified(linked, b, where);
++		__bch2_btree_iter_verify(linked, b);
++	}
++}
++
 +static void __bch2_btree_node_iter_fix(struct btree_iter *iter,
 +				      struct btree *b,
 +				      struct btree_node_iter *node_iter,
@@ -17101,7 +17125,7 @@ index 000000000000..492f5e5b7db0
 +		btree_node_unlock(iter, iter->level);
 +}
 +
-+static inline int btree_iter_down(struct btree_iter *iter)
++static __always_inline int btree_iter_down(struct btree_iter *iter)
 +{
 +	struct bch_fs *c = iter->trans->c;
 +	struct btree_iter_level *l = &iter->l[iter->level];
@@ -17110,7 +17134,7 @@ index 000000000000..492f5e5b7db0
 +	enum six_lock_type lock_type = __btree_lock_want(iter, level);
 +	BKEY_PADDED(k) tmp;
 +
-+	BUG_ON(!btree_node_locked(iter, iter->level));
++	EBUG_ON(!btree_node_locked(iter, iter->level));
 +
 +	bch2_bkey_unpack(l->b, &tmp.k,
 +			 bch2_btree_node_iter_peek(&l->iter, l->b));
@@ -18308,10 +18332,10 @@ index 000000000000..492f5e5b7db0
 +}
 diff --git a/fs/bcachefs/btree_iter.h b/fs/bcachefs/btree_iter.h
 new file mode 100644
-index 000000000000..eca1a0ebc918
+index 000000000000..4c5032222319
 --- /dev/null
 +++ b/fs/bcachefs/btree_iter.h
-@@ -0,0 +1,312 @@
+@@ -0,0 +1,314 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +#ifndef _BCACHEFS_BTREE_ITER_H
 +#define _BCACHEFS_BTREE_ITER_H
@@ -18418,6 +18442,8 @@ index 000000000000..eca1a0ebc918
 +static inline void bch2_btree_trans_verify_locks(struct btree_trans *iter) {}
 +#endif
 +
++void bch2_btree_iter_fix_key_modified(struct btree_iter *, struct btree *,
++					   struct bkey_packed *);
 +void bch2_btree_node_iter_fix(struct btree_iter *, struct btree *,
 +			      struct btree_node_iter *, struct bkey_packed *,
 +			      unsigned, unsigned);
@@ -18626,10 +18652,10 @@ index 000000000000..eca1a0ebc918
 +#endif /* _BCACHEFS_BTREE_ITER_H */
 diff --git a/fs/bcachefs/btree_locking.h b/fs/bcachefs/btree_locking.h
 new file mode 100644
-index 000000000000..592c3b4eed64
+index 000000000000..aaad2d289e79
 --- /dev/null
 +++ b/fs/bcachefs/btree_locking.h
-@@ -0,0 +1,221 @@
+@@ -0,0 +1,239 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +#ifndef _BCACHEFS_BTREE_LOCKING_H
 +#define _BCACHEFS_BTREE_LOCKING_H
@@ -18833,6 +18859,24 @@ index 000000000000..592c3b4eed64
 +
 +	return likely(btree_node_locked(iter, level)) ||
 +		__bch2_btree_node_relock(iter, level);
++}
++
++/*
++ * Updates the saved lock sequence number, so that bch2_btree_node_relock() will
++ * succeed:
++ */
++static inline void
++bch2_btree_node_unlock_write_inlined(struct btree *b, struct btree_iter *iter)
++{
++	struct btree_iter *linked;
++
++	EBUG_ON(iter->l[b->level].b != b);
++	EBUG_ON(iter->l[b->level].lock_seq + 1 != b->lock.state.seq);
++
++	trans_for_each_iter_with_node(iter->trans, b, linked)
++		linked->l[b->level].lock_seq += 2;
++
++	six_unlock_write(&b->lock);
 +}
 +
 +void bch2_btree_node_unlock_write(struct btree *, struct btree_iter *);
@@ -19545,10 +19589,10 @@ index 000000000000..ad8cbf3fb778
 +#endif /* _BCACHEFS_BTREE_UPDATE_H */
 diff --git a/fs/bcachefs/btree_update_interior.c b/fs/bcachefs/btree_update_interior.c
 new file mode 100644
-index 000000000000..ec0de33f0a1a
+index 000000000000..9d5687ec0ead
 --- /dev/null
 +++ b/fs/bcachefs/btree_update_interior.c
-@@ -0,0 +1,2233 @@
+@@ -0,0 +1,2234 @@
 +// SPDX-License-Identifier: GPL-2.0
 +
 +#include "bcachefs.h"
@@ -21738,6 +21782,7 @@ index 000000000000..ec0de33f0a1a
 +	bch2_bset_init_first(b, &b->data->keys);
 +	bch2_btree_build_aux_trees(b);
 +
++	b->data->flags = 0;
 +	b->data->min_key = POS_MIN;
 +	b->data->max_key = POS_MAX;
 +	b->data->format = bch2_btree_calc_format(b);
@@ -21784,7 +21829,7 @@ index 000000000000..ec0de33f0a1a
 +}
 diff --git a/fs/bcachefs/btree_update_interior.h b/fs/bcachefs/btree_update_interior.h
 new file mode 100644
-index 000000000000..e5156e908110
+index 000000000000..c5a0ab5d7bb8
 --- /dev/null
 +++ b/fs/bcachefs/btree_update_interior.h
 @@ -0,0 +1,341 @@
@@ -22074,17 +22119,17 @@ index 000000000000..e5156e908110
 +static inline struct btree_node_entry *want_new_bset(struct bch_fs *c,
 +						     struct btree *b)
 +{
-+	struct bset *i = btree_bset_last(b);
++	struct bset_tree *t = bset_tree_last(b);
 +	struct btree_node_entry *bne = max(write_block(b),
 +			(void *) btree_bkey_last(b, bset_tree_last(b)));
 +	ssize_t remaining_space =
 +		__bch_btree_u64s_remaining(c, b, &bne->keys.start[0]);
 +
-+	if (unlikely(bset_written(b, i))) {
++	if (unlikely(bset_written(b, bset(b, t)))) {
 +		if (remaining_space > (ssize_t) (block_bytes(c) >> 3))
 +			return bne;
 +	} else {
-+		if (unlikely(vstruct_bytes(i) > btree_write_set_buffer(b)) &&
++		if (unlikely(bset_u64s(t) * sizeof(u64) > btree_write_set_buffer(b)) &&
 +		    remaining_space > (ssize_t) (btree_write_set_buffer(b) >> 3))
 +			return bne;
 +	}
@@ -22131,10 +22176,10 @@ index 000000000000..e5156e908110
 +#endif /* _BCACHEFS_BTREE_UPDATE_INTERIOR_H */
 diff --git a/fs/bcachefs/btree_update_leaf.c b/fs/bcachefs/btree_update_leaf.c
 new file mode 100644
-index 000000000000..7d79063c4cc5
+index 000000000000..051368cd4a77
 --- /dev/null
 +++ b/fs/bcachefs/btree_update_leaf.c
-@@ -0,0 +1,977 @@
+@@ -0,0 +1,955 @@
 +// SPDX-License-Identifier: GPL-2.0
 +
 +#include "bcachefs.h"
@@ -22153,6 +22198,7 @@ index 000000000000..7d79063c4cc5
 +#include "keylist.h"
 +#include "replicas.h"
 +
++#include <linux/prefetch.h>
 +#include <linux/sort.h>
 +#include <trace/events/bcachefs.h>
 +
@@ -22185,23 +22231,6 @@ index 000000000000..7d79063c4cc5
 +	 */
 +	if (want_new_bset(c, b))
 +		bch2_btree_init_next(c, b, iter);
-+}
-+
-+static void btree_trans_lock_write(struct btree_trans *trans, bool lock)
-+{
-+	struct bch_fs *c = trans->c;
-+	struct btree_insert_entry *i;
-+	unsigned iter;
-+
-+	trans_for_each_update_sorted(trans, i, iter) {
-+		if (same_leaf_as_prev(trans, iter))
-+			continue;
-+
-+		if (lock)
-+			bch2_btree_node_lock_for_insert(c, i->iter->l[0].b, i->iter);
-+		else
-+			bch2_btree_node_unlock_write(i->iter->l[0].b, i->iter);
-+	}
 +}
 +
 +static inline void btree_trans_sort_updates(struct btree_trans *trans)
@@ -22514,29 +22543,6 @@ index 000000000000..7d79063c4cc5
 +	return BTREE_INSERT_OK;
 +}
 +
-+static int btree_trans_check_can_insert(struct btree_trans *trans,
-+					struct btree_insert_entry **stopped_at)
-+{
-+	struct btree_insert_entry *i;
-+	unsigned iter, u64s = 0;
-+	int ret;
-+
-+	trans_for_each_update_sorted(trans, i, iter) {
-+		/* Multiple inserts might go to same leaf: */
-+		if (!same_leaf_as_prev(trans, iter))
-+			u64s = 0;
-+
-+		u64s += i->k->k.u64s;
-+		ret = btree_key_can_insert(trans, i, &u64s);
-+		if (ret) {
-+			*stopped_at = i;
-+			return ret;
-+		}
-+	}
-+
-+	return 0;
-+}
-+
 +static inline void do_btree_insert_one(struct btree_trans *trans,
 +				       struct btree_insert_entry *insert)
 +{
@@ -22587,6 +22593,8 @@ index 000000000000..7d79063c4cc5
 +	unsigned mark_flags = trans->flags & BTREE_INSERT_BUCKET_INVALIDATE
 +		? BCH_BUCKET_MARK_BUCKET_INVALIDATE
 +		: 0;
++	unsigned iter, u64s = 0;
++	bool marking = false;
 +	int ret;
 +
 +	if (race_fault()) {
@@ -22599,25 +22607,28 @@ index 000000000000..7d79063c4cc5
 +	 * held, otherwise another thread could write the node changing the
 +	 * amount of space available:
 +	 */
-+	ret = btree_trans_check_can_insert(trans, stopped_at);
-+	if (ret)
-+		return ret;
 +
-+	trans_for_each_update(trans, i) {
-+		if (!btree_node_type_needs_gc(i->iter->btree_id))
-+			continue;
++	prefetch(&trans->c->journal.flags);
 +
-+		if (!fs_usage) {
-+			percpu_down_read(&c->mark_lock);
-+			fs_usage = bch2_fs_usage_scratch_get(c);
++	trans_for_each_update_sorted(trans, i, iter) {
++		/* Multiple inserts might go to same leaf: */
++		if (!same_leaf_as_prev(trans, iter))
++			u64s = 0;
++
++		u64s += i->k->k.u64s;
++		ret = btree_key_can_insert(trans, i, &u64s);
++		if (ret) {
++			*stopped_at = i;
++			return ret;
 +		}
 +
-+		/* Must be called under mark_lock: */
-+		if (!bch2_bkey_replicas_marked_locked(c,
-+			bkey_i_to_s_c(i->k), true)) {
-+			ret = BTREE_INSERT_NEED_MARK_REPLICAS;
-+			goto err;
-+		}
++		if (btree_node_type_needs_gc(i->iter->btree_id))
++			marking = true;
++	}
++
++	if (marking) {
++		percpu_down_read(&c->mark_lock);
++		fs_usage = bch2_fs_usage_scratch_get(c);
 +	}
 +
 +	/*
@@ -22645,16 +22656,20 @@ index 000000000000..7d79063c4cc5
 +				i->k->k.version = MAX_VERSION;
 +	}
 +
++	/* Must be called under mark_lock: */
++	if (marking && trans->fs_usage_deltas &&
++	    bch2_replicas_delta_list_apply(c, fs_usage,
++					   trans->fs_usage_deltas)) {
++		ret = BTREE_INSERT_NEED_MARK_REPLICAS;
++		goto err;
++	}
++
 +	trans_for_each_update(trans, i)
 +		if (likely(!(trans->flags & BTREE_INSERT_NOMARK)) &&
 +		    update_has_nontrans_triggers(i))
 +			bch2_mark_update(trans, i, fs_usage, mark_flags);
 +
-+	if (fs_usage && trans->fs_usage_deltas)
-+		bch2_replicas_delta_list_apply(c, fs_usage,
-+					       trans->fs_usage_deltas);
-+
-+	if (fs_usage)
++	if (marking)
 +		bch2_trans_fs_usage_apply(trans, fs_usage);
 +
 +	if (unlikely(c->gc_pos.phase))
@@ -22663,7 +22678,7 @@ index 000000000000..7d79063c4cc5
 +	trans_for_each_update(trans, i)
 +		do_btree_insert_one(trans, i);
 +err:
-+	if (fs_usage) {
++	if (marking) {
 +		bch2_fs_usage_scratch_put(c, fs_usage);
 +		percpu_up_read(&c->mark_lock);
 +	}
@@ -22746,9 +22761,17 @@ index 000000000000..7d79063c4cc5
 +	 */
 +	btree_trans_sort_updates(trans);
 +
-+	btree_trans_lock_write(trans, true);
++	trans_for_each_update_sorted(trans, i, idx)
++		if (!same_leaf_as_prev(trans, idx))
++			bch2_btree_node_lock_for_insert(trans->c,
++						i->iter->l[0].b, i->iter);
++
 +	ret = bch2_trans_commit_write_locked(trans, stopped_at);
-+	btree_trans_lock_write(trans, false);
++
++	trans_for_each_update_sorted(trans, i, idx)
++		if (!same_leaf_as_prev(trans, idx))
++			bch2_btree_node_unlock_write_inlined(i->iter->l[0].b,
++							     i->iter);
 +
 +	/*
 +	 * Drop journal reservation after dropping write locks, since dropping
@@ -23114,10 +23137,10 @@ index 000000000000..7d79063c4cc5
 +}
 diff --git a/fs/bcachefs/buckets.c b/fs/bcachefs/buckets.c
 new file mode 100644
-index 000000000000..e3c3846a6085
+index 000000000000..c418398266a3
 --- /dev/null
 +++ b/fs/bcachefs/buckets.c
-@@ -0,0 +1,2077 @@
+@@ -0,0 +1,2095 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Code for manipulating bucket marks for garbage collection.
@@ -23619,14 +23642,18 @@ index 000000000000..e3c3846a6085
 +	}
 +}
 +
-+static inline void update_replicas(struct bch_fs *c,
-+				   struct bch_fs_usage *fs_usage,
-+				   struct bch_replicas_entry *r,
-+				   s64 sectors)
++static inline int update_replicas(struct bch_fs *c,
++				  struct bch_fs_usage *fs_usage,
++				  struct bch_replicas_entry *r,
++				  s64 sectors)
 +{
 +	int idx = bch2_replicas_entry_idx(c, r);
 +
-+	BUG_ON(idx < 0);
++	if (idx < 0)
++		return -1;
++
++	if (!fs_usage)
++		return 0;
 +
 +	switch (r->data_type) {
 +	case BCH_DATA_BTREE:
@@ -23640,6 +23667,7 @@ index 000000000000..e3c3846a6085
 +		break;
 +	}
 +	fs_usage->replicas[idx]		+= sectors;
++	return 0;
 +}
 +
 +static inline void update_cached_sectors(struct bch_fs *c,
@@ -23699,13 +23727,28 @@ index 000000000000..e3c3846a6085
 +	update_replicas_list(trans, &r.e, sectors);
 +}
 +
-+void bch2_replicas_delta_list_apply(struct bch_fs *c,
-+				    struct bch_fs_usage *fs_usage,
-+				    struct replicas_delta_list *r)
++static inline struct replicas_delta *
++replicas_delta_next(struct replicas_delta *d)
++{
++	return (void *) d + replicas_entry_bytes(&d->r) + 8;
++}
++
++int bch2_replicas_delta_list_apply(struct bch_fs *c,
++				   struct bch_fs_usage *fs_usage,
++				   struct replicas_delta_list *r)
 +{
 +	struct replicas_delta *d = r->d;
 +	struct replicas_delta *top = (void *) r->d + r->used;
 +	unsigned i;
++
++	for (d = r->d; d != top; d = replicas_delta_next(d))
++		if (update_replicas(c, fs_usage, &d->r, d->delta)) {
++			top = d;
++			goto unwind;
++		}
++
++	if (!fs_usage)
++		return 0;
 +
 +	fs_usage->nr_inodes += r->nr_inodes;
 +
@@ -23714,13 +23757,11 @@ index 000000000000..e3c3846a6085
 +		fs_usage->persistent_reserved[i] += r->persistent_reserved[i];
 +	}
 +
-+	while (d != top) {
-+		BUG_ON((void *) d > (void *) top);
-+
-+		update_replicas(c, fs_usage, &d->r, d->delta);
-+
-+		d = (void *) d + replicas_entry_bytes(&d->r) + 8;
-+	}
++	return 0;
++unwind:
++	for (d = r->d; d != top; d = replicas_delta_next(d))
++		update_replicas(c, fs_usage, &d->r, -d->delta);
++	return -1;
 +}
 +
 +#define do_mark_fn(fn, c, pos, flags, ...)				\
@@ -24576,7 +24617,7 @@ index 000000000000..e3c3846a6085
 +	if (ret < 0)
 +		return ret;
 +
-+	if (!ret) {
++	if (!ret && unlikely(!test_bit(BCH_FS_ALLOC_WRITTEN, &c->flags))) {
 +		/*
 +		 * During journal replay, and if gc repairs alloc info at
 +		 * runtime, the alloc info in the btree might not be up to date
@@ -25197,7 +25238,7 @@ index 000000000000..e3c3846a6085
 +}
 diff --git a/fs/bcachefs/buckets.h b/fs/bcachefs/buckets.h
 new file mode 100644
-index 000000000000..8ab18b55595e
+index 000000000000..ad6f731b1cea
 --- /dev/null
 +++ b/fs/bcachefs/buckets.h
 @@ -0,0 +1,337 @@
@@ -25482,9 +25523,9 @@ index 000000000000..8ab18b55595e
 +int bch2_mark_update(struct btree_trans *, struct btree_insert_entry *,
 +		     struct bch_fs_usage *, unsigned);
 +
-+void bch2_replicas_delta_list_apply(struct bch_fs *,
-+				    struct bch_fs_usage *,
-+				    struct replicas_delta_list *);
++int bch2_replicas_delta_list_apply(struct bch_fs *,
++				   struct bch_fs_usage *,
++				   struct replicas_delta_list *);
 +int bch2_trans_mark_key(struct btree_trans *, struct bkey_s_c,
 +			unsigned, s64, unsigned);
 +int bch2_trans_mark_update(struct btree_trans *,
@@ -31709,10 +31750,10 @@ index 000000000000..2591e12305b7
 +#endif /* _BCACHEFS_ERROR_H */
 diff --git a/fs/bcachefs/extents.c b/fs/bcachefs/extents.c
 new file mode 100644
-index 000000000000..384180ccad6a
+index 000000000000..4cc2a4b13199
 --- /dev/null
 +++ b/fs/bcachefs/extents.c
-@@ -0,0 +1,1755 @@
+@@ -0,0 +1,1752 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Copyright (C) 2010 Kent Overstreet <kent.overstreet@gmail.com>
@@ -32807,8 +32848,7 @@ index 000000000000..384180ccad6a
 +		__bch2_cut_front(insert->k.p, k);
 +		EBUG_ON(bkey_deleted(k.k));
 +		extent_save(l->b, _k, k.k);
-+		bch2_btree_node_iter_fix(iter, l->b, &l->iter,
-+					 _k, _k->u64s, _k->u64s);
++		bch2_btree_iter_fix_key_modified(iter, l->b, _k);
 +		break;
 +
 +	case BCH_EXTENT_OVERLAP_BACK:
@@ -32843,8 +32883,7 @@ index 000000000000..384180ccad6a
 +						 _k, u64s, 0);
 +		} else {
 +			extent_save(l->b, _k, k.k);
-+			bch2_btree_node_iter_fix(iter, l->b, &l->iter,
-+						 _k, _k->u64s, _k->u64s);
++			bch2_btree_iter_fix_key_modified(iter, l->b, _k);
 +		}
 +
 +		break;
@@ -32874,8 +32913,7 @@ index 000000000000..384180ccad6a
 +		__bch2_cut_front(insert->k.p, k);
 +		BUG_ON(bkey_deleted(k.k));
 +		extent_save(l->b, _k, k.k);
-+		bch2_btree_node_iter_fix(iter, l->b, &l->iter,
-+					 _k, _k->u64s, _k->u64s);
++		bch2_btree_iter_fix_key_modified(iter, l->b, _k);
 +
 +		extent_bset_insert(c, iter, &split.k);
 +		break;
@@ -32975,8 +33013,8 @@ index 000000000000..384180ccad6a
 +				btree_account_key_drop(l->b, _k);
 +				_k->type = KEY_TYPE_discard;
 +				reserve_whiteout(l->b, _k);
-+				bch2_btree_node_iter_fix(iter, l->b, &l->iter,
-+							_k, _k->u64s, _k->u64s);
++				bch2_btree_iter_fix_key_modified(iter,
++								 l->b, _k);
 +			}
 +			break;
 +		}
@@ -33139,8 +33177,8 @@ index 000000000000..384180ccad6a
 +#undef set_common_fields
 +}
 +
-+static void bch2_extent_crc_append(struct bkey_i *k,
-+				   struct bch_extent_crc_unpacked new)
++void bch2_extent_crc_append(struct bkey_i *k,
++			    struct bch_extent_crc_unpacked new)
 +{
 +	struct bkey_ptrs ptrs = bch2_bkey_ptrs(bkey_i_to_s(k));
 +	union bch_extent_crc *crc = (void *) ptrs.end;
@@ -33470,10 +33508,10 @@ index 000000000000..384180ccad6a
 +}
 diff --git a/fs/bcachefs/extents.h b/fs/bcachefs/extents.h
 new file mode 100644
-index 000000000000..67abc3c8be54
+index 000000000000..cc7ee9067b50
 --- /dev/null
 +++ b/fs/bcachefs/extents.h
-@@ -0,0 +1,580 @@
+@@ -0,0 +1,582 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +#ifndef _BCACHEFS_EXTENTS_H
 +#define _BCACHEFS_EXTENTS_H
@@ -33984,6 +34022,8 @@ index 000000000000..67abc3c8be54
 +	__bkey_for_each_ptr_decode((_e).k, (_e).v->start,		\
 +				   extent_entry_last(_e), _ptr, _entry)
 +
++void bch2_extent_crc_append(struct bkey_i *,
++			    struct bch_extent_crc_unpacked);
 +void bch2_extent_ptr_decoded_append(struct bkey_i *,
 +				    struct extent_ptr_decoded *);
 +
@@ -34855,10 +34895,10 @@ index 000000000000..c1621485a526
 +#endif /* _BCACHEFS_FS_COMMON_H */
 diff --git a/fs/bcachefs/fs-io.c b/fs/bcachefs/fs-io.c
 new file mode 100644
-index 000000000000..776470c1f564
+index 000000000000..119ad6c8eaa8
 --- /dev/null
 +++ b/fs/bcachefs/fs-io.c
-@@ -0,0 +1,3113 @@
+@@ -0,0 +1,3139 @@
 +// SPDX-License-Identifier: GPL-2.0
 +#ifndef NO_BCACHEFS_FS
 +
@@ -34906,7 +34946,7 @@ index 000000000000..776470c1f564
 +};
 +
 +struct dio_write {
-+	struct closure			cl;
++	struct completion		done;
 +	struct kiocb			*req;
 +	struct mm_struct		*mm;
 +	unsigned			loop:1,
@@ -35368,12 +35408,25 @@ index 000000000000..776470c1f564
 +		__set_page_dirty_nobuffers(page);
 +}
 +
++vm_fault_t bch2_page_fault(struct vm_fault *vmf)
++{
++	struct file *file = vmf->vma->vm_file;
++	struct bch_inode_info *inode = file_bch_inode(file);
++	int ret;
++
++	bch2_pagecache_add_get(&inode->ei_pagecache_lock);
++	ret = filemap_fault(vmf);
++	bch2_pagecache_add_put(&inode->ei_pagecache_lock);
++
++	return ret;
++}
++
 +vm_fault_t bch2_page_mkwrite(struct vm_fault *vmf)
 +{
 +	struct page *page = vmf->page;
 +	struct file *file = vmf->vma->vm_file;
 +	struct bch_inode_info *inode = file_bch_inode(file);
-+	struct address_space *mapping = inode->v.i_mapping;
++	struct address_space *mapping = file->f_mapping;
 +	struct bch_fs *c = inode->v.i_sb->s_fs_info;
 +	struct bch2_page_reservation res;
 +	unsigned len;
@@ -35391,8 +35444,7 @@ index 000000000000..776470c1f564
 +	 * a write_invalidate_inode_pages_range() that works without dropping
 +	 * page lock before invalidating page
 +	 */
-+	if (current->pagecache_lock != &mapping->add_lock)
-+		pagecache_add_get(&mapping->add_lock);
++	bch2_pagecache_add_get(&inode->ei_pagecache_lock);
 +
 +	lock_page(page);
 +	isize = i_size_read(&inode->v);
@@ -35412,13 +35464,12 @@ index 000000000000..776470c1f564
 +	}
 +
 +	bch2_set_page_dirty(c, inode, page, &res, 0, len);
++	bch2_page_reservation_put(c, inode, &res);
++
 +	wait_for_stable_page(page);
 +out:
-+	if (current->pagecache_lock != &mapping->add_lock)
-+		pagecache_add_put(&mapping->add_lock);
++	bch2_pagecache_add_put(&inode->ei_pagecache_lock);
 +	sb_end_pagefault(inode->v.i_sb);
-+
-+	bch2_page_reservation_put(c, inode, &res);
 +
 +	return ret;
 +}
@@ -35749,8 +35800,7 @@ index 000000000000..776470c1f564
 +	iter = bch2_trans_get_iter(&trans, BTREE_ID_EXTENTS, POS_MIN,
 +				   BTREE_ITER_SLOTS);
 +
-+	if (current->pagecache_lock != &mapping->add_lock)
-+		pagecache_add_get(&mapping->add_lock);
++	bch2_pagecache_add_get(&inode->ei_pagecache_lock);
 +
 +	while ((page = readpage_iter_next(&readpages_iter))) {
 +		pgoff_t index = readpages_iter.offset + readpages_iter.idx;
@@ -35773,8 +35823,7 @@ index 000000000000..776470c1f564
 +			   &readpages_iter);
 +	}
 +
-+	if (current->pagecache_lock != &mapping->add_lock)
-+		pagecache_add_put(&mapping->add_lock);
++	bch2_pagecache_add_put(&inode->ei_pagecache_lock);
 +
 +	bch2_trans_exit(&trans);
 +	kfree(readpages_iter.pages);
@@ -36155,8 +36204,7 @@ index 000000000000..776470c1f564
 +	bch2_page_reservation_init(c, inode, res);
 +	*fsdata = res;
 +
-+	/* Not strictly necessary - same reason as mkwrite(): */
-+	pagecache_add_get(&mapping->add_lock);
++	bch2_pagecache_add_get(&inode->ei_pagecache_lock);
 +
 +	page = grab_cache_page_write_begin(mapping, index, flags);
 +	if (!page)
@@ -36208,7 +36256,7 @@ index 000000000000..776470c1f564
 +	put_page(page);
 +	*pagep = NULL;
 +err_unlock:
-+	pagecache_add_put(&mapping->add_lock);
++	bch2_pagecache_add_put(&inode->ei_pagecache_lock);
 +	kfree(res);
 +	*fsdata = NULL;
 +	return ret;
@@ -36252,7 +36300,7 @@ index 000000000000..776470c1f564
 +
 +	unlock_page(page);
 +	put_page(page);
-+	pagecache_add_put(&mapping->add_lock);
++	bch2_pagecache_add_put(&inode->ei_pagecache_lock);
 +
 +	bch2_page_reservation_put(c, inode, res);
 +	kfree(res);
@@ -36410,7 +36458,7 @@ index 000000000000..776470c1f564
 +	ssize_t written = 0;
 +	int ret = 0;
 +
-+	pagecache_add_get(&mapping->add_lock);
++	bch2_pagecache_add_get(&inode->ei_pagecache_lock);
 +
 +	do {
 +		unsigned offset = pos & (PAGE_SIZE - 1);
@@ -36467,7 +36515,7 @@ index 000000000000..776470c1f564
 +		balance_dirty_pages_ratelimited(mapping);
 +	} while (iov_iter_count(iter));
 +
-+	pagecache_add_put(&mapping->add_lock);
++	bch2_pagecache_add_put(&inode->ei_pagecache_lock);
 +
 +	return written ? written : ret;
 +}
@@ -36591,9 +36639,44 @@ index 000000000000..776470c1f564
 +	}
 +}
 +
-+/* O_DIRECT writes */
++ssize_t bch2_read_iter(struct kiocb *iocb, struct iov_iter *iter)
++{
++	struct file *file = iocb->ki_filp;
++	struct bch_inode_info *inode = file_bch_inode(file);
++	struct address_space *mapping = file->f_mapping;
++	size_t count = iov_iter_count(iter);
++	ssize_t ret;
 +
-+static void bch2_dio_write_loop_async(struct closure *);
++	if (!count)
++		return 0; /* skip atime */
++
++	if (iocb->ki_flags & IOCB_DIRECT) {
++		struct blk_plug plug;
++
++		ret = filemap_write_and_wait_range(mapping,
++					iocb->ki_pos,
++					iocb->ki_pos + count - 1);
++		if (ret < 0)
++			return ret;
++
++		file_accessed(file);
++
++		blk_start_plug(&plug);
++		ret = bch2_direct_IO_read(iocb, iter);
++		blk_finish_plug(&plug);
++
++		if (ret >= 0)
++			iocb->ki_pos += ret;
++	} else {
++		bch2_pagecache_add_get(&inode->ei_pagecache_lock);
++		ret = generic_file_read_iter(iocb, iter);
++		bch2_pagecache_add_put(&inode->ei_pagecache_lock);
++	}
++
++	return ret;
++}
++
++/* O_DIRECT writes */
 +
 +static long bch2_dio_write_loop(struct dio_write *dio)
 +{
@@ -36607,37 +36690,23 @@ index 000000000000..776470c1f564
 +	struct bio_vec *bv;
 +	unsigned unaligned;
 +	u64 new_i_size;
-+	loff_t offset;
 +	bool sync;
 +	long ret;
 +
 +	if (dio->loop)
 +		goto loop;
 +
-+	inode_dio_begin(&inode->v);
-+	__pagecache_block_get(&mapping->add_lock);
-+
-+	/* Write and invalidate pagecache range that we're writing to: */
-+	offset = req->ki_pos + (dio->op.written << 9);
-+	ret = write_invalidate_inode_pages_range(mapping,
-+					offset,
-+					offset + iov_iter_count(&dio->iter) - 1);
-+	if (unlikely(ret))
-+		goto err;
-+
 +	while (1) {
-+		offset = req->ki_pos + (dio->op.written << 9);
-+
-+		BUG_ON(current->pagecache_lock);
-+		current->pagecache_lock = &mapping->add_lock;
 +		if (kthread)
 +			use_mm(dio->mm);
++		BUG_ON(current->faults_disabled_mapping);
++		current->faults_disabled_mapping = mapping;
 +
 +		ret = bio_iov_iter_get_pages(bio, &dio->iter);
 +
++		current->faults_disabled_mapping = NULL;
 +		if (kthread)
 +			unuse_mm(dio->mm);
-+		current->pagecache_lock = NULL;
 +
 +		if (unlikely(ret < 0))
 +			goto err;
@@ -36657,18 +36726,10 @@ index 000000000000..776470c1f564
 +			goto err;
 +		}
 +
-+		/* gup might have faulted pages back in: */
-+		ret = write_invalidate_inode_pages_range(mapping,
-+				offset,
-+				offset + bio->bi_iter.bi_size - 1);
-+		if (unlikely(ret))
-+			goto err;
-+
-+		dio->op.pos = POS(inode->v.i_ino, offset >> 9);
++		dio->op.pos = POS(inode->v.i_ino,
++				  (req->ki_pos >> 9) + dio->op.written);
 +
 +		task_io_account_write(bio->bi_iter.bi_size);
-+
-+		closure_call(&dio->op.cl, bch2_write, NULL, &dio->cl);
 +
 +		if (!dio->sync && !dio->loop && dio->iter.count) {
 +			struct iovec *iov = dio->inline_vecs;
@@ -36677,8 +36738,8 @@ index 000000000000..776470c1f564
 +				iov = kmalloc(dio->iter.nr_segs * sizeof(*iov),
 +					      GFP_KERNEL);
 +				if (unlikely(!iov)) {
-+					dio->op.error = -ENOMEM;
-+					goto err_wait_io;
++					dio->sync = true;
++					goto do_io;
 +				}
 +
 +				dio->free_iov = true;
@@ -36687,15 +36748,14 @@ index 000000000000..776470c1f564
 +			memcpy(iov, dio->iter.iov, dio->iter.nr_segs * sizeof(*iov));
 +			dio->iter.iov = iov;
 +		}
-+err_wait_io:
++do_io:
 +		dio->loop = true;
++		closure_call(&dio->op.cl, bch2_write, NULL, NULL);
 +
-+		if (!dio->sync) {
-+			continue_at(&dio->cl, bch2_dio_write_loop_async, NULL);
++		if (dio->sync)
++			wait_for_completion(&dio->done);
++		else
 +			return -EIOCBQUEUED;
-+		}
-+
-+		closure_sync(&dio->cl);
 +loop:
 +		i_sectors_acct(c, inode, &dio->quota_res,
 +			       dio->op.i_sectors_delta);
@@ -36712,19 +36772,19 @@ index 000000000000..776470c1f564
 +			put_page(bv->bv_page);
 +		if (!dio->iter.count || dio->op.error)
 +			break;
++
 +		bio_reset(bio);
++		reinit_completion(&dio->done);
 +	}
 +
 +	ret = dio->op.error ?: ((long) dio->op.written << 9);
 +err:
-+	__pagecache_block_put(&mapping->add_lock);
++	bch2_pagecache_block_put(&inode->ei_pagecache_lock);
 +	bch2_disk_reservation_put(c, &dio->op.res);
 +	bch2_quota_reservation_put(c, inode, &dio->quota_res);
 +
 +	if (dio->free_iov)
 +		kfree(dio->iter.iov);
-+
-+	closure_debug_destroy(&dio->cl);
 +
 +	sync = dio->sync;
 +	bio_put(bio);
@@ -36739,48 +36799,75 @@ index 000000000000..776470c1f564
 +	return ret;
 +}
 +
-+static void bch2_dio_write_loop_async(struct closure *cl)
++static void bch2_dio_write_loop_async(struct bch_write_op *op)
 +{
-+	struct dio_write *dio = container_of(cl, struct dio_write, cl);
++	struct dio_write *dio = container_of(op, struct dio_write, op);
 +
-+	bch2_dio_write_loop(dio);
++	if (dio->sync)
++		complete(&dio->done);
++	else
++		bch2_dio_write_loop(dio);
 +}
 +
-+static int bch2_direct_IO_write(struct kiocb *req,
-+				struct iov_iter *iter,
-+				bool swap)
++static noinline
++ssize_t bch2_direct_write(struct kiocb *req, struct iov_iter *iter)
 +{
 +	struct file *file = req->ki_filp;
++	struct address_space *mapping = file->f_mapping;
 +	struct bch_inode_info *inode = file_bch_inode(file);
 +	struct bch_fs *c = inode->v.i_sb->s_fs_info;
 +	struct bch_io_opts opts = io_opts(c, &inode->ei_inode);
 +	struct dio_write *dio;
 +	struct bio *bio;
++	bool locked = true, extending;
 +	ssize_t ret;
 +
-+	lockdep_assert_held(&inode->v.i_rwsem);
++	prefetch(&c->opts);
++	prefetch((void *) &c->opts + 64);
++	prefetch(&inode->ei_inode);
++	prefetch((void *) &inode->ei_inode + 64);
 +
-+	if (unlikely(!iter->count))
-+		return 0;
++	inode_lock(&inode->v);
++
++	ret = generic_write_checks(req, iter);
++	if (unlikely(ret <= 0))
++		goto err;
++
++	ret = file_remove_privs(file);
++	if (unlikely(ret))
++		goto err;
++
++	ret = file_update_time(file);
++	if (unlikely(ret))
++		goto err;
 +
 +	if (unlikely((req->ki_pos|iter->count) & (block_bytes(c) - 1)))
-+		return -EINVAL;
++		goto err;
++
++	inode_dio_begin(&inode->v);
++	bch2_pagecache_block_get(&inode->ei_pagecache_lock);
++
++	extending = req->ki_pos + iter->count > inode->v.i_size;
++	if (!extending) {
++		inode_unlock(&inode->v);
++		locked = false;
++	}
 +
 +	bio = bio_alloc_bioset(GFP_KERNEL,
 +			       iov_iter_npages(iter, BIO_MAX_PAGES),
 +			       &c->dio_write_bioset);
 +	dio = container_of(bio, struct dio_write, op.wbio.bio);
-+	closure_init(&dio->cl, NULL);
++	init_completion(&dio->done);
 +	dio->req		= req;
 +	dio->mm			= current->mm;
 +	dio->loop		= false;
-+	dio->sync		= is_sync_kiocb(req) ||
-+		req->ki_pos + iter->count > inode->v.i_size;
++	dio->sync		= is_sync_kiocb(req) || extending;
 +	dio->free_iov		= false;
 +	dio->quota_res.sectors	= 0;
 +	dio->iter		= *iter;
 +
 +	bch2_write_op_init(&dio->op, c, opts);
++	dio->op.end_io		= bch2_dio_write_loop_async;
 +	dio->op.target		= opts.foreground_target;
 +	op_journal_seq_set(&dio->op, &inode->ei_journal_seq);
 +	dio->op.write_point	= writepoint_hashed((unsigned long) current);
@@ -36793,7 +36880,7 @@ index 000000000000..776470c1f564
 +	ret = bch2_quota_reservation_add(c, inode, &dio->quota_res,
 +					 iter->count >> 9, true);
 +	if (unlikely(ret))
-+		goto err;
++		goto err_put_bio;
 +
 +	dio->op.nr_replicas	= dio->op.opts.data_replicas;
 +
@@ -36804,77 +36891,63 @@ index 000000000000..776470c1f564
 +					       req->ki_pos >> 9),
 +					iter->count >> 9,
 +					dio->op.opts.data_replicas))
-+		goto err;
++		goto err_put_bio;
 +
-+	return bch2_dio_write_loop(dio);
++	ret = write_invalidate_inode_pages_range(mapping,
++					req->ki_pos,
++					req->ki_pos + iter->count - 1);
++	if (unlikely(ret))
++		goto err_put_bio;
++
++	ret = bch2_dio_write_loop(dio);
 +err:
++	if (locked)
++		inode_unlock(&inode->v);
++	if (ret > 0)
++		req->ki_pos += ret;
++	return ret;
++err_put_bio:
++	bch2_pagecache_block_put(&inode->ei_pagecache_lock);
 +	bch2_disk_reservation_put(c, &dio->op.res);
 +	bch2_quota_reservation_put(c, inode, &dio->quota_res);
-+	closure_debug_destroy(&dio->cl);
 +	bio_put(bio);
-+	return ret;
-+}
-+
-+ssize_t bch2_direct_IO(struct kiocb *req, struct iov_iter *iter)
-+{
-+	struct blk_plug plug;
-+	ssize_t ret;
-+
-+	blk_start_plug(&plug);
-+	ret = iov_iter_rw(iter) == WRITE
-+		? bch2_direct_IO_write(req, iter, false)
-+		: bch2_direct_IO_read(req, iter);
-+	blk_finish_plug(&plug);
-+
-+	return ret;
-+}
-+
-+static ssize_t
-+bch2_direct_write(struct kiocb *iocb, struct iov_iter *iter)
-+{
-+	return bch2_direct_IO_write(iocb, iter, true);
-+}
-+
-+static ssize_t __bch2_write_iter(struct kiocb *iocb, struct iov_iter *from)
-+{
-+	struct file *file = iocb->ki_filp;
-+	struct bch_inode_info *inode = file_bch_inode(file);
-+	ssize_t	ret;
-+
-+	/* We can write back this queue in page reclaim */
-+	current->backing_dev_info = inode_to_bdi(&inode->v);
-+	ret = file_remove_privs(file);
-+	if (ret)
-+		goto out;
-+
-+	ret = file_update_time(file);
-+	if (ret)
-+		goto out;
-+
-+	ret = iocb->ki_flags & IOCB_DIRECT
-+		? bch2_direct_write(iocb, from)
-+		: bch2_buffered_write(iocb, from);
-+
-+	if (likely(ret > 0))
-+		iocb->ki_pos += ret;
-+out:
-+	current->backing_dev_info = NULL;
-+	return ret;
++	inode_dio_end(&inode->v);
++	goto err;
 +}
 +
 +ssize_t bch2_write_iter(struct kiocb *iocb, struct iov_iter *from)
 +{
-+	struct bch_inode_info *inode = file_bch_inode(iocb->ki_filp);
-+	bool direct = iocb->ki_flags & IOCB_DIRECT;
++	struct file *file = iocb->ki_filp;
++	struct bch_inode_info *inode = file_bch_inode(file);
 +	ssize_t ret;
 +
-+	inode_lock(&inode->v);
-+	ret = generic_write_checks(iocb, from);
-+	if (ret > 0)
-+		ret = __bch2_write_iter(iocb, from);
-+	inode_unlock(&inode->v);
++	if (iocb->ki_flags & IOCB_DIRECT)
++		return bch2_direct_write(iocb, from);
 +
-+	if (ret > 0 && !direct)
++	/* We can write back this queue in page reclaim */
++	current->backing_dev_info = inode_to_bdi(&inode->v);
++	inode_lock(&inode->v);
++
++	ret = generic_write_checks(iocb, from);
++	if (ret <= 0)
++		goto unlock;
++
++	ret = file_remove_privs(file);
++	if (ret)
++		goto unlock;
++
++	ret = file_update_time(file);
++	if (ret)
++		goto unlock;
++
++	ret = bch2_buffered_write(iocb, from);
++	if (likely(ret > 0))
++		iocb->ki_pos += ret;
++unlock:
++	inode_unlock(&inode->v);
++	current->backing_dev_info = NULL;
++
++	if (ret > 0)
 +		ret = generic_write_sync(iocb, ret);
 +
 +	return ret;
@@ -37083,7 +37156,7 @@ index 000000000000..776470c1f564
 +	int ret = 0;
 +
 +	inode_dio_wait(&inode->v);
-+	pagecache_block_get(&mapping->add_lock);
++	bch2_pagecache_block_get(&inode->ei_pagecache_lock);
 +
 +	/*
 +	 * fetch current on disk i_size: inode is locked, i_size can only
@@ -37154,7 +37227,7 @@ index 000000000000..776470c1f564
 +			       ATTR_MTIME|ATTR_CTIME);
 +	mutex_unlock(&inode->ei_update_lock);
 +err:
-+	pagecache_block_put(&mapping->add_lock);
++	bch2_pagecache_block_put(&inode->ei_pagecache_lock);
 +	return ret;
 +}
 +
@@ -37163,14 +37236,13 @@ index 000000000000..776470c1f564
 +static long bchfs_fpunch(struct bch_inode_info *inode, loff_t offset, loff_t len)
 +{
 +	struct bch_fs *c = inode->v.i_sb->s_fs_info;
-+	struct address_space *mapping = inode->v.i_mapping;
 +	u64 discard_start = round_up(offset, block_bytes(c)) >> 9;
 +	u64 discard_end = round_down(offset + len, block_bytes(c)) >> 9;
 +	int ret = 0;
 +
 +	inode_lock(&inode->v);
 +	inode_dio_wait(&inode->v);
-+	pagecache_block_get(&mapping->add_lock);
++	bch2_pagecache_block_get(&inode->ei_pagecache_lock);
 +
 +	ret = __bch2_truncate_page(inode,
 +				   offset >> PAGE_SHIFT,
@@ -37199,7 +37271,7 @@ index 000000000000..776470c1f564
 +		i_sectors_acct(c, inode, NULL, i_sectors_delta);
 +	}
 +err:
-+	pagecache_block_put(&mapping->add_lock);
++	bch2_pagecache_block_put(&inode->ei_pagecache_lock);
 +	inode_unlock(&inode->v);
 +
 +	return ret;
@@ -37230,7 +37302,7 @@ index 000000000000..776470c1f564
 +	 */
 +	inode_lock(&inode->v);
 +	inode_dio_wait(&inode->v);
-+	pagecache_block_get(&mapping->add_lock);
++	bch2_pagecache_block_get(&inode->ei_pagecache_lock);
 +
 +	if (insert) {
 +		ret = -EFBIG;
@@ -37417,7 +37489,7 @@ index 000000000000..776470c1f564
 +	}
 +err:
 +	bch2_trans_exit(&trans);
-+	pagecache_block_put(&mapping->add_lock);
++	bch2_pagecache_block_put(&inode->ei_pagecache_lock);
 +	inode_unlock(&inode->v);
 +	return ret;
 +}
@@ -37441,7 +37513,7 @@ index 000000000000..776470c1f564
 +
 +	inode_lock(&inode->v);
 +	inode_dio_wait(&inode->v);
-+	pagecache_block_get(&mapping->add_lock);
++	bch2_pagecache_block_get(&inode->ei_pagecache_lock);
 +
 +	if (!(mode & FALLOC_FL_KEEP_SIZE) && end > inode->v.i_size) {
 +		ret = inode_newsize_ok(&inode->v, end);
@@ -37584,7 +37656,7 @@ index 000000000000..776470c1f564
 +	}
 +err:
 +	bch2_trans_exit(&trans);
-+	pagecache_block_put(&mapping->add_lock);
++	bch2_pagecache_block_put(&inode->ei_pagecache_lock);
 +	inode_unlock(&inode->v);
 +	return ret;
 +}
@@ -37677,15 +37749,12 @@ index 000000000000..776470c1f564
 +	    abs(pos_src - pos_dst) < len)
 +		return -EINVAL;
 +
-+	bch2_lock_inodes(INODE_LOCK, src, dst);
++	bch2_lock_inodes(INODE_LOCK|INODE_PAGECACHE_BLOCK, src, dst);
 +
 +	file_update_time(file_dst);
 +
 +	inode_dio_wait(&src->v);
 +	inode_dio_wait(&dst->v);
-+
-+	__pagecache_block_get(&src->v.i_mapping->add_lock);
-+	__pagecache_block_get(&dst->v.i_mapping->add_lock);
 +
 +	ret = generic_remap_file_range_prep(file_src, pos_src,
 +					    file_dst, pos_dst,
@@ -37725,10 +37794,7 @@ index 000000000000..776470c1f564
 +		i_size_write(&dst->v, pos_dst + len);
 +	spin_unlock(&dst->v.i_lock);
 +err:
-+	__pagecache_block_put(&dst->v.i_mapping->add_lock);
-+	__pagecache_block_put(&src->v.i_mapping->add_lock);
-+
-+	bch2_unlock_inodes(INODE_LOCK, src, dst);
++	bch2_unlock_inodes(INODE_LOCK|INODE_PAGECACHE_BLOCK, src, dst);
 +
 +	return ret;
 +}
@@ -37974,7 +38040,7 @@ index 000000000000..776470c1f564
 +#endif /* NO_BCACHEFS_FS */
 diff --git a/fs/bcachefs/fs-io.h b/fs/bcachefs/fs-io.h
 new file mode 100644
-index 000000000000..ae171a290d58
+index 000000000000..7063556d289b
 --- /dev/null
 +++ b/fs/bcachefs/fs-io.h
 @@ -0,0 +1,57 @@
@@ -38007,8 +38073,7 @@ index 000000000000..ae171a290d58
 +int bch2_write_end(struct file *, struct address_space *, loff_t,
 +		   unsigned, unsigned, struct page *, void *);
 +
-+ssize_t bch2_direct_IO(struct kiocb *, struct iov_iter *);
-+
++ssize_t bch2_read_iter(struct kiocb *, struct iov_iter *);
 +ssize_t bch2_write_iter(struct kiocb *, struct iov_iter *);
 +
 +int bch2_fsync(struct file *, loff_t, loff_t, int);
@@ -38021,6 +38086,7 @@ index 000000000000..ae171a290d58
 +
 +loff_t bch2_llseek(struct file *, loff_t, int);
 +
++vm_fault_t bch2_page_fault(struct vm_fault *);
 +vm_fault_t bch2_page_mkwrite(struct vm_fault *);
 +void bch2_invalidatepage(struct page *, unsigned int, unsigned int);
 +int bch2_releasepage(struct page *, gfp_t);
@@ -38438,10 +38504,10 @@ index 000000000000..f201980ef2c3
 +#endif /* _BCACHEFS_FS_IOCTL_H */
 diff --git a/fs/bcachefs/fs.c b/fs/bcachefs/fs.c
 new file mode 100644
-index 000000000000..f9b3650b2f37
+index 000000000000..7d3d5c2045b3
 --- /dev/null
 +++ b/fs/bcachefs/fs.c
-@@ -0,0 +1,1539 @@
+@@ -0,0 +1,1587 @@
 +// SPDX-License-Identifier: GPL-2.0
 +#ifndef NO_BCACHEFS_FS
 +
@@ -38491,6 +38557,53 @@ index 000000000000..f9b3650b2f37
 +		if (old >= journal_seq)
 +			break;
 +	} while ((v = cmpxchg(&dst->ei_journal_seq, old, journal_seq)) != old);
++}
++
++static void __pagecache_lock_put(struct pagecache_lock *lock, long i)
++{
++	BUG_ON(atomic_long_read(&lock->v) == 0);
++
++	if (atomic_long_sub_return_release(i, &lock->v) == 0)
++		wake_up_all(&lock->wait);
++}
++
++static bool __pagecache_lock_tryget(struct pagecache_lock *lock, long i)
++{
++	long v = atomic_long_read(&lock->v), old;
++
++	do {
++		old = v;
++
++		if (i > 0 ? v < 0 : v > 0)
++			return false;
++	} while ((v = atomic_long_cmpxchg_acquire(&lock->v,
++					old, old + i)) != old);
++	return true;
++}
++
++static void __pagecache_lock_get(struct pagecache_lock *lock, long i)
++{
++	wait_event(lock->wait, __pagecache_lock_tryget(lock, i));
++}
++
++void bch2_pagecache_add_put(struct pagecache_lock *lock)
++{
++	__pagecache_lock_put(lock, 1);
++}
++
++void bch2_pagecache_add_get(struct pagecache_lock *lock)
++{
++	__pagecache_lock_get(lock, 1);
++}
++
++void bch2_pagecache_block_put(struct pagecache_lock *lock)
++{
++	__pagecache_lock_put(lock, -1);
++}
++
++void bch2_pagecache_block_get(struct pagecache_lock *lock)
++{
++	__pagecache_lock_get(lock, -1);
 +}
 +
 +void bch2_inode_update_after_write(struct bch_fs *c,
@@ -39316,7 +39429,7 @@ index 000000000000..f9b3650b2f37
 +}
 +
 +static const struct vm_operations_struct bch_vm_ops = {
-+	.fault		= filemap_fault,
++	.fault		= bch2_page_fault,
 +	.map_pages	= filemap_map_pages,
 +	.page_mkwrite   = bch2_page_mkwrite,
 +};
@@ -39350,7 +39463,7 @@ index 000000000000..f9b3650b2f37
 +
 +static const struct file_operations bch_file_operations = {
 +	.llseek		= bch2_llseek,
-+	.read_iter	= generic_file_read_iter,
++	.read_iter	= bch2_read_iter,
 +	.write_iter	= bch2_write_iter,
 +	.mmap		= bch2_mmap,
 +	.open		= generic_file_open,
@@ -39438,7 +39551,7 @@ index 000000000000..f9b3650b2f37
 +	.write_end	= bch2_write_end,
 +	.invalidatepage	= bch2_invalidatepage,
 +	.releasepage	= bch2_releasepage,
-+	.direct_IO	= bch2_direct_IO,
++	.direct_IO	= noop_direct_IO,
 +#ifdef CONFIG_MIGRATION
 +	.migratepage	= bch2_migrate_page,
 +#endif
@@ -39534,6 +39647,7 @@ index 000000000000..f9b3650b2f37
 +
 +	inode_init_once(&inode->v);
 +	mutex_init(&inode->ei_update_lock);
++	pagecache_lock_init(&inode->ei_pagecache_lock);
 +	mutex_init(&inode->ei_quota_lock);
 +	inode->ei_journal_seq = 0;
 +
@@ -39983,10 +40097,10 @@ index 000000000000..f9b3650b2f37
 +#endif /* NO_BCACHEFS_FS */
 diff --git a/fs/bcachefs/fs.h b/fs/bcachefs/fs.h
 new file mode 100644
-index 000000000000..406056668516
+index 000000000000..eda903a45325
 --- /dev/null
 +++ b/fs/bcachefs/fs.h
-@@ -0,0 +1,147 @@
+@@ -0,0 +1,174 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +#ifndef _BCACHEFS_FS_H
 +#define _BCACHEFS_FS_H
@@ -39999,6 +40113,26 @@ index 000000000000..406056668516
 +#include <linux/seqlock.h>
 +#include <linux/stat.h>
 +
++/*
++ * Two-state lock - can be taken for add or block - both states are shared,
++ * like read side of rwsem, but conflict with other state:
++ */
++struct pagecache_lock {
++	atomic_long_t		v;
++	wait_queue_head_t	wait;
++};
++
++static inline void pagecache_lock_init(struct pagecache_lock *lock)
++{
++	atomic_long_set(&lock->v, 0);
++	init_waitqueue_head(&lock->wait);
++}
++
++void bch2_pagecache_add_put(struct pagecache_lock *);
++void bch2_pagecache_add_get(struct pagecache_lock *);
++void bch2_pagecache_block_put(struct pagecache_lock *);
++void bch2_pagecache_block_get(struct pagecache_lock *);
++
 +struct bch_inode_info {
 +	struct inode		v;
 +
@@ -40006,6 +40140,8 @@ index 000000000000..406056668516
 +	u64			ei_journal_seq;
 +	u64			ei_quota_reserved;
 +	unsigned long		ei_last_dirtied;
++
++	struct pagecache_lock	ei_pagecache_lock;
 +
 +	struct mutex		ei_quota_lock;
 +	struct bch_qid		ei_qid;
@@ -40026,7 +40162,8 @@ index 000000000000..406056668516
 +
 +enum bch_inode_lock_op {
 +	INODE_LOCK		= (1U << 0),
-+	INODE_UPDATE_LOCK	= (1U << 1),
++	INODE_PAGECACHE_BLOCK	= (1U << 1),
++	INODE_UPDATE_LOCK	= (1U << 2),
 +};
 +
 +#define bch2_lock_inodes(_locks, ...)					\
@@ -40038,9 +40175,11 @@ index 000000000000..406056668516
 +									\
 +	for (i = 1; i < ARRAY_SIZE(a); i++)				\
 +		if (a[i] != a[i - 1]) {					\
-+			if (_locks & INODE_LOCK)			\
++			if ((_locks) & INODE_LOCK)			\
 +				down_write_nested(&a[i]->v.i_rwsem, i);	\
-+			if (_locks & INODE_UPDATE_LOCK)			\
++			if ((_locks) & INODE_PAGECACHE_BLOCK)		\
++				bch2_pagecache_block_get(&a[i]->ei_pagecache_lock);\
++			if ((_locks) & INODE_UPDATE_LOCK)			\
 +				mutex_lock_nested(&a[i]->ei_update_lock, i);\
 +		}							\
 +} while (0)
@@ -40054,9 +40193,11 @@ index 000000000000..406056668516
 +									\
 +	for (i = 1; i < ARRAY_SIZE(a); i++)				\
 +		if (a[i] != a[i - 1]) {					\
-+			if (_locks & INODE_LOCK)			\
++			if ((_locks) & INODE_LOCK)			\
 +				up_write(&a[i]->v.i_rwsem);		\
-+			if (_locks & INODE_UPDATE_LOCK)			\
++			if ((_locks) & INODE_PAGECACHE_BLOCK)		\
++				bch2_pagecache_block_put(&a[i]->ei_pagecache_lock);\
++			if ((_locks) & INODE_UPDATE_LOCK)			\
 +				mutex_unlock(&a[i]->ei_update_lock);	\
 +		}							\
 +} while (0)
@@ -40136,10 +40277,10 @@ index 000000000000..406056668516
 +#endif /* _BCACHEFS_FS_H */
 diff --git a/fs/bcachefs/fsck.c b/fs/bcachefs/fsck.c
 new file mode 100644
-index 000000000000..5acf1fb64543
+index 000000000000..3cced2b99f3f
 --- /dev/null
 +++ b/fs/bcachefs/fsck.c
-@@ -0,0 +1,1435 @@
+@@ -0,0 +1,1436 @@
 +// SPDX-License-Identifier: GPL-2.0
 +
 +#include "bcachefs.h"
@@ -40289,6 +40430,7 @@ index 000000000000..5acf1fb64543
 +static void hash_check_init(struct hash_check *h)
 +{
 +	h->chain = NULL;
++	h->chain_end = 0;
 +}
 +
 +static void hash_stop_chain(struct btree_trans *trans,
@@ -41592,7 +41734,7 @@ index 000000000000..9e4af02bde1e
 +#endif /* _BCACHEFS_FSCK_H */
 diff --git a/fs/bcachefs/inode.c b/fs/bcachefs/inode.c
 new file mode 100644
-index 000000000000..771e5cde96e0
+index 000000000000..c0642ff46ba0
 --- /dev/null
 +++ b/fs/bcachefs/inode.c
 @@ -0,0 +1,567 @@
@@ -41693,6 +41835,7 @@ index 000000000000..771e5cde96e0
 +	u8 *end = (void *) &packed[1];
 +	u8 *last_nonzero_field = out;
 +	unsigned nr_fields = 0, last_nonzero_fieldnr = 0;
++	unsigned bytes;
 +
 +	bkey_inode_init(&packed->inode.k_i);
 +	packed->inode.k.p.inode		= inode->bi_inum;
@@ -41715,10 +41858,9 @@ index 000000000000..771e5cde96e0
 +	out = last_nonzero_field;
 +	nr_fields = last_nonzero_fieldnr;
 +
-+	set_bkey_val_bytes(&packed->inode.k, out - (u8 *) &packed->inode.v);
-+	memset(out, 0,
-+	       (u8 *) &packed->inode.v +
-+	       bkey_val_bytes(&packed->inode.k) - out);
++	bytes = out - (u8 *) &packed->inode.v;
++	set_bkey_val_bytes(&packed->inode.k, bytes);
++	memset_u64s_tail(&packed->inode.v, 0, bytes);
 +
 +	SET_INODE_NR_FIELDS(&packed->inode.v, nr_fields);
 +
@@ -42348,10 +42490,10 @@ index 000000000000..bb759a46dc41
 +#endif /* _BCACHEFS_INODE_H */
 diff --git a/fs/bcachefs/io.c b/fs/bcachefs/io.c
 new file mode 100644
-index 000000000000..9a6fa893cd45
+index 000000000000..836004b128f0
 --- /dev/null
 +++ b/fs/bcachefs/io.c
-@@ -0,0 +1,2187 @@
+@@ -0,0 +1,2210 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Some low level IO code, and hacks for various block layer limitations
@@ -42851,7 +42993,12 @@ index 000000000000..9a6fa893cd45
 +
 +	bch2_time_stats_update(&c->times[BCH_TIME_data_write], op->start_time);
 +
-+	closure_return(cl);
++	if (op->end_io)
++		op->end_io(op);
++	if (cl->parent)
++		closure_return(cl);
++	else
++		closure_debug_destroy(cl);
 +}
 +
 +/**
@@ -42960,8 +43107,10 @@ index 000000000000..9a6fa893cd45
 +
 +	if (parent)
 +		bio_endio(&parent->bio);
-+	else
++	else if (!(op->flags & BCH_WRITE_SKIP_CLOSURE_PUT))
 +		closure_put(cl);
++	else
++		continue_at_nobarrier(cl, bch2_write_index, index_update_wq(op));
 +}
 +
 +static void init_append_extent(struct bch_write_op *op,
@@ -42970,27 +43119,36 @@ index 000000000000..9a6fa893cd45
 +			       struct bch_extent_crc_unpacked crc)
 +{
 +	struct bch_fs *c = op->c;
-+	struct bkey_i_extent *e = bkey_extent_init(op->insert_keys.top);
-+	struct extent_ptr_decoded p = { .crc = crc };
++	struct bkey_i_extent *e;
 +	struct open_bucket *ob;
 +	unsigned i;
 +
++	BUG_ON(crc.compressed_size > wp->sectors_free);
++	wp->sectors_free -= crc.compressed_size;
 +	op->pos.offset += crc.uncompressed_size;
++
++	e = bkey_extent_init(op->insert_keys.top);
 +	e->k.p		= op->pos;
 +	e->k.size	= crc.uncompressed_size;
 +	e->k.version	= version;
 +
-+	BUG_ON(crc.compressed_size > wp->sectors_free);
-+	wp->sectors_free -= crc.compressed_size;
++	if (crc.csum_type ||
++	    crc.compression_type ||
++	    crc.nonce)
++		bch2_extent_crc_append(&e->k_i, crc);
 +
 +	open_bucket_for_each(c, &wp->ptrs, ob, i) {
 +		struct bch_dev *ca = bch_dev_bkey_exists(c, ob->ptr.dev);
++		union bch_extent_entry *end =
++			bkey_val_end(bkey_i_to_s(&e->k_i));
 +
-+		p.ptr = ob->ptr;
-+		p.ptr.cached = !ca->mi.durability ||
++		end->ptr = ob->ptr;
++		end->ptr.type = 1 << BCH_EXTENT_ENTRY_ptr;
++		end->ptr.cached = !ca->mi.durability ||
 +			(op->flags & BCH_WRITE_CACHED) != 0;
-+		p.ptr.offset += ca->mi.bucket_size - ob->sectors_free;
-+		bch2_extent_ptr_decoded_append(&e->k_i, &p);
++		end->ptr.offset += ca->mi.bucket_size - ob->sectors_free;
++
++		e->k.u64s++;
 +
 +		BUG_ON(crc.compressed_size > ob->sectors_free);
 +		ob->sectors_free -= crc.compressed_size;
@@ -43171,15 +43329,14 @@ index 000000000000..9a6fa893cd45
 +	return PREP_ENCODED_OK;
 +}
 +
-+static int bch2_write_extent(struct bch_write_op *op, struct write_point *wp)
++static int bch2_write_extent(struct bch_write_op *op, struct write_point *wp,
++			     struct bio **_dst)
 +{
 +	struct bch_fs *c = op->c;
 +	struct bio *src = &op->wbio.bio, *dst = src;
 +	struct bvec_iter saved_iter;
-+	struct bkey_i *key_to_write;
 +	void *ec_buf;
-+	unsigned key_to_write_offset = op->insert_keys.top_p -
-+		op->insert_keys.keys_p;
++	struct bpos ec_pos = op->pos;
 +	unsigned total_output = 0, total_input = 0;
 +	bool bounce = false;
 +	bool page_alloc_failed = false;
@@ -43198,6 +43355,7 @@ index 000000000000..9a6fa893cd45
 +	case PREP_ENCODED_CHECKSUM_ERR:
 +		goto csum_err;
 +	case PREP_ENCODED_DO_WRITE:
++		/* XXX look for bug here */
 +		if (ec_buf) {
 +			dst = bch2_write_bio_alloc(c, wp, src,
 +						   &page_alloc_failed,
@@ -43347,31 +43505,15 @@ index 000000000000..9a6fa893cd45
 +	dst->bi_iter.bi_size = total_output;
 +do_write:
 +	/* might have done a realloc... */
++	bch2_ec_add_backpointer(c, wp, ec_pos, total_input >> 9);
 +
-+	key_to_write = (void *) (op->insert_keys.keys_p + key_to_write_offset);
-+
-+	bch2_ec_add_backpointer(c, wp,
-+				bkey_start_pos(&key_to_write->k),
-+				total_input >> 9);
-+
-+	bch2_alloc_sectors_done(c, wp);
-+
-+	dst->bi_end_io	= bch2_write_endio;
-+	dst->bi_private	= &op->cl;
-+	bio_set_op_attrs(dst, REQ_OP_WRITE, 0);
-+
-+	closure_get(dst->bi_private);
-+
-+	bch2_submit_wbio_replicas(to_wbio(dst), c, BCH_DATA_USER,
-+				  key_to_write);
++	*_dst = dst;
 +	return more;
 +csum_err:
 +	bch_err(c, "error verifying existing checksum while "
 +		"rewriting existing data (memory corruption?)");
 +	ret = -EIO;
 +err:
-+	bch2_alloc_sectors_done(c, wp);
-+
 +	if (to_wbio(dst)->bounce)
 +		bch2_bio_free_pages_pool(c, dst);
 +	if (to_wbio(dst)->put_bio)
@@ -43385,11 +43527,17 @@ index 000000000000..9a6fa893cd45
 +	struct bch_write_op *op = container_of(cl, struct bch_write_op, cl);
 +	struct bch_fs *c = op->c;
 +	struct write_point *wp;
++	struct bio *bio;
++	bool skip_put = true;
 +	int ret;
 +again:
 +	memset(&op->failed, 0, sizeof(op->failed));
 +
 +	do {
++		struct bkey_i *key_to_write;
++		unsigned key_to_write_offset = op->insert_keys.top_p -
++			op->insert_keys.keys_p;
++
 +		/* +1 for possible cache device: */
 +		if (op->open_buckets.nr + op->nr_replicas + 1 >
 +		    ARRAY_SIZE(op->open_buckets.v))
@@ -43423,21 +43571,38 @@ index 000000000000..9a6fa893cd45
 +		}
 +
 +		bch2_open_bucket_get(c, wp, &op->open_buckets);
-+
-+		ret = bch2_write_extent(op, wp);
++		ret = bch2_write_extent(op, wp, &bio);
++		bch2_alloc_sectors_done(c, wp);
 +
 +		if (ret < 0)
 +			goto err;
++
++		if (ret)
++			skip_put = false;
++
++		bio->bi_end_io	= bch2_write_endio;
++		bio->bi_private	= &op->cl;
++		bio_set_op_attrs(bio, REQ_OP_WRITE, 0);
++
++		if (!skip_put)
++			closure_get(bio->bi_private);
++		else
++			op->flags |= BCH_WRITE_SKIP_CLOSURE_PUT;
++
++		key_to_write = (void *) (op->insert_keys.keys_p +
++					 key_to_write_offset);
++
++		bch2_submit_wbio_replicas(to_wbio(bio), c, BCH_DATA_USER,
++					  key_to_write);
 +	} while (ret);
 +
-+	continue_at(cl, bch2_write_index, index_update_wq(op));
++	if (!skip_put)
++		continue_at(cl, bch2_write_index, index_update_wq(op));
 +	return;
 +err:
 +	op->error = ret;
 +
-+	continue_at(cl, !bch2_keylist_empty(&op->insert_keys)
-+		    ? bch2_write_index
-+		    : bch2_write_done, index_update_wq(op));
++	continue_at(cl, bch2_write_index, index_update_wq(op));
 +	return;
 +flush_io:
 +	closure_sync(cl);
@@ -44541,10 +44706,10 @@ index 000000000000..9a6fa893cd45
 +}
 diff --git a/fs/bcachefs/io.h b/fs/bcachefs/io.h
 new file mode 100644
-index 000000000000..bd3d74ddefa8
+index 000000000000..91aaa58fce4e
 --- /dev/null
 +++ b/fs/bcachefs/io.h
-@@ -0,0 +1,161 @@
+@@ -0,0 +1,163 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +#ifndef _BCACHEFS_IO_H
 +#define _BCACHEFS_IO_H
@@ -44580,6 +44745,7 @@ index 000000000000..bd3d74ddefa8
 +
 +	/* Internal: */
 +	BCH_WRITE_JOURNAL_SEQ_PTR	= (1 << 8),
++	BCH_WRITE_SKIP_CLOSURE_PUT	= (1 << 9),
 +};
 +
 +static inline u64 *op_journal_seq(struct bch_write_op *op)
@@ -44614,6 +44780,7 @@ index 000000000000..bd3d74ddefa8
 +				      struct bch_io_opts opts)
 +{
 +	op->c			= c;
++	op->end_io		= NULL;
 +	op->flags		= 0;
 +	op->written		= 0;
 +	op->error		= 0;
@@ -44708,10 +44875,10 @@ index 000000000000..bd3d74ddefa8
 +#endif /* _BCACHEFS_IO_H */
 diff --git a/fs/bcachefs/io_types.h b/fs/bcachefs/io_types.h
 new file mode 100644
-index 000000000000..77ea6b047463
+index 000000000000..c37b7d7401e9
 --- /dev/null
 +++ b/fs/bcachefs/io_types.h
-@@ -0,0 +1,147 @@
+@@ -0,0 +1,148 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +#ifndef _BCACHEFS_IO_TYPES_H
 +#define _BCACHEFS_IO_TYPES_H
@@ -44807,6 +44974,7 @@ index 000000000000..77ea6b047463
 +struct bch_write_op {
 +	struct closure		cl;
 +	struct bch_fs		*c;
++	void			(*end_io)(struct bch_write_op *);
 +	u64			start_time;
 +
 +	unsigned		written; /* sectors */
@@ -52904,10 +53072,10 @@ index 000000000000..192c6be20ced
 +#endif /* _BCACHEFS_REBALANCE_TYPES_H */
 diff --git a/fs/bcachefs/recovery.c b/fs/bcachefs/recovery.c
 new file mode 100644
-index 000000000000..23f3ed54fadd
+index 000000000000..2c441a278044
 --- /dev/null
 +++ b/fs/bcachefs/recovery.c
-@@ -0,0 +1,1045 @@
+@@ -0,0 +1,1047 @@
 +// SPDX-License-Identifier: GPL-2.0
 +
 +#include "bcachefs.h"
@@ -53774,6 +53942,8 @@ index 000000000000..23f3ed54fadd
 +			goto err;
 +		}
 +		bch_verbose(c, "alloc write done");
++
++		set_bit(BCH_FS_ALLOC_WRITTEN, &c->flags);
 +	}
 +
 +	if (!c->sb.clean) {
@@ -56153,10 +56323,10 @@ index 000000000000..582e718b6bd1
 +#endif /* _BCACHEFS_STR_HASH_H */
 diff --git a/fs/bcachefs/super-io.c b/fs/bcachefs/super-io.c
 new file mode 100644
-index 000000000000..550a140df2a1
+index 000000000000..b36cfdf0b41c
 --- /dev/null
 +++ b/fs/bcachefs/super-io.c
-@@ -0,0 +1,1144 @@
+@@ -0,0 +1,1157 @@
 +// SPDX-License-Identifier: GPL-2.0
 +
 +#include "bcachefs.h"
@@ -57108,6 +57278,25 @@ index 000000000000..550a140df2a1
 +	return ret;
 +}
 +
++static void
++entry_init_u64s(struct jset_entry *entry, unsigned u64s)
++{
++	memset(entry, 0, u64s * sizeof(u64));
++
++	/*
++	 * The u64s field counts from the start of data, ignoring the shared
++	 * fields.
++	 */
++	entry->u64s = u64s - 1;
++}
++
++static void
++entry_init_size(struct jset_entry *entry, size_t size)
++{
++	unsigned u64s = DIV_ROUND_UP(size, sizeof(u64));
++	entry_init_u64s(entry, u64s);
++}
++
 +struct jset_entry *
 +bch2_journal_super_entries_add_common(struct bch_fs *c,
 +				      struct jset_entry *entry,
@@ -57122,7 +57311,7 @@ index 000000000000..550a140df2a1
 +	     r < c->btree_roots + BTREE_ID_NR;
 +	     r++)
 +		if (r->alive) {
-+			entry->u64s	= r->key.u64s;
++			entry_init_u64s(entry, r->key.u64s + 1);
 +			entry->btree_id	= r - c->btree_roots;
 +			entry->level	= r->level;
 +			entry->type	= BCH_JSET_ENTRY_btree_root;
@@ -57147,8 +57336,7 @@ index 000000000000..550a140df2a1
 +		struct jset_entry_usage *u =
 +			container_of(entry, struct jset_entry_usage, entry);
 +
-+		memset(u, 0, sizeof(*u));
-+		u->entry.u64s	= DIV_ROUND_UP(sizeof(*u), sizeof(u64)) - 1;
++		entry_init_size(entry, sizeof(*u));
 +		u->entry.type	= BCH_JSET_ENTRY_usage;
 +		u->entry.btree_id = FS_USAGE_INODES;
 +		u->v		= cpu_to_le64(c->usage_base->nr_inodes);
@@ -57160,8 +57348,7 @@ index 000000000000..550a140df2a1
 +		struct jset_entry_usage *u =
 +			container_of(entry, struct jset_entry_usage, entry);
 +
-+		memset(u, 0, sizeof(*u));
-+		u->entry.u64s	= DIV_ROUND_UP(sizeof(*u), sizeof(u64)) - 1;
++		entry_init_size(entry, sizeof(*u));
 +		u->entry.type	= BCH_JSET_ENTRY_usage;
 +		u->entry.btree_id = FS_USAGE_KEY_VERSION;
 +		u->v		= cpu_to_le64(atomic64_read(&c->key_version));
@@ -57173,8 +57360,7 @@ index 000000000000..550a140df2a1
 +		struct jset_entry_usage *u =
 +			container_of(entry, struct jset_entry_usage, entry);
 +
-+		memset(u, 0, sizeof(*u));
-+		u->entry.u64s	= DIV_ROUND_UP(sizeof(*u), sizeof(u64)) - 1;
++		entry_init_size(entry, sizeof(*u));
 +		u->entry.type	= BCH_JSET_ENTRY_usage;
 +		u->entry.btree_id = FS_USAGE_RESERVED;
 +		u->entry.level	= i;
@@ -57189,10 +57375,7 @@ index 000000000000..550a140df2a1
 +		struct jset_entry_data_usage *u =
 +			container_of(entry, struct jset_entry_data_usage, entry);
 +
-+		int u64s = DIV_ROUND_UP(sizeof(*u) + e->nr_devs,
-+					sizeof(u64)) - 1;
-+		memset(u, 0, u64s * sizeof(u64));
-+		u->entry.u64s	= u64s;
++		entry_init_size(entry, sizeof(*u) + e->nr_devs);
 +		u->entry.type	= BCH_JSET_ENTRY_data_usage;
 +		u->v		= cpu_to_le64(c->usage_base->replicas[i]);
 +		memcpy(&u->r, e, replicas_entry_bytes(e));
@@ -62519,10 +62702,10 @@ index 000000000000..2cc433ec0e3a
 +}
 diff --git a/fs/bcachefs/util.h b/fs/bcachefs/util.h
 new file mode 100644
-index 000000000000..66bc9be830fc
+index 000000000000..8e704b4a6ffd
 --- /dev/null
 +++ b/fs/bcachefs/util.h
-@@ -0,0 +1,753 @@
+@@ -0,0 +1,761 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +#ifndef _BCACHEFS_UTIL_H
 +#define _BCACHEFS_UTIL_H
@@ -63179,6 +63362,14 @@ index 000000000000..66bc9be830fc
 +		__memmove_u64s_down(dst, src, u64s);
 +	else
 +		__memmove_u64s_up(dst, src, u64s);
++}
++
++/* Set the last few bytes up to a u64 boundary given an offset into a buffer. */
++static inline void memset_u64s_tail(void *s, int c, unsigned bytes)
++{
++	unsigned rem = round_up(bytes, sizeof(u64)) - bytes;
++
++	memset(s + bytes, c, rem);
 +}
 +
 +void sort_cmp_size(void *base, size_t num, size_t size,
@@ -64059,18 +64250,10 @@ index e88cf0554e65..0cb4172ff0ae 100644
  }
  EXPORT_SYMBOL(d_tmpfile);
 diff --git a/fs/inode.c b/fs/inode.c
-index 0f1e3b563c47..3ecfa63beb13 100644
+index 0f1e3b563c47..9a6650ed0259 100644
 --- a/fs/inode.c
 +++ b/fs/inode.c
-@@ -363,6 +363,7 @@ EXPORT_SYMBOL(inc_nlink);
- static void __address_space_init_once(struct address_space *mapping)
- {
- 	xa_init_flags(&mapping->i_pages, XA_FLAGS_LOCK_IRQ | XA_FLAGS_ACCOUNT);
-+	pagecache_lock_init(&mapping->add_lock);
- 	init_rwsem(&mapping->i_mmap_rwsem);
- 	INIT_LIST_HEAD(&mapping->private_list);
- 	spin_lock_init(&mapping->private_lock);
-@@ -1491,6 +1492,46 @@ int insert_inode_locked(struct inode *inode)
+@@ -1491,6 +1491,46 @@ int insert_inode_locked(struct inode *inode)
  }
  EXPORT_SYMBOL(insert_inode_locked);
  
@@ -64464,48 +64647,10 @@ index 000000000000..6e7bb56ae8b4
 +
 +#endif
 diff --git a/include/linux/fs.h b/include/linux/fs.h
-index bc1b40fb0db7..d1c0b8984fef 100644
+index bc1b40fb0db7..8140ba01665b 100644
 --- a/include/linux/fs.h
 +++ b/include/linux/fs.h
-@@ -421,6 +421,28 @@ int pagecache_write_end(struct file *, struct address_space *mapping,
- 				loff_t pos, unsigned len, unsigned copied,
- 				struct page *page, void *fsdata);
- 
-+/*
-+ * Two-state lock - can be taken for add or block - both states are shared,
-+ * like read side of rwsem, but conflict with other state:
-+ */
-+struct pagecache_lock {
-+	atomic_long_t		v;
-+	wait_queue_head_t	wait;
-+};
-+
-+static inline void pagecache_lock_init(struct pagecache_lock *lock)
-+{
-+	atomic_long_set(&lock->v, 0);
-+	init_waitqueue_head(&lock->wait);
-+}
-+
-+void pagecache_add_put(struct pagecache_lock *);
-+void pagecache_add_get(struct pagecache_lock *);
-+void __pagecache_block_put(struct pagecache_lock *);
-+void __pagecache_block_get(struct pagecache_lock *);
-+void pagecache_block_put(struct pagecache_lock *);
-+void pagecache_block_get(struct pagecache_lock *);
-+
- /**
-  * struct address_space - Contents of a cacheable, mappable object.
-  * @host: Owner, either the inode or the block_device.
-@@ -455,6 +477,8 @@ struct address_space {
- 	spinlock_t		private_lock;
- 	struct list_head	private_list;
- 	void			*private_data;
-+	struct pagecache_lock	add_lock
-+		____cacheline_aligned_in_smp;	/* protects adding new pages */
- } __attribute__((aligned(sizeof(long)))) __randomize_layout;
- 	/*
- 	 * On most architectures that alignment is already the case; but
-@@ -2989,6 +3013,7 @@ extern struct inode *find_inode_nowait(struct super_block *,
+@@ -2989,6 +2989,7 @@ extern struct inode *find_inode_nowait(struct super_block *,
  				       void *data);
  extern int insert_inode_locked4(struct inode *, unsigned long, int (*test)(struct inode *, void *), void *);
  extern int insert_inode_locked(struct inode *);
@@ -64558,7 +64703,7 @@ index c7552459a15f..4a06b2ac8a12 100644
  {
  	return (unsigned long)(inode->i_size + PAGE_SIZE - 1) >>
 diff --git a/include/linux/sched.h b/include/linux/sched.h
-index 9f51932bd543..ebfa046b2dac 100644
+index 9f51932bd543..54e8430b6d24 100644
 --- a/include/linux/sched.h
 +++ b/include/linux/sched.h
 @@ -43,6 +43,7 @@ struct io_context;
@@ -64569,16 +64714,14 @@ index 9f51932bd543..ebfa046b2dac 100644
  struct perf_event_context;
  struct pid_namespace;
  struct pipe_inode_info;
-@@ -1002,6 +1003,9 @@ struct task_struct {
- 	unsigned int			in_ubsan;
- #endif
+@@ -739,6 +740,7 @@ struct task_struct {
  
-+	/* currently held lock, for avoiding recursing in fault path: */
-+	struct pagecache_lock *pagecache_lock;
-+
- 	/* Journalling filesystem info: */
- 	void				*journal_info;
+ 	struct mm_struct		*mm;
+ 	struct mm_struct		*active_mm;
++	struct address_space		*faults_disabled_mapping;
  
+ 	/* Per-thread vma caching: */
+ 	struct vmacache			vmacache;
 diff --git a/include/linux/six.h b/include/linux/six.h
 new file mode 100644
 index 000000000000..0fb1b2f49345
@@ -65431,17 +65574,17 @@ index 000000000000..d7e898b02491
 +/* This part must be outside protection */
 +#include <trace/define_trace.h>
 diff --git a/init/init_task.c b/init/init_task.c
-index 7ab773b9b3cd..ee3d9d29b812 100644
+index 7ab773b9b3cd..83e27727da30 100644
 --- a/init/init_task.c
 +++ b/init/init_task.c
-@@ -116,6 +116,7 @@ struct task_struct init_task
+@@ -77,6 +77,7 @@ struct task_struct init_task
+ 	.nr_cpus_allowed= NR_CPUS,
+ 	.mm		= NULL,
+ 	.active_mm	= &init_mm,
++	.faults_disabled_mapping = NULL,
+ 	.restart_block	= {
+ 		.fn = do_no_restart_syscall,
  	},
- 	.blocked	= {{0}},
- 	.alloc_lock	= __SPIN_LOCK_UNLOCKED(init_task.alloc_lock),
-+	.pagecache_lock = NULL,
- 	.journal_info	= NULL,
- 	INIT_CPU_TIMERS(init_task)
- 	.pi_lock	= __RAW_SPIN_LOCK_UNLOCKED(init_task.pi_lock),
 diff --git a/kernel/Kconfig.locks b/kernel/Kconfig.locks
 index e0852dc333ac..814649f5740d 100644
 --- a/kernel/Kconfig.locks
@@ -66953,80 +67096,13 @@ index 446b956c9188..1237c213f52b 100644
  		return xas_load(xas);
  
 diff --git a/mm/filemap.c b/mm/filemap.c
-index d0cf700bf201..b26266a72c69 100644
+index d0cf700bf201..5de3b44ec9aa 100644
 --- a/mm/filemap.c
 +++ b/mm/filemap.c
-@@ -115,6 +115,136 @@
+@@ -115,6 +115,69 @@
   *   ->tasklist_lock            (memory_failure, collect_procs_ao)
   */
  
-+static void __pagecache_lock_put(struct pagecache_lock *lock, long i)
-+{
-+	BUG_ON(atomic_long_read(&lock->v) == 0);
-+
-+	if (atomic_long_sub_return_release(i, &lock->v) == 0)
-+		wake_up_all(&lock->wait);
-+}
-+
-+static bool __pagecache_lock_tryget(struct pagecache_lock *lock, long i)
-+{
-+	long v = atomic_long_read(&lock->v), old;
-+
-+	do {
-+		old = v;
-+
-+		if (i > 0 ? v < 0 : v > 0)
-+			return false;
-+	} while ((v = atomic_long_cmpxchg_acquire(&lock->v,
-+					old, old + i)) != old);
-+	return true;
-+}
-+
-+static void __pagecache_lock_get(struct pagecache_lock *lock, long i)
-+{
-+	wait_event(lock->wait, __pagecache_lock_tryget(lock, i));
-+}
-+
-+void pagecache_add_put(struct pagecache_lock *lock)
-+{
-+	__pagecache_lock_put(lock, 1);
-+}
-+EXPORT_SYMBOL(pagecache_add_put);
-+
-+void pagecache_add_get(struct pagecache_lock *lock)
-+{
-+	__pagecache_lock_get(lock, 1);
-+}
-+EXPORT_SYMBOL(pagecache_add_get);
-+
-+void __pagecache_block_put(struct pagecache_lock *lock)
-+{
-+	__pagecache_lock_put(lock, -1);
-+}
-+EXPORT_SYMBOL(__pagecache_block_put);
-+
-+void __pagecache_block_get(struct pagecache_lock *lock)
-+{
-+	__pagecache_lock_get(lock, -1);
-+}
-+EXPORT_SYMBOL(__pagecache_block_get);
-+
-+void pagecache_block_put(struct pagecache_lock *lock)
-+{
-+	BUG_ON(current->pagecache_lock != lock);
-+	current->pagecache_lock = NULL;
-+	__pagecache_lock_put(lock, -1);
-+}
-+EXPORT_SYMBOL(pagecache_block_put);
-+
-+void pagecache_block_get(struct pagecache_lock *lock)
-+{
-+	__pagecache_lock_get(lock, -1);
-+	BUG_ON(current->pagecache_lock);
-+	current->pagecache_lock = lock;
-+}
-+EXPORT_SYMBOL(pagecache_block_get);
-+
 +static int page_cache_tree_insert_vec(struct page *pages[],
 +				      unsigned nr_pages,
 +				      struct address_space *mapping,
@@ -67093,7 +67169,7 @@ index d0cf700bf201..b26266a72c69 100644
  static void page_cache_delete(struct address_space *mapping,
  				   struct page *page, void *shadow)
  {
-@@ -838,118 +968,160 @@ int replace_page_cache_page(struct page *old, struct page *new, gfp_t gfp_mask)
+@@ -838,118 +901,154 @@ int replace_page_cache_page(struct page *old, struct page *new, gfp_t gfp_mask)
  }
  EXPORT_SYMBOL_GPL(replace_page_cache_page);
  
@@ -67147,8 +67223,12 @@ index d0cf700bf201..b26266a72c69 100644
 -	get_page(page);
 -	page->mapping = mapping;
 -	page->index = offset;
-+	if (current->pagecache_lock != &mapping->add_lock)
-+		pagecache_add_get(&mapping->add_lock);
++	error = page_cache_tree_insert_vec(pages, nr_pages, mapping,
++					   index, gfp_mask, shadow);
++	if (error > 0) {
++		nr_added = error;
++		error = 0;
++	}
  
 -	do {
 -		xas_lock_irq(&xas);
@@ -67158,12 +67238,8 @@ index d0cf700bf201..b26266a72c69 100644
 -		xas_store(&xas, page);
 -		if (xas_error(&xas))
 -			goto unlock;
-+	error = page_cache_tree_insert_vec(pages, nr_pages, mapping,
-+					   index, gfp_mask, shadow);
-+	if (error > 0) {
-+		nr_added = error;
-+		error = 0;
-+	}
++	for (i = 0; i < nr_added; i++) {
++		struct page *page = pages[i];
  
 -		if (xa_is_value(old)) {
 -			mapping->nrexceptional--;
@@ -67171,8 +67247,8 @@ index d0cf700bf201..b26266a72c69 100644
 -				*shadowp = old;
 -		}
 -		mapping->nrpages++;
-+	if (current->pagecache_lock != &mapping->add_lock)
-+		pagecache_add_put(&mapping->add_lock);
++		if (!PageHuge(page))
++			mem_cgroup_commit_charge(page, memcg, false, false);
  
 -		/* hugetlb pages do not participate in page cache accounting */
 -		if (!huge)
@@ -67180,13 +67256,13 @@ index d0cf700bf201..b26266a72c69 100644
 -unlock:
 -		xas_unlock_irq(&xas);
 -	} while (xas_nomem(&xas, gfp_mask & GFP_RECLAIM_MASK));
-+	for (i = 0; i < nr_added; i++) {
-+		struct page *page = pages[i];
++		trace_mm_filemap_add_to_page_cache(page);
++	}
  
 -	if (xas_error(&xas))
 -		goto error;
-+		if (!PageHuge(page))
-+			mem_cgroup_commit_charge(page, memcg, false, false);
++	for (i = nr_added; i < nr_pages; i++) {
++		struct page *page = pages[i];
  
 -	if (!huge)
 -		mem_cgroup_commit_charge(page, memcg, false, false);
@@ -67199,12 +67275,6 @@ index d0cf700bf201..b26266a72c69 100644
 -		mem_cgroup_cancel_charge(page, memcg, false);
 -	put_page(page);
 -	return xas_error(&xas);
-+		trace_mm_filemap_add_to_page_cache(page);
-+	}
-+
-+	for (i = nr_added; i < nr_pages; i++) {
-+		struct page *page = pages[i];
-+
 +		if (!PageHuge(page))
 +			mem_cgroup_cancel_charge(page, memcg, false);
 +
@@ -67335,7 +67405,7 @@ index d0cf700bf201..b26266a72c69 100644
  }
  EXPORT_SYMBOL_GPL(add_to_page_cache_lru);
  
-@@ -1849,6 +2021,7 @@ unsigned find_get_pages_range(struct address_space *mapping, pgoff_t *start,
+@@ -1849,6 +1948,7 @@ unsigned find_get_pages_range(struct address_space *mapping, pgoff_t *start,
  
  	return ret;
  }
@@ -67343,7 +67413,7 @@ index d0cf700bf201..b26266a72c69 100644
  
  /**
   * find_get_pages_contig - gang contiguous pagecache lookup
-@@ -2010,6 +2183,222 @@ static void shrink_readahead_size_eio(struct file *filp,
+@@ -2010,6 +2110,222 @@ static void shrink_readahead_size_eio(struct file *filp,
  	ra->ra_pages /= 4;
  }
  
@@ -67566,7 +67636,7 @@ index d0cf700bf201..b26266a72c69 100644
  /**
   * generic_file_buffered_read - generic file read routine
   * @iocb:	the iocb to read
-@@ -2030,252 +2419,96 @@ static ssize_t generic_file_buffered_read(struct kiocb *iocb,
+@@ -2030,252 +2346,96 @@ static ssize_t generic_file_buffered_read(struct kiocb *iocb,
  		struct iov_iter *iter, ssize_t written)
  {
  	struct file *filp = iocb->ki_filp;
@@ -67876,6 +67946,33 @@ index d0cf700bf201..b26266a72c69 100644
  	return written ? written : error;
  }
  
+diff --git a/mm/memory.c b/mm/memory.c
+index e2bb51b6242e..ec0dde4fcb97 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -3576,10 +3576,18 @@ static vm_fault_t do_fault(struct vm_fault *vmf)
+ 	struct mm_struct *vm_mm = vma->vm_mm;
+ 	vm_fault_t ret;
+ 
+-	/*
+-	 * The VMA was not fully populated on mmap() or missing VM_DONTEXPAND
+-	 */
+-	if (!vma->vm_ops->fault) {
++	if (vma->vm_file &&
++	    vma->vm_file->f_mapping &&
++	    unlikely(vma->vm_file->f_mapping ==
++		     current->faults_disabled_mapping)) {
++		/* Faulting in pages for this mapping is currently disabled: */
++		ret = VM_FAULT_SIGBUS;
++	} else if (!vma->vm_ops->fault) {
++		/*
++		 * The VMA was not fully populated on mmap() or missing
++		 * VM_DONTEXPAND
++		 */
++
+ 		/*
+ 		 * If we find a migration pmd entry or a none pmd entry, which
+ 		 * should never happen, return SIGBUS
 diff --git a/mm/page-writeback.c b/mm/page-writeback.c
 index 1804f64ff43c..089329d8a9e1 100644
 --- a/mm/page-writeback.c
