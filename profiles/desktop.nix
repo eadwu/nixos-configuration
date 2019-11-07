@@ -105,11 +105,11 @@ in
     };
 
     fonts = {
-      enableCoreFonts = true;
       enableFontDir = true;
       enableGhostscriptFonts = true;
       fonts = with pkgs; [
         anonymousPro
+        corefonts
         font-awesome_5
         ibm-plex
         liberation_ttf

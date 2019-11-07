@@ -1,10 +1,6 @@
 { ... }:
 
 {
-  fonts.fontconfig.ultimate = {
-    enable = true;
-  };
-
   environment.variables = {
     # Windows 10-like font rendering config for Linux
     # See https://gist.github.com/sorenvonsarvort/fa6c5341403bf306e23034a1a1a9111b
