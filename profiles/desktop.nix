@@ -115,6 +115,7 @@ in
         optician-sans
         noto-fonts-cjk
         unifont
+        weather-icons
       ];
     };
 

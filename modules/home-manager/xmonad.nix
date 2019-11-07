@@ -58,7 +58,7 @@ assert builtins.pathExists ./xmonad/xmonad.hs;
         font-2 = "Font Awesome 5 Free:style=Solid:size=7;3";
         font-3 = "Font Awesome 5 Brands:size=7;3";
         font-4 = "Unifont:size=7;3";
-        font-5 = "Noto Color Emoji:size=7;4";
+        font-5 = "Weather Icons:size=8;4";
       } // (with config.sysConfig.fonts.fontconfig; lib.optionalAttrs (dpi != 0) { inherit dpi; });
 
       "bar/workspace" = {
@@ -290,11 +290,21 @@ assert builtins.pathExists ./xmonad/xmonad.hs;
         bar-indicator-foreground = colors.color2;
         bar-width = 15;
 
-        ramp-0 = "%{T6}🌑%{T-}";
-        ramp-1 = "%{T6}🌒%{T-}";
-        ramp-2 = "%{T6}🌓%{T-}";
-        ramp-3 = "%{T6}🌔%{T-}";
-        ramp-4 = "%{T6}🌕%{T-}";
+        ramp-0 = "%{T6}%{T-}";
+        ramp-1 = "%{T6}%{T-}";
+        ramp-2 = "%{T6}%{T-}";
+        ramp-3 = "%{T6}%{T-}";
+        ramp-4 = "%{T6}%{T-}";
+        ramp-5 = "%{T6}%{T-}";
+        ramp-6 = "%{T6}%{T-}";
+        ramp-7 = "%{T6}%{T-}";
+        ramp-8 = "%{T6}%{T-}";
+        ramp-9 = "%{T6}%{T-}";
+        ramp-10 = "%{T6}%{T-}";
+        ramp-11 = "%{T6}%{T-}";
+        ramp-12 = "%{T6}%{T-}";
+        ramp-13 = "%{T6}%{T-}";
+        ramp-14 = "%{T6}%{T-}";
       };
 
       "module/volume" = {
