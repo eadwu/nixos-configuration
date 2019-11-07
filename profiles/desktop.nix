@@ -20,7 +20,6 @@ in
         ../modules/compton.nix
         ../modules/cups.nix
         ../modules/emacs.nix
-        ../modules/fontconfig.nix
         ../modules/i3color.nix
         ../modules/libvirt.nix
         ../modules/logind
