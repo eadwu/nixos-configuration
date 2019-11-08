@@ -16,7 +16,7 @@
 
   environment = {
     systemPackages = with pkgs; [ libva-utils ];
-    variables.MESA_LOADER_DRIVER_OVERRIDE = lib.mkDefault "iris";
+    sessionVariables.MESA_LOADER_DRIVER_OVERRIDE = lib.mkDefault "iris";
   };
 
   hardware.opengl = {
