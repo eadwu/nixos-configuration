@@ -7,7 +7,7 @@ let
     saltLength = 64;
     keyLength = 64;
     iterationStep = 0;
-    gracePeriod = 10;
+    gracePeriod = 30;
 
     storage = {
       device = config.fileSystems."/boot".device;
