@@ -16,8 +16,8 @@ import qualified Data.Map        as M
 
 import Graphics.X11.ExtraTypes.XF86
 import Data.Maybe ( fromJust )
-import XMonad.Hooks.ManageDocks ( docks, avoidStrutsOn, docksEventHook, ToggleStruts(..) )
-import XMonad.Layout.Fullscreen ( fullscreenSupport, fullscreenEventHook )
+import XMonad.Hooks.ManageDocks ( docks, avoidStrutsOn, ToggleStruts(..) )
+import XMonad.Layout.Fullscreen ( fullscreenSupport )
 import XMonad.Layout.NoBorders ( smartBorders )
 
 import XMonad.Layout.BinarySpacePartition
@@ -223,8 +223,11 @@ myMouseBindings (XConfig {XMonad.modMask = modm}) = M.fromList $
 -- The available layouts.  Note that each layout is separated by |||,
 -- which denotes layout choice.
 --
-myLayout = smartBorders . avoidStrutsOn [U,D] $ Full ||| emptyBSP ||| spiral ||| Grid ||| threeC ||| tiled ||| Mirror tiled ||| simplestFloat
+myLayout = mods $ Full ||| emptyBSP ||| spiral ||| Grid ||| threeC ||| tiled ||| Mirror tiled ||| simplestFloat
   where
+     -- modifications to the layout algorithm
+     mods    = smartBorders . avoidStrutsOn [U,D]
+
      -- default tiling algorithm partitions the screen into two panes
      tiled   = Tall nmaster delta ratio
 
@@ -238,10 +241,10 @@ myLayout = smartBorders . avoidStrutsOn [U,D] $ Full ||| emptyBSP ||| spiral |||
      nmaster = 1
 
      -- Default proportion of screen occupied by master pane
-     ratio   = 1/2
+     ratio   = 1 / 2
 
      -- Percent of screen to increment by when resizing panes
-     delta   = 3/100
+     delta   = 3 / 100
 
 ------------------------------------------------------------------------
 -- Window rules:
@@ -288,7 +291,7 @@ myManageHook = composeAll
 -- return (All True) if the default handler is to be run afterwards. To
 -- combine event hooks use mappend or mconcat from Data.Monoid.
 --
-myEventHook = fullscreenEventHook
+myEventHook = mempty
 
 ------------------------------------------------------------------------
 -- Status bars and logging
