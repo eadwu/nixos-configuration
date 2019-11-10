@@ -16,6 +16,7 @@ import qualified Data.Map        as M
 
 import Graphics.X11.ExtraTypes.XF86
 import Data.Maybe ( fromJust )
+import XMonad.Hooks.EwmhDesktops ( ewmh )
 import XMonad.Hooks.ManageDocks ( docks, avoidStrutsOn, ToggleStruts(..) )
 import XMonad.Layout.Fullscreen ( fullscreenSupport )
 import XMonad.Layout.NoBorders ( smartBorders )
@@ -316,7 +317,7 @@ myStartupHook = return ()
 
 -- Run xmonad with the settings you specify. No need to modify this.
 --
-main = xmonad . docks . fullscreenSupport $ defaults
+main = xmonad . ewmh . docks . fullscreenSupport $ defaults
 
 -- A structure containing your configuration settings, overriding
 -- fields in the default config. Any you don't override, will

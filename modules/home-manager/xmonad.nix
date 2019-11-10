@@ -49,8 +49,8 @@ assert builtins.pathExists ./xmonad/xmonad.hs;
         foreground = colors.foreground;
 
         # "Fake" padding
-        border-top = 8;
-        border-bottom = 8;
+        border-top-size = 8;
+        border-bottom-size = 8;
         border-color = colors.color1;
 
         font-0 = "Optician Sans:size=8;3";
@@ -65,6 +65,7 @@ assert builtins.pathExists ./xmonad/xmonad.hs;
         "inherit" = "section/universal";
         bottom = true;
 
+        modules-left = "ewmh";
         modules-right =
           "temperature0 temperature1 temperature2 temperature3 temperature4 temperature5 cpu memory";
       };
@@ -73,6 +74,28 @@ assert builtins.pathExists ./xmonad/xmonad.hs;
         "inherit" = "section/universal";
 
         modules-right = "filesystem network0 network1 network2 network3 battery backlight volume date";
+      };
+
+      "module/ewmh" = {
+        type = "internal/xworkspaces";
+        icon-default = "KISS";
+
+        label-empty = "%{T3}%{T-}";
+        label-empty-foreground = "#382e37";
+        label-empty-padding = 2;
+
+        label-active = "%{T3}%{T-}";
+        label-active-foreground = colors.color2;
+        label-active-padding = 2;
+
+        label-occupied = "%{T3}%{T-}";
+        label-occupied-foreground = "#382e37";
+        label-occupied-padding = 2;
+
+        label-urgent = "%{T3}%{T-}";
+        label-urgent-padding = 2;
+
+        format = "<label-state>";
       };
 
       "section/temperature" = {
