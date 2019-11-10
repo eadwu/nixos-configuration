@@ -6583,10 +6583,10 @@ index 000000000000..d668ede5491a
 +#endif /* _BCACHEFS_IOCTL_H */
 diff --git a/fs/bcachefs/bkey.c b/fs/bcachefs/bkey.c
 new file mode 100644
-index 000000000000..ed7ca5b0636d
+index 000000000000..4d0c9129cd4a
 --- /dev/null
 +++ b/fs/bcachefs/bkey.c
-@@ -0,0 +1,1160 @@
+@@ -0,0 +1,1154 @@
 +// SPDX-License-Identifier: GPL-2.0
 +
 +#include "bcachefs.h"
@@ -7647,26 +7647,20 @@ index 000000000000..ed7ca5b0636d
 +			   const struct bkey_packed *r,
 +			   const struct btree *b)
 +{
-+	int packed = bkey_lr_packed(l, r);
++	struct bkey unpacked;
 +
-+	if (likely(packed == BKEY_PACKED_BOTH))
++	if (likely(bkey_packed(l) && bkey_packed(r)))
 +		return __bch2_bkey_cmp_packed_format_checked(l, r, b);
 +
-+	switch (packed) {
-+	case BKEY_PACKED_NONE:
-+		return bkey_cmp(((struct bkey *) l)->p,
-+				((struct bkey *) r)->p);
-+	case BKEY_PACKED_LEFT:
-+		return __bch2_bkey_cmp_left_packed_format_checked(b,
-+				  (struct bkey_packed *) l,
-+				  &((struct bkey *) r)->p);
-+	case BKEY_PACKED_RIGHT:
-+		return -__bch2_bkey_cmp_left_packed_format_checked(b,
-+				  (struct bkey_packed *) r,
-+				  &((struct bkey *) l)->p);
-+	default:
-+		unreachable();
++	if (bkey_packed(l)) {
++		__bkey_unpack_key_format_checked(b, &unpacked, l);
++		l = (void*) &unpacked;
++	} else if (bkey_packed(r)) {
++		__bkey_unpack_key_format_checked(b, &unpacked, r);
++		r = (void*) &unpacked;
 +	}
++
++	return bkey_cmp(((struct bkey *) l)->p, ((struct bkey *) r)->p);
 +}
 +
 +__pure __flatten
@@ -8686,10 +8680,10 @@ index 000000000000..8568b65c1ed2
 +#endif /* _BCACHEFS_BKEY_METHODS_H */
 diff --git a/fs/bcachefs/bkey_sort.c b/fs/bcachefs/bkey_sort.c
 new file mode 100644
-index 000000000000..e32fad5a91ac
+index 000000000000..2cac269b386f
 --- /dev/null
 +++ b/fs/bcachefs/bkey_sort.c
-@@ -0,0 +1,630 @@
+@@ -0,0 +1,626 @@
 +// SPDX-License-Identifier: GPL-2.0
 +#include "bcachefs.h"
 +#include "bkey_sort.h"
@@ -9110,7 +9104,7 @@ index 000000000000..e32fad5a91ac
 +	struct bkey_packed *prev = NULL, *k_packed;
 +	struct bkey_s k;
 +	struct btree_nr_keys nr;
-+	BKEY_PADDED(k) tmp;
++	struct bkey unpacked;
 +
 +	memset(&nr, 0, sizeof(nr));
 +
@@ -9118,11 +9112,7 @@ index 000000000000..e32fad5a91ac
 +		if (filter_whiteouts && bkey_whiteout(k_packed))
 +			continue;
 +
-+		EBUG_ON(bkeyp_val_u64s(&src->format, k_packed) >
-+			BKEY_EXTENT_VAL_U64s_MAX);
-+
-+		bch2_bkey_unpack(src, &tmp.k, k_packed);
-+		k = bkey_i_to_s(&tmp.k);
++		k = __bkey_disassemble(src, k_packed, &unpacked);
 +
 +		if (filter_whiteouts &&
 +		    bch2_bkey_normalize(c, k))
@@ -9397,10 +9387,10 @@ index 000000000000..397009181eae
 +#endif /* _BCACHEFS_BKEY_SORT_H */
 diff --git a/fs/bcachefs/bset.c b/fs/bcachefs/bset.c
 new file mode 100644
-index 000000000000..19f13b7e61e6
+index 000000000000..b7618e2b28f7
 --- /dev/null
 +++ b/fs/bcachefs/bset.c
-@@ -0,0 +1,1881 @@
+@@ -0,0 +1,1801 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Code for working with individual keys, and sorted sets of keys with in a
@@ -9697,38 +9687,23 @@ index 000000000000..19f13b7e61e6
 +
 +/* Auxiliary search trees */
 +
-+#define BFLOAT_FAILED_UNPACKED	(U8_MAX - 0)
-+#define BFLOAT_FAILED_PREV	(U8_MAX - 1)
-+#define BFLOAT_FAILED_OVERFLOW	(U8_MAX - 2)
-+#define BFLOAT_FAILED		(U8_MAX - 2)
-+
-+#define KEY_WORDS		BITS_TO_LONGS(1 << BKEY_EXPONENT_BITS)
++#define BFLOAT_FAILED_UNPACKED	U8_MAX
++#define BFLOAT_FAILED		U8_MAX
 +
 +struct bkey_float {
 +	u8		exponent;
 +	u8		key_offset;
-+	union {
-+		u32	mantissa32;
-+	struct {
-+		u16	mantissa16;
-+		u16	_pad;
-+	};
-+	};
-+} __packed;
-+
-+#define BFLOAT_32BIT_NR		32U
++	u16		mantissa;
++};
++#define BKEY_MANTISSA_BITS	16
 +
 +static unsigned bkey_float_byte_offset(unsigned idx)
 +{
-+	int d = (idx - BFLOAT_32BIT_NR) << 1;
-+
-+	d &= ~(d >> 31);
-+
-+	return idx * 6 - d;
++	return idx * sizeof(struct bkey_float);
 +}
 +
 +struct ro_aux_tree {
-+	struct bkey_float	_d[0];
++	struct bkey_float	f[0];
 +};
 +
 +struct rw_aux_tree {
@@ -9783,8 +9758,8 @@ index 000000000000..19f13b7e61e6
 +		return t->aux_data_offset;
 +	case BSET_RO_AUX_TREE:
 +		return t->aux_data_offset +
-+			DIV_ROUND_UP(bkey_float_byte_offset(t->size) +
-+				     sizeof(u8) * t->size, 8);
++			DIV_ROUND_UP(t->size * sizeof(struct bkey_float) +
++				     t->size * sizeof(u8), 8);
 +	case BSET_RW_AUX_TREE:
 +		return t->aux_data_offset +
 +			DIV_ROUND_UP(sizeof(struct rw_aux_tree) * t->size, 8);
@@ -9823,17 +9798,11 @@ index 000000000000..19f13b7e61e6
 +	return __aux_tree_base(b, t) + bkey_float_byte_offset(t->size);
 +}
 +
-+static struct bkey_float *bkey_float_get(struct ro_aux_tree *b,
-+					 unsigned idx)
-+{
-+	return (void *) b + bkey_float_byte_offset(idx);
-+}
-+
 +static struct bkey_float *bkey_float(const struct btree *b,
 +				     const struct bset_tree *t,
 +				     unsigned idx)
 +{
-+	return bkey_float_get(ro_aux_tree_base(b, t), idx);
++	return ro_aux_tree_base(b, t)->f + idx;
 +}
 +
 +static void bset_aux_tree_verify(struct btree *b)
@@ -10072,21 +10041,6 @@ index 000000000000..19f13b7e61e6
 +	return idx;
 +}
 +
-+static inline unsigned bfloat_mantissa(const struct bkey_float *f,
-+				       unsigned idx)
-+{
-+	return idx < BFLOAT_32BIT_NR ? f->mantissa32 : f->mantissa16;
-+}
-+
-+static inline void bfloat_mantissa_set(struct bkey_float *f,
-+				       unsigned idx, unsigned mantissa)
-+{
-+	if (idx < BFLOAT_32BIT_NR)
-+		f->mantissa32 = mantissa;
-+	else
-+		f->mantissa16 = mantissa;
-+}
-+
 +static inline unsigned bkey_mantissa(const struct bkey_packed *k,
 +				     const struct bkey_float *f,
 +				     unsigned idx)
@@ -10106,9 +10060,9 @@ index 000000000000..19f13b7e61e6
 +#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 +	v >>= f->exponent & 7;
 +#else
-+	v >>= 64 - (f->exponent & 7) - (idx < BFLOAT_32BIT_NR ? 32 : 16);
++	v >>= 64 - (f->exponent & 7) - BKEY_MANTISSA_BITS;
 +#endif
-+	return idx < BFLOAT_32BIT_NR ? (u32) v : (u16) v;
++	return (u16) v;
 +}
 +
 +static void make_bfloat(struct btree *b, struct bset_tree *t,
@@ -10118,13 +10072,9 @@ index 000000000000..19f13b7e61e6
 +{
 +	struct bkey_float *f = bkey_float(b, t, j);
 +	struct bkey_packed *m = tree_to_bkey(b, t, j);
-+	struct bkey_packed *p = tree_to_prev_bkey(b, t, j);
 +	struct bkey_packed *l, *r;
-+	unsigned bits = j < BFLOAT_32BIT_NR ? 32 : 16;
 +	unsigned mantissa;
 +	int shift, exponent, high_bit;
-+
-+	EBUG_ON(bkey_next(p) != m);
 +
 +	if (is_power_of_2(j)) {
 +		l = min_key;
@@ -10167,8 +10117,7 @@ index 000000000000..19f13b7e61e6
 +	 * the original key.
 +	 */
 +
-+	if (!bkey_packed(l) || !bkey_packed(r) ||
-+	    !bkey_packed(p) || !bkey_packed(m) ||
++	if (!bkey_packed(l) || !bkey_packed(r) || !bkey_packed(m) ||
 +	    !b->nr_key_bits) {
 +		f->exponent = BFLOAT_FAILED_UNPACKED;
 +		return;
@@ -10185,8 +10134,8 @@ index 000000000000..19f13b7e61e6
 +	 * of the key: we handle this later:
 +	 */
 +	high_bit = max(bch2_bkey_greatest_differing_bit(b, l, r),
-+		       min_t(unsigned, bits, b->nr_key_bits) - 1);
-+	exponent = high_bit - (bits - 1);
++		       min_t(unsigned, BKEY_MANTISSA_BITS, b->nr_key_bits) - 1);
++	exponent = high_bit - (BKEY_MANTISSA_BITS - 1);
 +
 +	/*
 +	 * Then we calculate the actual shift value, from the start of the key
@@ -10195,12 +10144,12 @@ index 000000000000..19f13b7e61e6
 +#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 +	shift = (int) (b->format.key_u64s * 64 - b->nr_key_bits) + exponent;
 +
-+	EBUG_ON(shift + bits > b->format.key_u64s * 64);
++	EBUG_ON(shift + BKEY_MANTISSA_BITS > b->format.key_u64s * 64);
 +#else
 +	shift = high_bit_offset +
 +		b->nr_key_bits -
 +		exponent -
-+		bits;
++		BKEY_MANTISSA_BITS;
 +
 +	EBUG_ON(shift < KEY_PACKED_BITS_START);
 +#endif
@@ -10216,37 +10165,7 @@ index 000000000000..19f13b7e61e6
 +	if (exponent < 0)
 +		mantissa |= ~(~0U << -exponent);
 +
-+	bfloat_mantissa_set(f, j, mantissa);
-+
-+	/*
-+	 * The bfloat must be able to tell its key apart from the previous key -
-+	 * if its key and the previous key don't differ in the required bits,
-+	 * flag as failed - unless the keys are actually equal, in which case
-+	 * we aren't required to return a specific one:
-+	 */
-+	if (exponent > 0 &&
-+	    bfloat_mantissa(f, j) == bkey_mantissa(p, f, j) &&
-+	    bkey_cmp_packed(b, p, m)) {
-+		f->exponent = BFLOAT_FAILED_PREV;
-+		return;
-+	}
-+
-+	/*
-+	 * f->mantissa must compare >= the original key - for transitivity with
-+	 * the comparison in bset_search_tree. If we're dropping set bits,
-+	 * increment it:
-+	 */
-+	if (exponent > (int) bch2_bkey_ffs(b, m)) {
-+		if (j < BFLOAT_32BIT_NR
-+		    ? f->mantissa32 == U32_MAX
-+		    : f->mantissa16 == U16_MAX)
-+			f->exponent = BFLOAT_FAILED_OVERFLOW;
-+
-+		if (j < BFLOAT_32BIT_NR)
-+			f->mantissa32++;
-+		else
-+			f->mantissa16++;
-+	}
++	f->mantissa = mantissa;
 +}
 +
 +/* bytes remaining - only valid for last bset: */
@@ -10259,14 +10178,8 @@ index 000000000000..19f13b7e61e6
 +
 +static unsigned bset_ro_tree_capacity(struct btree *b, struct bset_tree *t)
 +{
-+	unsigned bytes = __bset_tree_capacity(b, t);
-+
-+	if (bytes < 7 * BFLOAT_32BIT_NR)
-+		return bytes / 7;
-+
-+	bytes -= 7 * BFLOAT_32BIT_NR;
-+
-+	return BFLOAT_32BIT_NR + bytes / 5;
++	return __bset_tree_capacity(b, t) /
++		(sizeof(struct bkey_float) + sizeof(u8));
 +}
 +
 +static unsigned bset_rw_tree_capacity(struct btree *b, struct bset_tree *t)
@@ -10736,14 +10649,38 @@ index 000000000000..19f13b7e61e6
 +	return rw_aux_to_bkey(b, t, l);
 +}
 +
-+noinline
-+static int bset_search_tree_slowpath(const struct btree *b,
-+				struct bset_tree *t, struct bpos *search,
-+				const struct bkey_packed *packed_search,
-+				unsigned n)
++static inline void prefetch_four_cachelines(void *p)
 +{
-+	return bkey_cmp_p_or_unp(b, tree_to_bkey(b, t, n),
-+				 packed_search, search) < 0;
++#ifdef CONFIG_X86_64
++	asm(".intel_syntax noprefix;"
++	    "prefetcht0 [%0 - 127 + 64 * 0];"
++	    "prefetcht0 [%0 - 127 + 64 * 1];"
++	    "prefetcht0 [%0 - 127 + 64 * 2];"
++	    "prefetcht0 [%0 - 127 + 64 * 3];"
++	    ".att_syntax prefix;"
++	    :
++	    : "r" (p + 127));
++#else
++	prefetch(p + L1_CACHE_BYTES * 0);
++	prefetch(p + L1_CACHE_BYTES * 1);
++	prefetch(p + L1_CACHE_BYTES * 2);
++	prefetch(p + L1_CACHE_BYTES * 3);
++#endif
++}
++
++static inline bool bkey_mantissa_bits_dropped(const struct btree *b,
++					      const struct bkey_float *f,
++					      unsigned idx)
++{
++#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
++	unsigned key_bits_start = b->format.key_u64s * 64 - b->nr_key_bits;
++
++	return f->exponent > key_bits_start;
++#else
++	unsigned key_bits_end = high_bit_offset + b->nr_key_bits;
++
++	return f->exponent + BKEY_MANTISSA_BITS < key_bits_end;
++#endif
 +}
 +
 +__flatten
@@ -10753,44 +10690,37 @@ index 000000000000..19f13b7e61e6
 +				const struct bkey_packed *packed_search)
 +{
 +	struct ro_aux_tree *base = ro_aux_tree_base(b, t);
-+	struct bkey_float *f = bkey_float_get(base, 1);
-+	void *p;
-+	unsigned inorder, n = 1;
++	struct bkey_float *f;
++	struct bkey_packed *k;
++	unsigned inorder, n = 1, l, r;
++	int cmp;
 +
-+	while (1) {
-+		if (likely(n << 4 < t->size)) {
-+			p = bkey_float_get(base, n << 4);
-+			prefetch(p);
-+		} else if (n << 3 < t->size) {
-+			inorder = __eytzinger1_to_inorder(n, t->size, t->extra);
-+			p = bset_cacheline(b, t, inorder);
-+#ifdef CONFIG_X86_64
-+			asm(".intel_syntax noprefix;"
-+			    "prefetcht0 [%0 - 127 + 64 * 0];"
-+			    "prefetcht0 [%0 - 127 + 64 * 1];"
-+			    "prefetcht0 [%0 - 127 + 64 * 2];"
-+			    "prefetcht0 [%0 - 127 + 64 * 3];"
-+			    ".att_syntax prefix;"
-+			    :
-+			    : "r" (p + 127));
-+#else
-+			prefetch(p + L1_CACHE_BYTES * 0);
-+			prefetch(p + L1_CACHE_BYTES * 1);
-+			prefetch(p + L1_CACHE_BYTES * 2);
-+			prefetch(p + L1_CACHE_BYTES * 3);
-+#endif
-+		} else if (n >= t->size)
-+			break;
++	do {
++		if (likely(n << 4 < t->size))
++			prefetch(&base->f[n << 4]);
 +
-+		f = bkey_float_get(base, n);
++		f = &base->f[n];
 +
-+		if (packed_search &&
-+		    likely(f->exponent < BFLOAT_FAILED))
-+			n = n * 2 + (bfloat_mantissa(f, n) <
-+				     bkey_mantissa(packed_search, f, n));
-+		else
-+			n = n * 2 + bset_search_tree_slowpath(b, t,
-+						search, packed_search, n);
++		if (!unlikely(packed_search))
++			goto slowpath;
++		if (unlikely(f->exponent >= BFLOAT_FAILED))
++			goto slowpath;
++
++		l = f->mantissa;
++		r = bkey_mantissa(packed_search, f, n);
++
++		if (unlikely(l == r) && bkey_mantissa_bits_dropped(b, f, n))
++			goto slowpath;
++
++		n = n * 2 + (l < r);
++		continue;
++slowpath:
++		k = tree_to_bkey(b, t, n);
++		cmp = bkey_cmp_p_or_unp(b, k, packed_search, search);
++		if (!cmp)
++			return k;
++
++		n = n * 2 + (cmp < 0);
 +	} while (n < t->size);
 +
 +	inorder = __eytzinger1_to_inorder(n >> 1, t->size, t->extra);
@@ -10799,29 +10729,23 @@ index 000000000000..19f13b7e61e6
 +	 * n would have been the node we recursed to - the low bit tells us if
 +	 * we recursed left or recursed right.
 +	 */
-+	if (n & 1) {
-+		return cacheline_to_bkey(b, t, inorder, f->key_offset);
-+	} else {
-+		if (--inorder) {
-+			n = eytzinger1_prev(n >> 1, t->size);
-+			f = bkey_float_get(base, n);
-+			return cacheline_to_bkey(b, t, inorder, f->key_offset);
-+		} else
++	if (likely(!(n & 1))) {
++		--inorder;
++		if (unlikely(!inorder))
 +			return btree_bkey_first(b, t);
++
++		f = &base->f[eytzinger1_prev(n >> 1, t->size)];
 +	}
++
++	return cacheline_to_bkey(b, t, inorder, f->key_offset);
 +}
 +
-+/*
-+ * Returns the first key greater than or equal to @search
-+ */
-+__always_inline __flatten
-+static struct bkey_packed *bch2_bset_search(struct btree *b,
++static __always_inline __flatten
++struct bkey_packed *__bch2_bset_search(struct btree *b,
 +				struct bset_tree *t,
 +				struct bpos *search,
-+				struct bkey_packed *packed_search,
 +				const struct bkey_packed *lossy_packed_search)
 +{
-+	struct bkey_packed *m;
 +
 +	/*
 +	 * First, we search for a cacheline, then lastly we do a linear search
@@ -10840,11 +10764,9 @@ index 000000000000..19f13b7e61e6
 +
 +	switch (bset_aux_tree_type(t)) {
 +	case BSET_NO_AUX_TREE:
-+		m = btree_bkey_first(b, t);
-+		break;
++		return btree_bkey_first(b, t);
 +	case BSET_RW_AUX_TREE:
-+		m = bset_search_write_set(b, t, search, lossy_packed_search);
-+		break;
++		return bset_search_write_set(b, t, search, lossy_packed_search);
 +	case BSET_RO_AUX_TREE:
 +		/*
 +		 * Each node in the auxiliary search tree covers a certain range
@@ -10856,10 +10778,20 @@ index 000000000000..19f13b7e61e6
 +		if (bkey_cmp(*search, t->max_key) > 0)
 +			return btree_bkey_last(b, t);
 +
-+		m = bset_search_tree(b, t, search, lossy_packed_search);
-+		break;
++		return bset_search_tree(b, t, search, lossy_packed_search);
++	default:
++		unreachable();
 +	}
++}
 +
++static __always_inline __flatten
++struct bkey_packed *bch2_bset_search_linear(struct btree *b,
++				struct bset_tree *t,
++				struct bpos *search,
++				struct bkey_packed *packed_search,
++				const struct bkey_packed *lossy_packed_search,
++				struct bkey_packed *m)
++{
 +	if (lossy_packed_search)
 +		while (m != btree_bkey_last(b, t) &&
 +		       bkey_iter_cmp_p_or_unp(b, search, lossy_packed_search,
@@ -10880,6 +10812,23 @@ index 000000000000..19f13b7e61e6
 +	}
 +
 +	return m;
++}
++
++/*
++ * Returns the first key greater than or equal to @search
++ */
++static __always_inline __flatten
++struct bkey_packed *bch2_bset_search(struct btree *b,
++				struct bset_tree *t,
++				struct bpos *search,
++				struct bkey_packed *packed_search,
++				const struct bkey_packed *lossy_packed_search)
++{
++	struct bkey_packed *m = __bch2_bset_search(b, t, search,
++						   lossy_packed_search);
++
++	return bch2_bset_search_linear(b, t, search,
++				 packed_search, lossy_packed_search, m);
 +}
 +
 +/* Btree node iterator */
@@ -10972,9 +10921,10 @@ index 000000000000..19f13b7e61e6
 +void bch2_btree_node_iter_init(struct btree_node_iter *iter,
 +			       struct btree *b, struct bpos *search)
 +{
-+	struct bset_tree *t;
 +	struct bkey_packed p, *packed_search = NULL;
 +	struct btree_node_iter_set *pos = iter->data;
++	struct bkey_packed *k[MAX_BSETS];
++	unsigned i;
 +
 +	EBUG_ON(bkey_cmp(*search, b->data->min_key) < 0);
 +	bset_aux_tree_verify(b);
@@ -10993,14 +10943,20 @@ index 000000000000..19f13b7e61e6
 +		return;
 +	}
 +
-+	for_each_bset(b, t) {
-+		struct bkey_packed *k = bch2_bset_search(b, t, search,
-+							 packed_search, &p);
++	for (i = 0; i < b->nsets; i++) {
++		k[i] = __bch2_bset_search(b, b->set + i, search, &p);
++		prefetch_four_cachelines(k[i]);
++	}
++
++	for (i = 0; i < b->nsets; i++) {
++		struct bset_tree *t = b->set + i;
 +		struct bkey_packed *end = btree_bkey_last(b, t);
 +
-+		if (k != end)
++		k[i] = bch2_bset_search_linear(b, t, search,
++					       packed_search, &p, k[i]);
++		if (k[i] != end)
 +			*pos++ = (struct btree_node_iter_set) {
-+				__btree_node_key_to_offset(b, k),
++				__btree_node_key_to_offset(b, k[i]),
 +				__btree_node_key_to_offset(b, end)
 +			};
 +	}
@@ -11197,17 +11153,9 @@ index 000000000000..19f13b7e61e6
 +			stats->floats += t->size - 1;
 +
 +			for (j = 1; j < t->size; j++)
-+				switch (bkey_float(b, t, j)->exponent) {
-+				case BFLOAT_FAILED_UNPACKED:
-+					stats->failed_unpacked++;
-+					break;
-+				case BFLOAT_FAILED_PREV:
-+					stats->failed_prev++;
-+					break;
-+				case BFLOAT_FAILED_OVERFLOW:
-+					stats->failed_overflow++;
-+					break;
-+				}
++				stats->failed +=
++					bkey_float(b, t, j)->exponent ==
++					BFLOAT_FAILED;
 +		}
 +	}
 +}
@@ -11216,9 +11164,7 @@ index 000000000000..19f13b7e61e6
 +			 struct bkey_packed *k)
 +{
 +	struct bset_tree *t = bch2_bkey_to_bset(b, k);
-+	struct bkey_packed *l, *r, *p;
-+	struct bkey uk, up;
-+	char buf1[200], buf2[200];
++	struct bkey uk;
 +	unsigned j, inorder;
 +
 +	if (out->pos != out->end)
@@ -11236,46 +11182,10 @@ index 000000000000..19f13b7e61e6
 +		return;
 +
 +	switch (bkey_float(b, t, j)->exponent) {
-+	case BFLOAT_FAILED_UNPACKED:
++	case BFLOAT_FAILED:
 +		uk = bkey_unpack_key(b, k);
 +		pr_buf(out,
 +		       "    failed unpacked at depth %u\n"
-+		       "\t%llu:%llu\n",
-+		       ilog2(j),
-+		       uk.p.inode, uk.p.offset);
-+		break;
-+	case BFLOAT_FAILED_PREV:
-+		p = tree_to_prev_bkey(b, t, j);
-+		l = is_power_of_2(j)
-+			? btree_bkey_first(b, t)
-+			: tree_to_prev_bkey(b, t, j >> ffs(j));
-+		r = is_power_of_2(j + 1)
-+			? bch2_bkey_prev_all(b, t, btree_bkey_last(b, t))
-+			: tree_to_bkey(b, t, j >> (ffz(j) + 1));
-+
-+		up = bkey_unpack_key(b, p);
-+		uk = bkey_unpack_key(b, k);
-+		bch2_to_binary(buf1, high_word(&b->format, p), b->nr_key_bits);
-+		bch2_to_binary(buf2, high_word(&b->format, k), b->nr_key_bits);
-+
-+		pr_buf(out,
-+		       "    failed prev at depth %u\n"
-+		       "\tkey starts at bit %u but first differing bit at %u\n"
-+		       "\t%llu:%llu\n"
-+		       "\t%llu:%llu\n"
-+		       "\t%s\n"
-+		       "\t%s\n",
-+		       ilog2(j),
-+		       bch2_bkey_greatest_differing_bit(b, l, r),
-+		       bch2_bkey_greatest_differing_bit(b, p, k),
-+		       uk.p.inode, uk.p.offset,
-+		       up.p.inode, up.p.offset,
-+		       buf1, buf2);
-+		break;
-+	case BFLOAT_FAILED_OVERFLOW:
-+		uk = bkey_unpack_key(b, k);
-+		pr_buf(out,
-+		       "    failed overflow at depth %u\n"
 +		       "\t%llu:%llu\n",
 +		       ilog2(j),
 +		       uk.p.inode, uk.p.offset);
@@ -11284,10 +11194,10 @@ index 000000000000..19f13b7e61e6
 +}
 diff --git a/fs/bcachefs/bset.h b/fs/bcachefs/bset.h
 new file mode 100644
-index 000000000000..643bd9e8bc4d
+index 000000000000..ccc0866d6435
 --- /dev/null
 +++ b/fs/bcachefs/bset.h
-@@ -0,0 +1,624 @@
+@@ -0,0 +1,622 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +#ifndef _BCACHEFS_BSET_H
 +#define _BCACHEFS_BSET_H
@@ -11872,9 +11782,7 @@ index 000000000000..643bd9e8bc4d
 +	} sets[BSET_TREE_NR_TYPES];
 +
 +	size_t floats;
-+	size_t failed_unpacked;
-+	size_t failed_prev;
-+	size_t failed_overflow;
++	size_t failed;
 +};
 +
 +void bch2_btree_keys_stats(struct btree *, struct bset_stats *);
@@ -11914,10 +11822,10 @@ index 000000000000..643bd9e8bc4d
 +#endif /* _BCACHEFS_BSET_H */
 diff --git a/fs/bcachefs/btree_cache.c b/fs/bcachefs/btree_cache.c
 new file mode 100644
-index 000000000000..416949512057
+index 000000000000..5d3acba525c2
 --- /dev/null
 +++ b/fs/bcachefs/btree_cache.c
-@@ -0,0 +1,934 @@
+@@ -0,0 +1,930 @@
 +// SPDX-License-Identifier: GPL-2.0
 +
 +#include "bcachefs.h"
@@ -12829,9 +12737,7 @@ index 000000000000..416949512057
 +	       "    nr packed keys %u\n"
 +	       "    nr unpacked keys %u\n"
 +	       "    floats %zu\n"
-+	       "    failed unpacked %zu\n"
-+	       "    failed prev %zu\n"
-+	       "    failed overflow %zu\n",
++	       "    failed unpacked %zu\n",
 +	       f->key_u64s,
 +	       f->bits_per_field[0],
 +	       f->bits_per_field[1],
@@ -12848,9 +12754,7 @@ index 000000000000..416949512057
 +	       b->nr.packed_keys,
 +	       b->nr.unpacked_keys,
 +	       stats.floats,
-+	       stats.failed_unpacked,
-+	       stats.failed_prev,
-+	       stats.failed_overflow);
++	       stats.failed);
 +}
 diff --git a/fs/bcachefs/btree_cache.h b/fs/bcachefs/btree_cache.h
 new file mode 100644
@@ -16168,10 +16072,10 @@ index 000000000000..955a80cafae3
 +#endif /* _BCACHEFS_BTREE_IO_H */
 diff --git a/fs/bcachefs/btree_iter.c b/fs/bcachefs/btree_iter.c
 new file mode 100644
-index 000000000000..5fab505dbea0
+index 000000000000..a4180124d7d1
 --- /dev/null
 +++ b/fs/bcachefs/btree_iter.c
-@@ -0,0 +1,2158 @@
+@@ -0,0 +1,2164 @@
 +// SPDX-License-Identifier: GPL-2.0
 +
 +#include "bcachefs.h"
@@ -16468,9 +16372,7 @@ index 000000000000..5fab505dbea0
 +__flatten
 +static bool bch2_btree_iter_relock(struct btree_iter *iter, bool trace)
 +{
-+	return iter->uptodate >= BTREE_ITER_NEED_RELOCK
-+		? btree_iter_get_locks(iter, false, trace)
-+		: true;
++	return btree_iter_get_locks(iter, false, trace);
 +}
 +
 +bool __bch2_btree_iter_upgrade(struct btree_iter *iter,
@@ -17272,7 +17174,15 @@ index 000000000000..5fab505dbea0
 +	if (unlikely(iter->level >= BTREE_MAX_DEPTH))
 +		return 0;
 +
-+	if (bch2_btree_iter_relock(iter, false))
++	/*
++	 * if we need interior nodes locked, call btree_iter_relock() to make
++	 * sure we walk back up enough that we lock them:
++	 */
++	if (iter->uptodate == BTREE_ITER_NEED_RELOCK ||
++	    iter->locks_want > 1)
++		bch2_btree_iter_relock(iter, false);
++
++	if (iter->uptodate < BTREE_ITER_NEED_RELOCK)
 +		return 0;
 +
 +	/*
@@ -23137,10 +23047,10 @@ index 000000000000..051368cd4a77
 +}
 diff --git a/fs/bcachefs/buckets.c b/fs/bcachefs/buckets.c
 new file mode 100644
-index 000000000000..c418398266a3
+index 000000000000..8d223aa2bee5
 --- /dev/null
 +++ b/fs/bcachefs/buckets.c
-@@ -0,0 +1,2095 @@
+@@ -0,0 +1,2097 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Code for manipulating bucket marks for garbage collection.
@@ -24607,7 +24517,7 @@ index 000000000000..c418398266a3
 +	struct bkey_s_c k;
 +	struct bkey_alloc_unpacked u;
 +	struct bkey_i_alloc *a;
-+	unsigned old;
++	u16 *dst_sectors;
 +	bool overflow;
 +	int ret;
 +
@@ -24662,21 +24572,23 @@ index 000000000000..c418398266a3
 +		goto out;
 +	}
 +
-+	if (!p.ptr.cached) {
-+		old = u.dirty_sectors;
-+		overflow = checked_add(u.dirty_sectors, sectors);
-+	} else {
-+		old = u.cached_sectors;
-+		overflow = checked_add(u.cached_sectors, sectors);
++	dst_sectors = !p.ptr.cached
++		? &u.dirty_sectors
++		: &u.cached_sectors;
++
++	overflow = checked_add(*dst_sectors, sectors);
++
++	if (overflow) {
++		bch2_fs_inconsistent(c,
++			"bucket sector count overflow: %u + %lli > U16_MAX",
++			*dst_sectors, sectors);
++		/* return an error indicating that we need full fsck */
++		ret = -EIO;
++		goto out;
 +	}
 +
 +	u.data_type = u.dirty_sectors || u.cached_sectors
 +		? data_type : 0;
-+
-+	bch2_fs_inconsistent_on(overflow, c,
-+		"bucket sector count overflow: %u + %lli > U16_MAX",
-+		old, sectors);
-+	BUG_ON(overflow);
 +
 +	a = trans_update_key(trans, iter, BKEY_ALLOC_U64s_MAX);
 +	ret = PTR_ERR_OR_ZERO(a);
@@ -27258,10 +27170,10 @@ index 000000000000..b84e81bac8ff
 +#endif /* _BCACHEFS_CHECKSUM_H */
 diff --git a/fs/bcachefs/clock.c b/fs/bcachefs/clock.c
 new file mode 100644
-index 000000000000..8ac6990c6971
+index 000000000000..f18266330687
 --- /dev/null
 +++ b/fs/bcachefs/clock.c
-@@ -0,0 +1,180 @@
+@@ -0,0 +1,179 @@
 +// SPDX-License-Identifier: GPL-2.0
 +#include "bcachefs.h"
 +#include "clock.h"
@@ -27399,17 +27311,16 @@ index 000000000000..8ac6990c6971
 +	return ret;
 +}
 +
-+void bch2_increment_clock(struct bch_fs *c, unsigned sectors, int rw)
++void __bch2_increment_clock(struct io_clock *clock)
 +{
-+	struct io_clock *clock = &c->io_clock[rw];
 +	struct io_timer *timer;
 +	unsigned long now;
++	unsigned sectors;
 +
 +	/* Buffer up one megabyte worth of IO in the percpu counter */
 +	preempt_disable();
 +
-+	if (likely(this_cpu_add_return(*clock->pcpu_buf, sectors) <
-+		   IO_CLOCK_PCPU_SECTORS)) {
++	if (this_cpu_read(*clock->pcpu_buf) < IO_CLOCK_PCPU_SECTORS) {
 +		preempt_enable();
 +		return;
 +	}
@@ -27444,10 +27355,10 @@ index 000000000000..8ac6990c6971
 +}
 diff --git a/fs/bcachefs/clock.h b/fs/bcachefs/clock.h
 new file mode 100644
-index 000000000000..5cb043c579d8
+index 000000000000..bfbbca8a207b
 --- /dev/null
 +++ b/fs/bcachefs/clock.h
-@@ -0,0 +1,25 @@
+@@ -0,0 +1,36 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +#ifndef _BCACHEFS_CLOCK_H
 +#define _BCACHEFS_CLOCK_H
@@ -27456,7 +27367,18 @@ index 000000000000..5cb043c579d8
 +void bch2_io_timer_del(struct io_clock *, struct io_timer *);
 +void bch2_kthread_io_clock_wait(struct io_clock *, unsigned long,
 +				unsigned long);
-+void bch2_increment_clock(struct bch_fs *, unsigned, int);
++
++void __bch2_increment_clock(struct io_clock *);
++
++static inline void bch2_increment_clock(struct bch_fs *c, unsigned sectors,
++					int rw)
++{
++	struct io_clock *clock = &c->io_clock[rw];
++
++	if (unlikely(this_cpu_add_return(*clock->pcpu_buf, sectors) >=
++		   IO_CLOCK_PCPU_SECTORS))
++		__bch2_increment_clock(clock);
++}
 +
 +void bch2_io_clock_schedule_timeout(struct io_clock *, unsigned long);
 +
@@ -31342,10 +31264,10 @@ index 000000000000..5c3f77c8aac7
 +#endif /* _BCACHEFS_EC_TYPES_H */
 diff --git a/fs/bcachefs/error.c b/fs/bcachefs/error.c
 new file mode 100644
-index 000000000000..304ff92500be
+index 000000000000..5a5cfee623e2
 --- /dev/null
 +++ b/fs/bcachefs/error.c
-@@ -0,0 +1,167 @@
+@@ -0,0 +1,172 @@
 +// SPDX-License-Identifier: GPL-2.0
 +#include "bcachefs.h"
 +#include "error.h"
@@ -31412,7 +31334,7 @@ index 000000000000..304ff92500be
 +enum fsck_err_ret bch2_fsck_err(struct bch_fs *c, unsigned flags,
 +				const char *fmt, ...)
 +{
-+	struct fsck_err_state *s;
++	struct fsck_err_state *s = NULL;
 +	va_list args;
 +	bool fix = false, print = true, suppressing = false;
 +	char _buf[sizeof(s->buf)], *buf = _buf;
@@ -31447,8 +31369,13 @@ index 000000000000..304ff92500be
 +found:
 +	list_move(&s->list, &c->fsck_errors);
 +	s->nr++;
-+	suppressing	= s->nr == FSCK_ERR_RATELIMIT_NR;
-+	print		= s->nr <= FSCK_ERR_RATELIMIT_NR;
++	if (c->opts.ratelimit_errors &&
++	    s->nr >= FSCK_ERR_RATELIMIT_NR) {
++		if (s->nr == FSCK_ERR_RATELIMIT_NR)
++			suppressing = true;
++		else
++			print = false;
++	}
 +	buf		= s->buf;
 +print:
 +	va_start(args, fmt);
@@ -31504,7 +31431,7 @@ index 000000000000..304ff92500be
 +	mutex_lock(&c->fsck_error_lock);
 +
 +	list_for_each_entry_safe(s, n, &c->fsck_errors, list) {
-+		if (s->nr > FSCK_ERR_RATELIMIT_NR)
++		if (s->ratelimited)
 +			bch_err(c, "Saw %llu errors like:\n    %s", s->nr, s->buf);
 +
 +		list_del(&s->list);
@@ -31515,10 +31442,10 @@ index 000000000000..304ff92500be
 +}
 diff --git a/fs/bcachefs/error.h b/fs/bcachefs/error.h
 new file mode 100644
-index 000000000000..2591e12305b7
+index 000000000000..7dcb0f6552fc
 --- /dev/null
 +++ b/fs/bcachefs/error.h
-@@ -0,0 +1,229 @@
+@@ -0,0 +1,230 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +#ifndef _BCACHEFS_ERROR_H
 +#define _BCACHEFS_ERROR_H
@@ -31635,6 +31562,7 @@ index 000000000000..2591e12305b7
 +	struct list_head	list;
 +	const char		*fmt;
 +	u64			nr;
++	bool			ratelimited;
 +	char			buf[512];
 +};
 +
@@ -31750,10 +31678,10 @@ index 000000000000..2591e12305b7
 +#endif /* _BCACHEFS_ERROR_H */
 diff --git a/fs/bcachefs/extents.c b/fs/bcachefs/extents.c
 new file mode 100644
-index 000000000000..4cc2a4b13199
+index 000000000000..b9c69792f81f
 --- /dev/null
 +++ b/fs/bcachefs/extents.c
-@@ -0,0 +1,1752 @@
+@@ -0,0 +1,1753 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Copyright (C) 2010 Kent Overstreet <kent.overstreet@gmail.com>
@@ -32974,7 +32902,6 @@ index 000000000000..4cc2a4b13199
 +	struct bkey_i whiteout	= *insert;
 +	struct bkey_packed *_k;
 +	struct bkey unpacked;
-+	BKEY_PADDED(k) tmp;
 +
 +	EBUG_ON(iter->level);
 +	EBUG_ON(!insert->k.size);
@@ -33048,25 +32975,23 @@ index 000000000000..4cc2a4b13199
 +	bch2_btree_iter_set_pos_same_leaf(iter, insert->k.p);
 +
 +	if (update_btree) {
-+		bkey_copy(&tmp.k, insert);
-+
 +		if (deleting)
-+			tmp.k.k.type = KEY_TYPE_discard;
++			insert->k.type = KEY_TYPE_discard;
 +
-+		EBUG_ON(bkey_deleted(&tmp.k.k) || !tmp.k.k.size);
++		EBUG_ON(bkey_deleted(&insert->k) || !insert->k.size);
 +
-+		extent_bset_insert(c, iter, &tmp.k);
++		extent_bset_insert(c, iter, insert);
 +	}
 +
 +	if (update_journal) {
-+		bkey_copy(&tmp.k, !deleting ? insert : &whiteout);
++		struct bkey_i *k = !deleting ? insert : &whiteout;
 +
 +		if (deleting)
-+			tmp.k.k.type = KEY_TYPE_discard;
++			k->k.type = KEY_TYPE_discard;
 +
-+		EBUG_ON(bkey_deleted(&tmp.k.k) || !tmp.k.k.size);
++		EBUG_ON(bkey_deleted(&k->k) || !k->k.size);
 +
-+		bch2_btree_journal_key(trans, iter, &tmp.k);
++		bch2_btree_journal_key(trans, iter, k);
 +	}
 +
 +	bch2_cut_front(insert->k.p, insert);
@@ -33146,16 +33071,18 @@ index 000000000000..4cc2a4b13199
 +};
 +
 +static void bch2_extent_crc_pack(union bch_extent_crc *dst,
-+				 struct bch_extent_crc_unpacked src)
++				 struct bch_extent_crc_unpacked src,
++				 enum bch_extent_entry_type type)
 +{
 +#define set_common_fields(_dst, _src)					\
++		_dst.type		= 1 << type;			\
 +		_dst.csum_type		= _src.csum_type,		\
 +		_dst.compression_type	= _src.compression_type,	\
 +		_dst._compressed_size	= _src.compressed_size - 1,	\
 +		_dst._uncompressed_size	= _src.uncompressed_size - 1,	\
 +		_dst.offset		= _src.offset
 +
-+	switch (extent_entry_type(to_entry(dst))) {
++	switch (type) {
 +	case BCH_EXTENT_ENTRY_crc32:
 +		set_common_fields(dst->crc32, src);
 +		dst->crc32.csum	 = *((__le32 *) &src.csum.lo);
@@ -33182,23 +33109,24 @@ index 000000000000..4cc2a4b13199
 +{
 +	struct bkey_ptrs ptrs = bch2_bkey_ptrs(bkey_i_to_s(k));
 +	union bch_extent_crc *crc = (void *) ptrs.end;
++	enum bch_extent_entry_type type;
 +
 +	if (bch_crc_bytes[new.csum_type]	<= 4 &&
 +	    new.uncompressed_size - 1		<= CRC32_SIZE_MAX &&
 +	    new.nonce				<= CRC32_NONCE_MAX)
-+		crc->type = 1 << BCH_EXTENT_ENTRY_crc32;
++		type = BCH_EXTENT_ENTRY_crc32;
 +	else if (bch_crc_bytes[new.csum_type]	<= 10 &&
 +		   new.uncompressed_size - 1	<= CRC64_SIZE_MAX &&
 +		   new.nonce			<= CRC64_NONCE_MAX)
-+		crc->type = 1 << BCH_EXTENT_ENTRY_crc64;
++		type = BCH_EXTENT_ENTRY_crc64;
 +	else if (bch_crc_bytes[new.csum_type]	<= 16 &&
 +		   new.uncompressed_size - 1	<= CRC128_SIZE_MAX &&
 +		   new.nonce			<= CRC128_NONCE_MAX)
-+		crc->type = 1 << BCH_EXTENT_ENTRY_crc128;
++		type = BCH_EXTENT_ENTRY_crc128;
 +	else
 +		BUG();
 +
-+	bch2_extent_crc_pack(crc, new);
++	bch2_extent_crc_pack(crc, new, type);
 +
 +	k->k.u64s += extent_entry_u64s(ptrs.end);
 +
@@ -33401,7 +33329,8 @@ index 000000000000..4cc2a4b13199
 +		crc_l.uncompressed_size	+= crc_r.uncompressed_size;
 +		crc_l.compressed_size	+= crc_r.compressed_size;
 +
-+		bch2_extent_crc_pack(entry_to_crc(en_l), crc_l);
++		bch2_extent_crc_pack(entry_to_crc(en_l), crc_l,
++				     extent_entry_type(en_l));
 +	}
 +
 +	bch2_key_resize(l.k, l.k->size + r.k->size);
@@ -34895,10 +34824,10 @@ index 000000000000..c1621485a526
 +#endif /* _BCACHEFS_FS_COMMON_H */
 diff --git a/fs/bcachefs/fs-io.c b/fs/bcachefs/fs-io.c
 new file mode 100644
-index 000000000000..119ad6c8eaa8
+index 000000000000..fddf4525f841
 --- /dev/null
 +++ b/fs/bcachefs/fs-io.c
-@@ -0,0 +1,3139 @@
+@@ -0,0 +1,3138 @@
 +// SPDX-License-Identifier: GPL-2.0
 +#ifndef NO_BCACHEFS_FS
 +
@@ -37732,8 +37661,8 @@ index 000000000000..119ad6c8eaa8
 +	struct bch_inode_info *dst = file_bch_inode(file_dst);
 +	struct bch_fs *c = src->v.i_sb->s_fs_info;
 +	s64 i_sectors_delta = 0;
++	u64 aligned_len;
 +	loff_t ret = 0;
-+	loff_t aligned_len;
 +
 +	if (remap_flags & ~(REMAP_FILE_DEDUP|REMAP_FILE_ADVISORY))
 +		return -EINVAL;
@@ -37762,10 +37691,10 @@ index 000000000000..119ad6c8eaa8
 +	if (ret < 0 || len == 0)
 +		goto err;
 +
-+	aligned_len = round_up(len, block_bytes(c));
++	aligned_len = round_up((u64) len, block_bytes(c));
 +
 +	ret = write_invalidate_inode_pages_range(dst->v.i_mapping,
-+				pos_dst, pos_dst + aligned_len);
++				pos_dst, pos_dst + len - 1);
 +	if (ret)
 +		goto err;
 +
@@ -37780,18 +37709,17 @@ index 000000000000..119ad6c8eaa8
 +	if (ret < 0)
 +		goto err;
 +
-+	ret <<= 9;
 +	/*
 +	 * due to alignment, we might have remapped slightly more than requsted
 +	 */
-+	ret = min(ret, len);
++	ret = min((u64) ret << 9, (u64) len);
 +
 +	/* XXX get a quota reservation */
 +	i_sectors_acct(c, dst, NULL, i_sectors_delta);
 +
 +	spin_lock(&dst->v.i_lock);
-+	if (pos_dst + len > dst->v.i_size)
-+		i_size_write(&dst->v, pos_dst + len);
++	if (pos_dst + ret > dst->v.i_size)
++		i_size_write(&dst->v, pos_dst + ret);
 +	spin_unlock(&dst->v.i_lock);
 +err:
 +	bch2_unlock_inodes(INODE_LOCK|INODE_PAGECACHE_BLOCK, src, dst);
@@ -38504,10 +38432,10 @@ index 000000000000..f201980ef2c3
 +#endif /* _BCACHEFS_FS_IOCTL_H */
 diff --git a/fs/bcachefs/fs.c b/fs/bcachefs/fs.c
 new file mode 100644
-index 000000000000..7d3d5c2045b3
+index 000000000000..cd3540d092f9
 --- /dev/null
 +++ b/fs/bcachefs/fs.c
-@@ -0,0 +1,1587 @@
+@@ -0,0 +1,1592 @@
 +// SPDX-License-Identifier: GPL-2.0
 +#ifndef NO_BCACHEFS_FS
 +
@@ -39263,10 +39191,15 @@ index 000000000000..7d3d5c2045b3
 +
 +	if (inode->ei_inode.bi_flags & BCH_INODE_IMMUTABLE)
 +		stat->attributes |= STATX_ATTR_IMMUTABLE;
++	stat->attributes_mask	 |= STATX_ATTR_IMMUTABLE;
++
 +	if (inode->ei_inode.bi_flags & BCH_INODE_APPEND)
 +		stat->attributes |= STATX_ATTR_APPEND;
++	stat->attributes_mask	 |= STATX_ATTR_APPEND;
++
 +	if (inode->ei_inode.bi_flags & BCH_INODE_NODUMP)
 +		stat->attributes |= STATX_ATTR_NODUMP;
++	stat->attributes_mask	 |= STATX_ATTR_NODUMP;
 +
 +	return 0;
 +}
@@ -40277,7 +40210,7 @@ index 000000000000..eda903a45325
 +#endif /* _BCACHEFS_FS_H */
 diff --git a/fs/bcachefs/fsck.c b/fs/bcachefs/fsck.c
 new file mode 100644
-index 000000000000..3cced2b99f3f
+index 000000000000..0f2308e53d65
 --- /dev/null
 +++ b/fs/bcachefs/fsck.c
 @@ -0,0 +1,1436 @@
@@ -41080,7 +41013,7 @@ index 000000000000..3cced2b99f3f
 +		bch2_create_trans(&trans,
 +				  BCACHEFS_ROOT_INO, root_inode,
 +				  lostfound_inode, &lostfound,
-+				  0, 0, S_IFDIR|0755, 0, NULL, NULL));
++				  0, 0, S_IFDIR|0700, 0, NULL, NULL));
 +	if (ret)
 +		bch_err(c, "error creating lost+found: %i", ret);
 +
@@ -42490,10 +42423,10 @@ index 000000000000..bb759a46dc41
 +#endif /* _BCACHEFS_INODE_H */
 diff --git a/fs/bcachefs/io.c b/fs/bcachefs/io.c
 new file mode 100644
-index 000000000000..836004b128f0
+index 000000000000..e3ef662e2a12
 --- /dev/null
 +++ b/fs/bcachefs/io.c
-@@ -0,0 +1,2210 @@
+@@ -0,0 +1,2212 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Some low level IO code, and hacks for various block layer limitations
@@ -43766,7 +43699,6 @@ index 000000000000..836004b128f0
 +	closure_return_with_destructor(cl, promote_done);
 +}
 +
-+noinline
 +static struct promote_op *__promote_alloc(struct bch_fs *c,
 +					  enum btree_id btree_id,
 +					  struct bpos pos,
@@ -43840,7 +43772,8 @@ index 000000000000..836004b128f0
 +	return NULL;
 +}
 +
-+static inline struct promote_op *promote_alloc(struct bch_fs *c,
++noinline
++static struct promote_op *promote_alloc(struct bch_fs *c,
 +					       struct bvec_iter iter,
 +					       struct bkey_s_c k,
 +					       struct extent_ptr_decoded *pick,
@@ -44404,7 +44337,7 @@ index 000000000000..836004b128f0
 +	if (narrow_crcs && (flags & BCH_READ_USER_MAPPED))
 +		flags |= BCH_READ_MUST_BOUNCE;
 +
-+	BUG_ON(offset_into_extent + bvec_iter_sectors(iter) > k.k->size);
++	EBUG_ON(offset_into_extent + bvec_iter_sectors(iter) > k.k->size);
 +
 +	if (pick.crc.compression_type != BCH_COMPRESSION_NONE ||
 +	    (pick.crc.csum_type != BCH_CSUM_NONE &&
@@ -44416,8 +44349,9 @@ index 000000000000..836004b128f0
 +		bounce = true;
 +	}
 +
-+	promote = promote_alloc(c, iter, k, &pick, orig->opts, flags,
-+				&rbio, &bounce, &read_full);
++	if (orig->opts.promote_target)
++		promote = promote_alloc(c, iter, k, &pick, orig->opts, flags,
++					&rbio, &bounce, &read_full);
 +
 +	if (!read_full) {
 +		EBUG_ON(pick.crc.compression_type);
@@ -44445,7 +44379,7 @@ index 000000000000..836004b128f0
 +		 * data in the write path, but we're not going to use it all
 +		 * here:
 +		 */
-+		BUG_ON(rbio->bio.bi_iter.bi_size <
++		EBUG_ON(rbio->bio.bi_iter.bi_size <
 +		       pick.crc.compressed_size << 9);
 +		rbio->bio.bi_iter.bi_size =
 +			pick.crc.compressed_size << 9;
@@ -44478,10 +44412,10 @@ index 000000000000..836004b128f0
 +noclone:
 +		rbio = orig;
 +		rbio->bio.bi_iter = iter;
-+		BUG_ON(bio_flagged(&rbio->bio, BIO_CHAIN));
++		EBUG_ON(bio_flagged(&rbio->bio, BIO_CHAIN));
 +	}
 +
-+	BUG_ON(bio_sectors(&rbio->bio) != pick.crc.compressed_size);
++	EBUG_ON(bio_sectors(&rbio->bio) != pick.crc.compressed_size);
 +
 +	rbio->c			= c;
 +	rbio->submit_time	= local_clock();
@@ -44497,6 +44431,7 @@ index 000000000000..836004b128f0
 +	rbio->hole		= 0;
 +	rbio->retry		= 0;
 +	rbio->context		= 0;
++	/* XXX: only initialize this if needed */
 +	rbio->devs_have		= bch2_bkey_devs(k);
 +	rbio->pick		= pick;
 +	rbio->pos		= pos;
@@ -44513,11 +44448,11 @@ index 000000000000..836004b128f0
 +
 +	bch2_increment_clock(c, bio_sectors(&rbio->bio), READ);
 +
-+	percpu_down_read(&c->mark_lock);
++	rcu_read_lock();
 +	bucket_io_clock_reset(c, ca, PTR_BUCKET_NR(ca, &pick.ptr), READ);
-+	percpu_up_read(&c->mark_lock);
++	rcu_read_unlock();
 +
-+	if (likely(!(flags & (BCH_READ_IN_RETRY|BCH_READ_LAST_FRAGMENT)))) {
++	if (!(flags & (BCH_READ_IN_RETRY|BCH_READ_LAST_FRAGMENT))) {
 +		bio_inc_remaining(&orig->bio);
 +		trace_read_split(&orig->bio);
 +	}
@@ -51344,10 +51279,10 @@ index 000000000000..13a9a2fcd575
 +}
 diff --git a/fs/bcachefs/opts.h b/fs/bcachefs/opts.h
 new file mode 100644
-index 000000000000..bd2058f1fe2b
+index 000000000000..0ec0999a6214
 --- /dev/null
 +++ b/fs/bcachefs/opts.h
-@@ -0,0 +1,403 @@
+@@ -0,0 +1,414 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +#ifndef _BCACHEFS_OPTS_H
 +#define _BCACHEFS_OPTS_H
@@ -51417,6 +51352,12 @@ index 000000000000..bd2058f1fe2b
 + *  - default value
 + *  - helptext
 + */
++
++#ifdef __KERNEL__
++#define RATELIMIT_ERRORS true
++#else
++#define RATELIMIT_ERRORS false
++#endif
 +
 +#define BCH_OPTS()							\
 +	x(block_size,			u16,				\
@@ -51577,6 +51518,11 @@ index 000000000000..bd2058f1fe2b
 +	  OPT_BOOL(),							\
 +	  NO_SB_OPT,			false,				\
 +	  NULL,		"Fix errors during fsck without asking")	\
++	x(ratelimit_errors,		u8,				\
++	  OPT_MOUNT,							\
++	  OPT_BOOL(),							\
++	  NO_SB_OPT,			RATELIMIT_ERRORS,		\
++	  NULL,		"Ratelimit error messages during fsck")		\
 +	x(nochanges,			u8,				\
 +	  OPT_MOUNT,							\
 +	  OPT_BOOL(),							\
@@ -53072,7 +53018,7 @@ index 000000000000..192c6be20ced
 +#endif /* _BCACHEFS_REBALANCE_TYPES_H */
 diff --git a/fs/bcachefs/recovery.c b/fs/bcachefs/recovery.c
 new file mode 100644
-index 000000000000..2c441a278044
+index 000000000000..d1184bf62cae
 --- /dev/null
 +++ b/fs/bcachefs/recovery.c
 @@ -0,0 +1,1047 @@
@@ -54091,7 +54037,7 @@ index 000000000000..2c441a278044
 +		bch2_create_trans(&trans, BCACHEFS_ROOT_INO,
 +				  &root_inode, &lostfound_inode,
 +				  &lostfound,
-+				  0, 0, S_IFDIR|0755, 0,
++				  0, 0, S_IFDIR|0700, 0,
 +				  NULL, NULL));
 +	if (ret)
 +		goto err;
@@ -54166,10 +54112,10 @@ index 000000000000..479ea46f8dcb
 +#endif /* _BCACHEFS_RECOVERY_H */
 diff --git a/fs/bcachefs/reflink.c b/fs/bcachefs/reflink.c
 new file mode 100644
-index 000000000000..6d45ae24479d
+index 000000000000..6e71c5e8f9a2
 --- /dev/null
 +++ b/fs/bcachefs/reflink.c
-@@ -0,0 +1,304 @@
+@@ -0,0 +1,306 @@
 +// SPDX-License-Identifier: GPL-2.0
 +#include "bcachefs.h"
 +#include "btree_update.h"
@@ -54462,10 +54408,12 @@ index 000000000000..6d45ae24479d
 +		ret2 = PTR_ERR_OR_ZERO(inode_iter);
 +
 +		if (!ret2 &&
-+		    inode_u.bi_size < new_i_size)
++		    inode_u.bi_size < new_i_size) {
++			inode_u.bi_size = new_i_size;
 +			ret2  = bch2_inode_write(&trans, inode_iter, &inode_u) ?:
 +				bch2_trans_commit(&trans, NULL, journal_seq,
 +						  BTREE_INSERT_ATOMIC);
++		}
 +	} while (ret2 == -EINTR);
 +
 +	ret = bch2_trans_exit(&trans) ?: ret;
@@ -64180,10 +64128,10 @@ index 000000000000..4151065ab853
 +
 +#endif /* _BCACHEFS_XATTR_H */
 diff --git a/fs/cifs/file.c b/fs/cifs/file.c
-index 53dbb6e0d390..11237b154fbf 100644
+index facb52d37d19..8edadc77c717 100644
 --- a/fs/cifs/file.c
 +++ b/fs/cifs/file.c
-@@ -4129,20 +4129,12 @@ readpages_get_pages(struct address_space *mapping, struct list_head *page_list,
+@@ -4136,20 +4136,12 @@ readpages_get_pages(struct address_space *mapping, struct list_head *page_list,
  
  	page = lru_to_page(page_list);
  
@@ -64207,7 +64155,7 @@ index 53dbb6e0d390..11237b154fbf 100644
  
  	/* move first page to the tmplist */
  	*offset = (loff_t)page->index << PAGE_SHIFT;
-@@ -4161,11 +4153,8 @@ readpages_get_pages(struct address_space *mapping, struct list_head *page_list,
+@@ -4168,11 +4160,8 @@ readpages_get_pages(struct address_space *mapping, struct list_head *page_list,
  		if (*bytes + PAGE_SIZE > rsize)
  			break;
  
