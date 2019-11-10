@@ -114,6 +114,7 @@ in
         liberation_ttf
         optician-sans
         noto-fonts-cjk
+        recursive
         unifont
         weather-icons
       ];
