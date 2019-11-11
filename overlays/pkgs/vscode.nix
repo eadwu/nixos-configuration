@@ -48,15 +48,15 @@ self: super:
       {
         name = "Ionide-fsharp";
         publisher = "Ionide";
-        version = "4.2.0";
-        sha256 = "019fv64ah6mxp92mqn2bvi0yjgvsk6g1dqv2lr824r2ny3f70drz";
+        version = "4.3.0";
+        sha256 = "15n4dv0n1n83sf19gazhisifm994l2ip82lswgpl126x7xv2jxvf";
       }
 
       {
         name = "latex-workshop";
         publisher = "James-Yu";
-        version = "8.3.0";
-        sha256 = "1rfjys37ca7wccv0v52hy2vvwpp05ns6sczijfj2izgymkgikrpi";
+        version = "8.3.1";
+        sha256 = "1z5g3625088riyk1dr1rrld9h8qqf0pnn0c63lfgf94mh2nivg39";
       }
 
       {
@@ -69,8 +69,8 @@ self: super:
       {
         name = "vscode-hie-server";
         publisher = "alanz";
-        version = "0.0.28";
-        sha256 = "1gfwnr5lgwdgm6hs12fs1fc962j9hirrz2am5rmhnfrwjgainkyr";
+        version = "0.0.30";
+        sha256 = "1pf3mq7137s5fss0dn5d4bra80xk28njzzyacl59z2a848qg92vj";
       }
 
       {
@@ -118,8 +118,8 @@ self: super:
       {
         name = "gitlens";
         publisher = "eamodio";
-        version = "10.1.1";
-        sha256 = "0kr8wdpfv6n61frpxwrs2fr07x0879h7r3hd61v36q3k8cajb3py";
+        version = "10.1.2";
+        sha256 = "1kzjj4s1507nw3vk2hhszl3vy2hmjx4inwmfcbrp2n05fakg043y";
       }
 
       {
@@ -153,8 +153,8 @@ self: super:
       {
         name = "noctis";
         publisher = "liviuschera";
-        version = "10.14.0";
-        sha256 = "1y2fnp6nr6arbfzv2xb83fydmr5kq3mhlxdr3jm249xxwixidzmk";
+        version = "10.15.0";
+        sha256 = "1vsvynkwz2fd73mi2jnkbjjs7px2cs7k1v9ic9b1z6xlry3z1gdl";
       }
 
       {
@@ -188,8 +188,8 @@ self: super:
       {
         name = "pyright";
         publisher = "ms-pyright";
-        version = "1.0.82";
-        sha256 = "1d2p2xvrxkvplbvv58v6h6nlv8i3g3rj92s2r4a2jysqg3lcbr6y";
+        version = "1.0.84";
+        sha256 = "1wfi954ra33cvzcifchzwfqlkmvawbpxp1q1h93c2nvvvfhsrbd6";
       }
 
       {
@@ -265,8 +265,8 @@ self: super:
       {
         name = "metals";
         publisher = "scalameta";
-        version = "1.6.2";
-        sha256 = "08i867zkawlxrsallbw3c68klqfyyzk00ysqbxi6jghxyrhwn10f";
+        version = "1.6.3";
+        sha256 = "1mc3awybzd2ql1b86inirhsw3j2c7cs0b0nvbjp38jjpq674bmj7";
       }
 
       {
