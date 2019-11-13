@@ -1,4 +1,4 @@
-{ pkgs, lib, ... }:
+{ config, pkgs, lib, ... }:
 
 {
   imports =
@@ -64,8 +64,7 @@
   ];
 
   nixpkgs = {
-    config = import ./config.nix;
-    overlays = lib.optional (builtins.pathExists <nixpkgs-overlays>) (import <nixpkgs-overlays>);
+    inherit (config.sysConfig.nixpkgs) config overlays;
   };
 
   xdg.configFile."nixpkgs/config.nix".source = ./config.nix;

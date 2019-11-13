@@ -56,7 +56,13 @@ with config.nixos; {
   };
 
   nixpkgs = {
-    overlays = lib.optional (builtins.pathExists <nixpkgs-overlays>) (import <nixpkgs-overlays>);
+    overlays = [
+      (self: super: {
+        tlp = super.tlp.override {
+          inherit (config.boot.kernelPackages) x86_energy_perf_policy;
+        };
+      })
+    ] ++ lib.optional (builtins.pathExists <nixpkgs-overlays>) (import <nixpkgs-overlays>);
 
     config = {
       allowUnfree = true;
