@@ -11,8 +11,5 @@
       # ./bspwm.nix
       # ./dwm.nix
       ./xmonad.nix
-
-      # Nvidia Optimus
-      # ./bumblebee.nix
     ];
 }
