@@ -67,5 +67,6 @@
     inherit (config.sysConfig.nixpkgs) config overlays;
   };
 
-  xdg.configFile."nixpkgs/config.nix".source = ./config.nix;
+  xdg.configFile."nixpkgs/config.nix".text =
+    lib.generators.toPretty {} config.sysConfig.nixpkgs.config;
 }
