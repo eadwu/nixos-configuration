@@ -10,6 +10,6 @@ in {
   home.packages = [ pkgs.mpv ];
   xdg.configFile = {
     "mpv/config".source = ./mpv/config;
-    "mpv/shaders/Anime4K_Adaptive.glsl".source = "${anime4k}/Anime4K_Adaptive.glsl";
+    "mpv/shaders/Anime4K_Adaptive.glsl".source = "${anime4k}/Anime4K_Adaptive_v1.0RC2.glsl";
   };
 }
