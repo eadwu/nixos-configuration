@@ -24,6 +24,8 @@ let
         ../../patches/emacs/clean-env.patch
         <nixpkgs/pkgs/applications/editors/emacs/tramp-detect-wrapped-gvfsd.patch>
       ];
+
+      buildInputs = oldAttrs.buildInputs ++ (with pkgs; [ harfbuzz ]);
     }
   );
   emacsWithPackages = (emacsPackagesNgGen emacs27).emacsWithPackages;
