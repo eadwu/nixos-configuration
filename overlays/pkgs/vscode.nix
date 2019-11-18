@@ -48,15 +48,15 @@ self: super:
       {
         name = "Ionide-fsharp";
         publisher = "Ionide";
-        version = "4.3.0";
-        sha256 = "15n4dv0n1n83sf19gazhisifm994l2ip82lswgpl126x7xv2jxvf";
+        version = "4.3.1";
+        sha256 = "0xg8l953qmh4qyqsi323y7ss9v9xshgypvax7wdsf42qjckc5zan";
       }
 
       {
         name = "latex-workshop";
         publisher = "James-Yu";
-        version = "8.3.1";
-        sha256 = "1z5g3625088riyk1dr1rrld9h8qqf0pnn0c63lfgf94mh2nivg39";
+        version = "8.4.1";
+        sha256 = "1f2z0rrngnn018g2ldjv2qgv0vja3x14i214fn02z5hirbdsn91j";
       }
 
       {
@@ -153,8 +153,8 @@ self: super:
       {
         name = "noctis";
         publisher = "liviuschera";
-        version = "10.15.0";
-        sha256 = "1vsvynkwz2fd73mi2jnkbjjs7px2cs7k1v9ic9b1z6xlry3z1gdl";
+        version = "10.17.0";
+        sha256 = "0hyba62jqiwn3nhabkmpk3hsk39zpy84hlfh9kjjb2p1k85d3pnn";
       }
 
       {
@@ -188,8 +188,8 @@ self: super:
       {
         name = "pyright";
         publisher = "ms-pyright";
-        version = "1.0.84";
-        sha256 = "1wfi954ra33cvzcifchzwfqlkmvawbpxp1q1h93c2nvvvfhsrbd6";
+        version = "1.1.0";
+        sha256 = "0jn6dqzkq7dz18ba1b7pnv92mr3y038pqwvl1kd3mc3d2f9ifzg1";
       }
 
       {
@@ -209,8 +209,8 @@ self: super:
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.1123";
-        sha256 = "1qizisw78wlzf40npqvfn5aqpmrypga0zxgs6cslyaymq154gf3p";
+        version = "1.0.1245";
+        sha256 = "0070x19sahxpci1rkxqi474izdi5ii76dk73ddvf21wgv6hj7gnn";
       }
 
       {
@@ -237,8 +237,8 @@ self: super:
       {
         name = "java";
         publisher = "redhat";
-        version = "0.52.0";
-        sha256 = "01f9vpbccscxj15fwxb39m876nchqbf6bpzyzjlizwsn5126019q";
+        version = "0.53.1";
+        sha256 = "1cyvi1xv7i46qlmc61i87y04wb8n1vvaafv48qv2ac1rsqkbp43s";
       }
 
       {
