@@ -4,7 +4,8 @@ with pkgs;
 
 let
   JAVA_HOME = "${openjdk}/lib/openjdk";
-in {
+in
+{
   "editor.codeActionsOnSave" = {
     "source.organizeImports" = true;
   };

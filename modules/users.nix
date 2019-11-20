@@ -13,10 +13,12 @@ in
 
     home-manager = {
       useUserPackages = true;
-      users."${settings.system.user}" = ({ sysConfig }: { ... }: {
-        imports = [ ./home-manager ../options/home-manager.nix ];
-        inherit sysConfig;
-      }) { sysConfig = config; };
+      users."${settings.system.user}" = (
+        { sysConfig }: { ... }: {
+          imports = [ ./home-manager ../options/home-manager.nix ];
+          inherit sysConfig;
+        }
+      ) { sysConfig = config; };
     };
 
     users = {

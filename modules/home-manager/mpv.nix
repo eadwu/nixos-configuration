@@ -6,7 +6,8 @@ let
     sha256 = "0hdyzd1qbd0p28kq2a9rfgmpdzgba40dwvl01dccb47zclgx0xq5";
     stripRoot = false;
   };
-in {
+in
+{
   home.packages = [ pkgs.mpv ];
   xdg.configFile = {
     "mpv/config".source = ./mpv/config;
