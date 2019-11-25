@@ -1,7 +1,7 @@
 self: super:
 
 with self.pkgs; {
-  sddm = libsForQt511.callPackage
+  sddm = libsForQt5.callPackage
     (
       { callPackage, qtbase }:
         (callPackage <nixpkgs/pkgs/applications/display-managers/sddm> {}).overrideAttrs (
@@ -31,7 +31,7 @@ with self.pkgs; {
         )
     ) {};
 
-  sddm-sugar-dark = libsForQt511.callPackage
+  sddm-sugar-dark = libsForQt5.callPackage
     (
       { lib
       , stdenv
