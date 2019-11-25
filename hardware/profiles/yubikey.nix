@@ -22,9 +22,6 @@ in
   boot.initrd.luks.devices."cryptroot".yubikey = yubikey-config "/crypt-storage/cryptroot";
   boot.initrd.luks.devices."cryptswap".yubikey = yubikey-config "/crypt-storage/cryptswap";
 
-  # TODO: Remove when Linux 5.4 is released
-  boot.kernelPatches = [ (import ../../patches/kernel/active-entropy-generation.nix) ];
-
   environment.systemPackages = with pkgs; [ pam_u2f yubikey-personalization ];
 
   hardware.u2f.enable = true;
