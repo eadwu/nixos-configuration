@@ -26,7 +26,6 @@ in
         ../modules/mpd
         ../modules/netdata.nix
         ../modules/network
-        ../modules/oblogout.nix
         ../modules/pulseaudio
         ../modules/tlp.nix
         ../modules/users.nix
@@ -89,7 +88,6 @@ in
         imagemagick7
         mono
         nix-diff
-        oblogout
         rofi
         scrot
         st

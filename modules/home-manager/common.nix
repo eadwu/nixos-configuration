@@ -13,7 +13,6 @@
       ./gtk.nix
       ./mpv.nix
       ./ncmpcpp.nix
-      ./oblogout.nix
       ./rofi.nix
       ./ssh.nix
       ./vim.nix

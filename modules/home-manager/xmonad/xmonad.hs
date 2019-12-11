@@ -155,7 +155,7 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     -- , ((modm .|. shiftMask, xK_slash ), spawn ("echo \"" ++ help ++ "\" | xmessage -file -"))
 
     -- Logout screen
-    , ((0                 , xF86XK_PowerOff), spawn "oblogout")
+    , ((0                 , xF86XK_PowerOff), spawn "pkill -KILL -u $USER")
 
     -- Volume
     , ((0                 , xF86XK_AudioMute), spawn "pactl set-sink-mute @DEFAULT_SINK@ toggle")
