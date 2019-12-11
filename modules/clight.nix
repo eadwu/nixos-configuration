@@ -10,7 +10,7 @@
     enable = lib.mkDefault true;
 
     temperature = {
-      day = 4000;
+      day = 3000;
       night = 2400;
     };
 
