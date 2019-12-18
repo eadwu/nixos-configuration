@@ -10,6 +10,8 @@ with config.nixos; {
     ];
 
   services.xserver.displayManager = {
+    defaultSession = "none+hm";
+
     lightdm = {
       enable = false;
       background = settings.xserver.background;
