@@ -32,8 +32,6 @@
 
     kernelPatches = lib.mkBefore [
       (import ../../patches/kernel/disable-amateur-radio-support.nix)
-      # TODO: Remove when mainlined
-      (import ../../patches/kernel/schedutil-frequency-invariance.nix)
     ];
   };
 
