@@ -4655,10 +4655,10 @@ index 000000000000..9b186872c129
 +#endif /* _BCACHEFS_H */
 diff --git a/fs/bcachefs/bcachefs_format.h b/fs/bcachefs/bcachefs_format.h
 new file mode 100644
-index 000000000000..3d85012a15fd
+index 000000000000..66af4f4cdd53
 --- /dev/null
 +++ b/fs/bcachefs/bcachefs_format.h
-@@ -0,0 +1,1613 @@
+@@ -0,0 +1,1616 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +#ifndef _BCACHEFS_FORMAT_H
 +#define _BCACHEFS_FORMAT_H
@@ -5741,6 +5741,9 @@ index 000000000000..3d85012a15fd
 +	__u8			devs[0];
 +} __attribute__((packed));
 +
++#define replicas_entry_bytes(_i)					\
++	(offsetof(typeof(*(_i)), devs) + (_i)->nr_devs)
++
 +struct bch_sb_field_replicas {
 +	struct bch_sb_field	field;
 +	struct bch_replicas_entry entries[0];
@@ -6274,10 +6277,10 @@ index 000000000000..3d85012a15fd
 +#endif /* _BCACHEFS_FORMAT_H */
 diff --git a/fs/bcachefs/bcachefs_ioctl.h b/fs/bcachefs/bcachefs_ioctl.h
 new file mode 100644
-index 000000000000..d668ede5491a
+index 000000000000..ba8c75706bf1
 --- /dev/null
 +++ b/fs/bcachefs/bcachefs_ioctl.h
-@@ -0,0 +1,314 @@
+@@ -0,0 +1,328 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +#ifndef _BCACHEFS_IOCTL_H
 +#define _BCACHEFS_IOCTL_H
@@ -6348,7 +6351,8 @@ index 000000000000..d668ede5491a
 +#define BCH_IOCTL_DISK_OFFLINE	_IOW(0xbc,	7,  struct bch_ioctl_disk)
 +#define BCH_IOCTL_DISK_SET_STATE _IOW(0xbc,	8,  struct bch_ioctl_disk_set_state)
 +#define BCH_IOCTL_DATA		_IOW(0xbc,	10, struct bch_ioctl_data)
-+#define BCH_IOCTL_USAGE		_IOWR(0xbc,	11, struct bch_ioctl_usage)
++#define BCH_IOCTL_FS_USAGE	_IOWR(0xbc,	11, struct bch_ioctl_fs_usage)
++#define BCH_IOCTL_DEV_USAGE	_IOWR(0xbc,	11, struct bch_ioctl_dev_usage)
 +#define BCH_IOCTL_READ_SUPER	_IOW(0xbc,	12, struct bch_ioctl_read_super)
 +#define BCH_IOCTL_DISK_GET_IDX	_IOW(0xbc,	13,  struct bch_ioctl_disk_get_idx)
 +#define BCH_IOCTL_DISK_RESIZE	_IOW(0xbc,	14,  struct bch_ioctl_disk_resize)
@@ -6504,46 +6508,59 @@ index 000000000000..d668ede5491a
 +	};
 +} __attribute__((packed, aligned(8)));
 +
++struct bch_replicas_usage {
++	__u64			sectors;
++	struct bch_replicas_entry r;
++} __attribute__((packed));
++
++static inline struct bch_replicas_usage *
++replicas_usage_next(struct bch_replicas_usage *u)
++{
++	return (void *) u + replicas_entry_bytes(&u->r) + 8;
++}
++
++/*
++ * BCH_IOCTL_FS_USAGE: query filesystem disk space usage
++ *
++ * Returns disk space usage broken out by data type, number of replicas, and
++ * by component device
++ *
++ * @replica_entries_bytes - size, in bytes, allocated for replica usage entries
++ *
++ * On success, @replica_entries_bytes will be changed to indicate the number of
++ * bytes actually used.
++ *
++ * Returns -ERANGE if @replica_entries_bytes was too small
++ */
++struct bch_ioctl_fs_usage {
++	__u64			capacity;
++	__u64			used;
++	__u64			online_reserved;
++	__u64			persistent_reserved[BCH_REPLICAS_MAX];
++
++	__u32			replica_entries_bytes;
++	__u32			pad;
++
++	struct bch_replicas_usage replicas[0];
++};
++
++/*
++ * BCH_IOCTL_DEV_USAGE: query device disk space usage
++ *
++ * Returns disk space usage broken out by data type - both by buckets and
++ * sectors.
++ */
 +struct bch_ioctl_dev_usage {
++	__u64			dev;
++	__u32			flags;
 +	__u8			state;
-+	__u8			alive;
-+	__u8			pad[6];
-+	__u32			dev;
++	__u8			pad[7];
 +
 +	__u32			bucket_size;
 +	__u64			nr_buckets;
 +
 +	__u64			buckets[BCH_DATA_NR];
 +	__u64			sectors[BCH_DATA_NR];
-+};
-+
-+struct bch_ioctl_fs_usage {
-+	__u64			capacity;
-+	__u64			used;
-+	__u64			online_reserved;
-+	__u64			persistent_reserved[BCH_REPLICAS_MAX];
-+	__u64			sectors[BCH_DATA_NR][BCH_REPLICAS_MAX];
-+};
-+
-+/*
-+ * BCH_IOCTL_USAGE: query filesystem disk space usage
-+ *
-+ * Returns disk space usage broken out by data type, number of replicas, and
-+ * by component device
-+ *
-+ * @nr_devices	- number of devices userspace allocated space for in @devs
-+ *
-+ * On success, @fs and @devs will be filled out appropriately and devs[i].alive
-+ * will indicate if a device was present in that slot
-+ *
-+ * Returns -ERANGE if @nr_devices was too small
-+ */
-+struct bch_ioctl_usage {
-+	__u16			nr_devices;
-+	__u16			pad[3];
-+
-+	struct bch_ioctl_fs_usage fs;
-+	struct bch_ioctl_dev_usage devs[0];
 +};
 +
 +/*
@@ -23108,7 +23125,7 @@ index 000000000000..46c0a1e7fa20
 +}
 diff --git a/fs/bcachefs/buckets.c b/fs/bcachefs/buckets.c
 new file mode 100644
-index 000000000000..8d223aa2bee5
+index 000000000000..5a34dab013f3
 --- /dev/null
 +++ b/fs/bcachefs/buckets.c
 @@ -0,0 +1,2097 @@
@@ -23275,7 +23292,7 @@ index 000000000000..8d223aa2bee5
 +	struct bch_fs_usage *ret;
 +	unsigned bytes = fs_usage_u64s(c) * sizeof(u64);
 +
-+	ret = kzalloc(bytes, GFP_NOWAIT);
++	ret = kzalloc(bytes, GFP_NOWAIT|__GFP_NOWARN);
 +	if (ret)
 +		return ret;
 +
@@ -25690,10 +25707,10 @@ index 000000000000..f3ff4a18b1fd
 +#endif /* _BUCKETS_TYPES_H */
 diff --git a/fs/bcachefs/chardev.c b/fs/bcachefs/chardev.c
 new file mode 100644
-index 000000000000..059eca01ccc4
+index 000000000000..5028d0dcc2d6
 --- /dev/null
 +++ b/fs/bcachefs/chardev.c
-@@ -0,0 +1,671 @@
+@@ -0,0 +1,701 @@
 +// SPDX-License-Identifier: GPL-2.0
 +#ifndef NO_BCACHEFS_CHARDEV
 +
@@ -25702,6 +25719,7 @@ index 000000000000..059eca01ccc4
 +#include "buckets.h"
 +#include "chardev.h"
 +#include "move.h"
++#include "replicas.h"
 +#include "super.h"
 +#include "super-io.h"
 +
@@ -26067,13 +26085,85 @@ index 000000000000..059eca01ccc4
 +	return ret;
 +}
 +
-+static long bch2_ioctl_usage(struct bch_fs *c,
-+			     struct bch_ioctl_usage __user *user_arg)
++static long bch2_ioctl_fs_usage(struct bch_fs *c,
++				struct bch_ioctl_fs_usage __user *user_arg)
 +{
-+	struct bch_ioctl_usage arg;
++	struct bch_ioctl_fs_usage *arg = NULL;
++	struct bch_replicas_usage *dst_e, *dst_end;
++	struct bch_fs_usage *src;
++	u32 replica_entries_bytes;
++	unsigned i;
++	int ret = 0;
++
++	if (!test_bit(BCH_FS_STARTED, &c->flags))
++		return -EINVAL;
++
++	if (get_user(replica_entries_bytes, &user_arg->replica_entries_bytes))
++		return -EFAULT;
++
++	arg = kzalloc(sizeof(*arg) + replica_entries_bytes, GFP_KERNEL);
++	if (!arg)
++		return -ENOMEM;
++
++	src = bch2_fs_usage_read(c);
++	if (!src) {
++		ret = -ENOMEM;
++		goto err;
++	}
++
++	arg->capacity		= c->capacity;
++	arg->used		= bch2_fs_sectors_used(c, src);
++	arg->online_reserved	= src->online_reserved;
++
++	for (i = 0; i < BCH_REPLICAS_MAX; i++)
++		arg->persistent_reserved[i] = src->persistent_reserved[i];
++
++	dst_e	= arg->replicas;
++	dst_end = (void *) arg->replicas + replica_entries_bytes;
++
++	for (i = 0; i < c->replicas.nr; i++) {
++		struct bch_replicas_entry *src_e =
++			cpu_replicas_entry(&c->replicas, i);
++
++		if (replicas_usage_next(dst_e) > dst_end) {
++			ret = -ERANGE;
++			break;
++		}
++
++		dst_e->sectors		= src->replicas[i];
++		dst_e->r		= *src_e;
++
++		/* recheck after setting nr_devs: */
++		if (replicas_usage_next(dst_e) > dst_end) {
++			ret = -ERANGE;
++			break;
++		}
++
++		memcpy(dst_e->r.devs, src_e->devs, src_e->nr_devs);
++
++		dst_e = replicas_usage_next(dst_e);
++	}
++
++	arg->replica_entries_bytes = (void *) dst_e - (void *) arg->replicas;
++
++	percpu_up_read(&c->mark_lock);
++	kfree(src);
++
++	if (!ret)
++		ret = copy_to_user(user_arg, arg,
++			sizeof(*arg) + arg->replica_entries_bytes);
++err:
++	kfree(arg);
++	return ret;
++}
++
++static long bch2_ioctl_dev_usage(struct bch_fs *c,
++				 struct bch_ioctl_dev_usage __user *user_arg)
++{
++	struct bch_ioctl_dev_usage arg;
++	struct bch_dev_usage src;
 +	struct bch_dev *ca;
-+	unsigned i, j;
-+	int ret;
++	unsigned i;
 +
 +	if (!test_bit(BCH_FS_STARTED, &c->flags))
 +		return -EINVAL;
@@ -26081,75 +26171,30 @@ index 000000000000..059eca01ccc4
 +	if (copy_from_user(&arg, user_arg, sizeof(arg)))
 +		return -EFAULT;
 +
-+	for (i = 0; i < arg.nr_devices; i++) {
-+		struct bch_ioctl_dev_usage dst = { .alive = 0 };
++	if ((arg.flags & ~BCH_BY_INDEX) ||
++	    arg.pad[0] ||
++	    arg.pad[1] ||
++	    arg.pad[2])
++		return -EINVAL;
 +
-+		ret = copy_to_user(&user_arg->devs[i], &dst, sizeof(dst));
-+		if (ret)
-+			return ret;
++	ca = bch2_device_lookup(c, arg.dev, arg.flags);
++	if (IS_ERR(ca))
++		return PTR_ERR(ca);
++
++	src = bch2_dev_usage_read(c, ca);
++
++	arg.state	= ca->mi.state;
++	arg.bucket_size	= ca->mi.bucket_size;
++	arg.nr_buckets	= ca->mi.nbuckets - ca->mi.first_bucket;
++
++	for (i = 0; i < BCH_DATA_NR; i++) {
++		arg.buckets[i] = src.buckets[i];
++		arg.sectors[i] = src.sectors[i];
 +	}
 +
-+	{
-+		struct bch_fs_usage *src;
-+		struct bch_ioctl_fs_usage dst = {
-+			.capacity		= c->capacity,
-+		};
++	percpu_ref_put(&ca->ref);
 +
-+		src = bch2_fs_usage_read(c);
-+		if (!src)
-+			return -ENOMEM;
-+
-+		dst.used		= bch2_fs_sectors_used(c, src);
-+		dst.online_reserved	= src->online_reserved;
-+
-+		percpu_up_read(&c->mark_lock);
-+
-+		for (i = 0; i < BCH_REPLICAS_MAX; i++) {
-+			dst.persistent_reserved[i] =
-+				src->persistent_reserved[i];
-+#if 0
-+			for (j = 0; j < BCH_DATA_NR; j++)
-+				dst.sectors[j][i] = src.replicas[i].data[j];
-+#endif
-+		}
-+
-+		kfree(src);
-+
-+		ret = copy_to_user(&user_arg->fs, &dst, sizeof(dst));
-+		if (ret)
-+			return ret;
-+	}
-+
-+	for_each_member_device(ca, c, i) {
-+		struct bch_dev_usage src = bch2_dev_usage_read(c, ca);
-+		struct bch_ioctl_dev_usage dst = {
-+			.alive		= 1,
-+			.state		= ca->mi.state,
-+			.bucket_size	= ca->mi.bucket_size,
-+			.nr_buckets	= ca->mi.nbuckets - ca->mi.first_bucket,
-+		};
-+
-+		if (ca->dev_idx >= arg.nr_devices) {
-+			percpu_ref_put(&ca->ref);
-+			return -ERANGE;
-+		}
-+
-+		if (percpu_ref_tryget(&ca->io_ref)) {
-+			dst.dev = huge_encode_dev(ca->disk_sb.bdev->bd_dev);
-+			percpu_ref_put(&ca->io_ref);
-+		}
-+
-+		for (j = 0; j < BCH_DATA_NR; j++) {
-+			dst.buckets[j] = src.buckets[j];
-+			dst.sectors[j] = src.sectors[j];
-+		}
-+
-+		ret = copy_to_user(&user_arg->devs[i], &dst, sizeof(dst));
-+		if (ret)
-+			return ret;
-+	}
-+
-+	return 0;
++	return copy_to_user(user_arg, &arg, sizeof(arg));
 +}
 +
 +static long bch2_ioctl_read_super(struct bch_fs *c,
@@ -26243,8 +26288,10 @@ index 000000000000..059eca01ccc4
 +	switch (cmd) {
 +	case BCH_IOCTL_QUERY_UUID:
 +		return bch2_ioctl_query_uuid(c, arg);
-+	case BCH_IOCTL_USAGE:
-+		return bch2_ioctl_usage(c, arg);
++	case BCH_IOCTL_FS_USAGE:
++		return bch2_ioctl_fs_usage(c, arg);
++	case BCH_IOCTL_DEV_USAGE:
++		return bch2_ioctl_dev_usage(c, arg);
 +	}
 +
 +	if (!capable(CAP_SYS_ADMIN))
@@ -34543,7 +34590,7 @@ index 000000000000..cdb272708a4b
 +#endif /* _BCACHEFS_FIFO_H */
 diff --git a/fs/bcachefs/fs-common.c b/fs/bcachefs/fs-common.c
 new file mode 100644
-index 000000000000..a4497eeb1f1b
+index 000000000000..96f7bbe0a3ed
 --- /dev/null
 +++ b/fs/bcachefs/fs-common.c
 @@ -0,0 +1,281 @@
@@ -34625,11 +34672,10 @@ index 000000000000..a4497eeb1f1b
 +}
 +
 +int bch2_link_trans(struct btree_trans *trans, u64 dir_inum,
-+		    u64 inum, struct bch_inode_unpacked *inode_u,
-+		    const struct qstr *name)
++		    u64 inum, struct bch_inode_unpacked *dir_u,
++		    struct bch_inode_unpacked *inode_u, const struct qstr *name)
 +{
 +	struct btree_iter *dir_iter, *inode_iter;
-+	struct bch_inode_unpacked dir_u;
 +	struct bch_hash_info dir_hash;
 +	u64 now = bch2_current_time(trans->c);
 +
@@ -34640,18 +34686,19 @@ index 000000000000..a4497eeb1f1b
 +	inode_u->bi_ctime = now;
 +	bch2_inode_nlink_inc(inode_u);
 +
-+	dir_iter = bch2_inode_peek(trans, &dir_u, dir_inum, 0);
++	dir_iter = bch2_inode_peek(trans, dir_u, dir_inum, 0);
 +	if (IS_ERR(dir_iter))
 +		return PTR_ERR(dir_iter);
 +
-+	/* XXX: shouldn't we be updating mtime/ctime on the directory? */
++	dir_u->bi_mtime = dir_u->bi_ctime = now;
 +
-+	dir_hash = bch2_hash_info_init(trans->c, &dir_u);
++	dir_hash = bch2_hash_info_init(trans->c, dir_u);
 +	bch2_trans_iter_put(trans, dir_iter);
 +
 +	return bch2_dirent_create(trans, dir_inum, &dir_hash,
 +				  mode_to_type(inode_u->bi_mode),
 +				  name, inum, BCH_HASH_SET_MUST_CREATE) ?:
++		bch2_inode_write(trans, dir_iter, dir_u) ?:
 +		bch2_inode_write(trans, inode_iter, inode_u);
 +}
 +
@@ -34830,10 +34877,10 @@ index 000000000000..a4497eeb1f1b
 +}
 diff --git a/fs/bcachefs/fs-common.h b/fs/bcachefs/fs-common.h
 new file mode 100644
-index 000000000000..c1621485a526
+index 000000000000..2273b7961c9b
 --- /dev/null
 +++ b/fs/bcachefs/fs-common.h
-@@ -0,0 +1,36 @@
+@@ -0,0 +1,37 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +#ifndef _BCACHEFS_FS_COMMON_H
 +#define _BCACHEFS_FS_COMMON_H
@@ -34850,6 +34897,7 @@ index 000000000000..c1621485a526
 +
 +int bch2_link_trans(struct btree_trans *, u64,
 +		    u64, struct bch_inode_unpacked *,
++		    struct bch_inode_unpacked *,
 +		    const struct qstr *);
 +
 +int bch2_unlink_trans(struct btree_trans *,
@@ -34872,10 +34920,10 @@ index 000000000000..c1621485a526
 +#endif /* _BCACHEFS_FS_COMMON_H */
 diff --git a/fs/bcachefs/fs-io.c b/fs/bcachefs/fs-io.c
 new file mode 100644
-index 000000000000..160644ccf439
+index 000000000000..7f954a5d0b96
 --- /dev/null
 +++ b/fs/bcachefs/fs-io.c
-@@ -0,0 +1,3158 @@
+@@ -0,0 +1,3167 @@
 +// SPDX-License-Identifier: GPL-2.0
 +#ifndef NO_BCACHEFS_FS
 +
@@ -37165,6 +37213,15 @@ index 000000000000..160644ccf439
 +	if (ret)
 +		goto err;
 +
++	/*
++	 * check this before next assertion; on filesystem error our normal
++	 * invariants are a bit broken (truncate has to truncate the page cache
++	 * before the inode).
++	 */
++	ret = bch2_journal_error(&c->journal);
++	if (ret)
++		goto err;
++
 +	BUG_ON(inode->v.i_size < inode_u.bi_size);
 +
 +	if (iattr->ia_size > inode->v.i_size) {
@@ -38500,10 +38557,10 @@ index 000000000000..f201980ef2c3
 +#endif /* _BCACHEFS_FS_IOCTL_H */
 diff --git a/fs/bcachefs/fs.c b/fs/bcachefs/fs.c
 new file mode 100644
-index 000000000000..6fc6d504b094
+index 000000000000..278c6d5b3c38
 --- /dev/null
 +++ b/fs/bcachefs/fs.c
-@@ -0,0 +1,1602 @@
+@@ -0,0 +1,1608 @@
 +// SPDX-License-Identifier: GPL-2.0
 +#ifndef NO_BCACHEFS_FS
 +
@@ -38885,7 +38942,7 @@ index 000000000000..6fc6d504b094
 +		       struct dentry *dentry)
 +{
 +	struct btree_trans trans;
-+	struct bch_inode_unpacked inode_u;
++	struct bch_inode_unpacked dir_u, inode_u;
 +	int ret;
 +
 +	mutex_lock(&inode->ei_update_lock);
@@ -38895,7 +38952,7 @@ index 000000000000..6fc6d504b094
 +		bch2_trans_begin(&trans);
 +		ret   = bch2_link_trans(&trans,
 +					dir->v.i_ino,
-+					inode->v.i_ino, &inode_u,
++					inode->v.i_ino, &dir_u, &inode_u,
 +					&dentry->d_name) ?:
 +			bch2_trans_commit(&trans, NULL,
 +					&inode->ei_journal_seq,
@@ -38903,8 +38960,14 @@ index 000000000000..6fc6d504b094
 +					BTREE_INSERT_NOUNLOCK);
 +	} while (ret == -EINTR);
 +
-+	if (likely(!ret))
++	if (likely(!ret)) {
++		BUG_ON(inode_u.bi_inum != inode->v.i_ino);
++
++		journal_seq_copy(inode, dir->ei_journal_seq);
++		bch2_inode_update_after_write(c, dir, &dir_u,
++					      ATTR_MTIME|ATTR_CTIME);
 +		bch2_inode_update_after_write(c, inode, &inode_u, ATTR_CTIME);
++	}
 +
 +	bch2_trans_exit(&trans);
 +	mutex_unlock(&inode->ei_update_lock);
@@ -40288,7 +40351,7 @@ index 000000000000..eda903a45325
 +#endif /* _BCACHEFS_FS_H */
 diff --git a/fs/bcachefs/fsck.c b/fs/bcachefs/fsck.c
 new file mode 100644
-index 000000000000..0f2308e53d65
+index 000000000000..3ae545b31c7a
 --- /dev/null
 +++ b/fs/bcachefs/fsck.c
 @@ -0,0 +1,1436 @@
@@ -40374,7 +40437,7 @@ index 000000000000..0f2308e53d65
 +			  struct bch_inode_unpacked *lostfound_inode,
 +			  u64 inum)
 +{
-+	struct bch_inode_unpacked inode_u;
++	struct bch_inode_unpacked dir_u, inode_u;
 +	char name_buf[20];
 +	struct qstr name;
 +	int ret;
@@ -40386,7 +40449,7 @@ index 000000000000..0f2308e53d65
 +			    BTREE_INSERT_ATOMIC|
 +			    BTREE_INSERT_LAZY_RW,
 +		bch2_link_trans(&trans, lostfound_inode->bi_inum,
-+				inum, &inode_u, &name));
++				inum, &dir_u, &inode_u, &name));
 +	if (ret)
 +		bch_err(c, "error %i reattaching inode %llu", ret, inum);
 +
@@ -55704,10 +55767,10 @@ index 000000000000..cb5ebb87c701
 +}
 diff --git a/fs/bcachefs/replicas.h b/fs/bcachefs/replicas.h
 new file mode 100644
-index 000000000000..0d6e19126021
+index 000000000000..8527d82841bb
 --- /dev/null
 +++ b/fs/bcachefs/replicas.h
-@@ -0,0 +1,98 @@
+@@ -0,0 +1,95 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +#ifndef _BCACHEFS_REPLICAS_H
 +#define _BCACHEFS_REPLICAS_H
@@ -55781,9 +55844,6 @@ index 000000000000..0d6e19126021
 +	     _i = (void *) (_i) + (_r)->entry_size)
 +
 +/* iterate over superblock replicas - used by userspace tools: */
-+
-+#define replicas_entry_bytes(_i)					\
-+	(offsetof(typeof(*(_i)), devs) + (_i)->nr_devs)
 +
 +#define replicas_entry_next(_i)						\
 +	((typeof(_i)) ((void *) (_i) + replicas_entry_bytes(_i)))
@@ -56433,10 +56493,10 @@ index 000000000000..582e718b6bd1
 +#endif /* _BCACHEFS_STR_HASH_H */
 diff --git a/fs/bcachefs/super-io.c b/fs/bcachefs/super-io.c
 new file mode 100644
-index 000000000000..daaeaf0446a3
+index 000000000000..43927853210a
 --- /dev/null
 +++ b/fs/bcachefs/super-io.c
-@@ -0,0 +1,1168 @@
+@@ -0,0 +1,1170 @@
 +// SPDX-License-Identifier: GPL-2.0
 +
 +#include "bcachefs.h"
@@ -56490,7 +56550,9 @@ index 000000000000..daaeaf0446a3
 +	BUG_ON(get_order(__vstruct_bytes(struct bch_sb, sb_u64s)) >
 +	       sb->page_order);
 +
-+	if (!f) {
++	if (!f && !u64s) {
++		/* nothing to do: */
++	} else if (!f) {
 +		f = vstruct_last(sb->sb);
 +		memset(f, 0, sizeof(u64) * u64s);
 +		f->u64s = cpu_to_le32(u64s);
@@ -64756,10 +64818,10 @@ index 000000000000..6e7bb56ae8b4
 +
 +#endif
 diff --git a/include/linux/fs.h b/include/linux/fs.h
-index e0d909d35763..3eda9152d253 100644
+index 0b4d8fc79e0f..14a6e0f17582 100644
 --- a/include/linux/fs.h
 +++ b/include/linux/fs.h
-@@ -3043,6 +3043,7 @@ extern struct inode *find_inode_nowait(struct super_block *,
+@@ -3050,6 +3050,7 @@ extern struct inode *find_inode_nowait(struct super_block *,
  				       void *data);
  extern int insert_inode_locked4(struct inode *, unsigned long, int (*test)(struct inode *, void *), void *);
  extern int insert_inode_locked(struct inode *);
