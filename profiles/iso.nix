@@ -11,12 +11,17 @@
     ];
 
   boot = {
-    earlyVconsoleSetup = true;
     zfs.enableUnstable = true;
 
     kernelPatches = lib.mkBefore [
       (import ../patches/kernel/disable-amateur-radio-support.nix)
     ];
+  };
+
+  console = {
+    earlySetup = true;
+    font = "ter-u28n";
+    packages = [ pkgs.terminus_font ];
   };
 
   environment = {
@@ -30,11 +35,6 @@
   };
 
   hardware.enableRedistributableFirmware = true;
-
-  i18n = {
-    consoleFont = "ter-u28n";
-    consolePackages = [ pkgs.terminus_font ];
-  };
 
   isoImage = {
     includeSystemBuildDependencies = true;

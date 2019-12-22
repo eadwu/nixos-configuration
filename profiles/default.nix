@@ -8,7 +8,7 @@
       ../modules/nix.nix
     ];
 
-  boot.earlyVconsoleSetup = true;
+  console.earlySetup = true;
 
   environment = {
     shells = [

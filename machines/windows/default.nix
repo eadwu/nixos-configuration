@@ -25,9 +25,9 @@ with config.nixos; {
     dpi = 230;
   };
 
-  i18n = {
-    consoleFont = "ter-u28n";
-    consolePackages = [ pkgs.terminus_font ];
+  console = {
+    font = "ter-u28n";
+    packages = [ pkgs.terminus_font ];
   };
 
   nixos.settings = {
