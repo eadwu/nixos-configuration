@@ -10,8 +10,8 @@ in
     "source.organizeImports" = true;
   };
   "editor.cursorBlinking" = "smooth";
-  "editor.fontFamily" = "'Recursive Mono Static Beta 1.020 Linear Regular', 'Anonymous Pro', 'IBM Plex Mono'";
-  "editor.fontLigatures" = true;
+  "editor.fontFamily" = "'RecursiveMonoB_023-CslRg', 'Anonymous Pro', 'IBM Plex Mono'";
+  "editor.fontLigatures" = "dlig,ss01,ss05,ss08,ss09,ss10,case,frac,ordn";
   "editor.fontSize" = 12;
   "editor.fontWeight" = "normal";
   "editor.formatOnSave" = true;
@@ -78,6 +78,7 @@ in
   "explorer.decorations.colors" = true;
   "search.smartCase" = true;
   "terminal.external.linuxExec" = "st";
+  "terminal.integrated.rendererType" = "experimentalWebgl";
   "scm.alwaysShowProviders" = true;
   "scm.defaultViewMode" = "tree";
   "update.mode" = "none";
