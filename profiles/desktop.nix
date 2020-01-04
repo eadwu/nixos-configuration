@@ -17,7 +17,7 @@ in
 
         ../modules/backlight
         ../modules/clight.nix
-        ../modules/compton.nix
+        ../modules/picom.nix
         ../modules/cups.nix
         ../modules/emacs.nix
         ../modules/i3color.nix

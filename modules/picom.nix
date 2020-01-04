@@ -1,7 +1,7 @@
 { lib, ... }:
 
 {
-  services.compton = {
+  services.picom = {
     enable = lib.mkDefault true;
 
     fade = true;
@@ -19,7 +19,7 @@
     shadowOpacity = "0.5";
     shadowExclude = [
       "! name~=''"
-      "name *= 'compton'"
+      "name *= 'picom'"
       "name = 'Notification'"
       "class_g = 'Polybar'"
       "_GTK_FRAME_EXTENTS@:c"

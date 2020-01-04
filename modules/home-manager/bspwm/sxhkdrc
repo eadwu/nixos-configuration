@@ -25,7 +25,7 @@ alt + XF86Audio{LowerVolume,RaiseVolume}
 
 # reload bspwm
 # alt + Escape
-  # killall sxhkd compton polybar redshift || true && ~/.bspwm/bspwmrc
+  # killall sxhkd picom polybar redshift || true && ~/.bspwm/bspwmrc
 
 # reload polybar
 alt + shift + Escape
