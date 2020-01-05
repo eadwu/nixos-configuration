@@ -4,6 +4,9 @@
   services.tlp = {
     enable = lib.mkDefault true;
     extraConfig = ''
+      CPU_HWP_ON_AC=balance_performance
+      CPU_HWP_ON_BAT=balance_power
+
       CPU_SCALING_GOVERNOR_ON_AC=performance
       CPU_SCALING_GOVERNOR_ON_BAT=powersave
 
