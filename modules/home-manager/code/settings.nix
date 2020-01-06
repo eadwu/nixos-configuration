@@ -10,8 +10,8 @@ in
     "source.organizeImports" = true;
   };
   "editor.cursorBlinking" = "smooth";
-  "editor.fontFamily" = "'RecursiveMonoB_023-CslRg', 'Anonymous Pro', 'IBM Plex Mono'";
-  "editor.fontLigatures" = "dlig,ss01,ss05,ss08,ss09,ss10,case,frac,ordn";
+  "editor.fontFamily" = "'Recursive Mono Lnr b030st', 'Anonymous Pro', 'IBM Plex Mono'";
+  "editor.fontLigatures" = "'dlig','ss01','ss05','ss08','ss09','ss10','case','frac','ordn'";
   "editor.fontSize" = 12;
   "editor.fontWeight" = "normal";
   "editor.formatOnSave" = true;

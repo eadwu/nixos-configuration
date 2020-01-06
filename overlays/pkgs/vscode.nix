@@ -69,8 +69,8 @@ self: super:
       {
         name = "vscode-hie-server";
         publisher = "alanz";
-        version = "0.0.31";
-        sha256 = "115h4b5fsyk1f31daa5r18dpimm0ck2gjg0bal272xbaddbg2idp";
+        version = "0.0.34";
+        sha256 = "0cipm36l3219r1yhk4j7l02mc2c0chfnv7wl44n1h0966jp1sda3";
       }
 
       {
@@ -188,8 +188,8 @@ self: super:
       {
         name = "pyright";
         publisher = "ms-pyright";
-        version = "1.1.16";
-        sha256 = "0k5bhqlpp3aq86ywj9vq8mjxpvyrywa8nc96dddxjn1fxn493f59";
+        version = "1.1.17";
+        sha256 = "0dcrf2dp8k1av9n17fr6z0x8awaiw9x8a3wy60chcy91jp192ggx";
       }
 
       {
@@ -279,8 +279,8 @@ self: super:
       {
         name = "vscode-stylelint";
         publisher = "stylelint";
-        version = "0.70.0";
-        sha256 = "0v7w83wsf8xv78j2hrwrmjaim986d1p4xr1gwxhjz48rm5gymp57";
+        version = "0.80.0";
+        sha256 = "0xxkk964zz59s084j0yfajyk4b4xiyi170jvkn661dwzdxiz17ji";
       }
 
       {
