@@ -27,8 +27,8 @@ self: super:
       {
         name = "vsc-material-theme";
         publisher = "Equinusocio";
-        version = "32.0.0";
-        sha256 = "04zwsfbhg645mx67lf96rs8dr1dld1810i7zj3qc32k1yfgff4zv";
+        version = "32.4.0";
+        sha256 = "0m9crbzxk7myz9jkdx9slsrsqjpkwgg1k5a7d5z9w4ng68aazxyw";
       }
 
       {
@@ -48,15 +48,15 @@ self: super:
       {
         name = "Ionide-fsharp";
         publisher = "Ionide";
-        version = "4.4.3";
-        sha256 = "1v24n6b3ml1x1w4qq79wagan6ip24yjrjyffbxa46hgimb83x8k8";
+        version = "4.5.0";
+        sha256 = "08lvlkl27irdvshfhmvshz3d68pwcqsf1nwlccjhsg850282732k";
       }
 
       {
         name = "latex-workshop";
         publisher = "James-Yu";
-        version = "8.5.0";
-        sha256 = "095kk97zjg0arg083xvr9ybqi4f0fv06f342a350hijzpx8ldkz5";
+        version = "8.6.0";
+        sha256 = "1zalfb86xlfk1prh2m9550q0g07h0hm4dxhim3qhsn1ncp93wk2q";
       }
 
       {
@@ -104,8 +104,8 @@ self: super:
       {
         name = "vscode-eslint";
         publisher = "dbaeumer";
-        version = "2.0.13";
-        sha256 = "1dpkvwzyk6mp37kzqvn3cv3765178258i283176a0mgm3pl046s5";
+        version = "2.0.14";
+        sha256 = "10ncdqwkcrh7y3xczbdfcylirdanam0d71az6mwvbhplkha9qa8b";
       }
 
       {
@@ -132,8 +132,8 @@ self: super:
       {
         name = "vsc-material-theme-icons";
         publisher = "equinusocio";
-        version = "1.1.2";
-        sha256 = "1ahyg6faln34a6kfvvn8p0nzw80xdj5nkccbq0qpfy2a0n45yvm0";
+        version = "1.1.3";
+        sha256 = "01b8ibs7rj245c8v6vp0by0fk2pi7k1njs4qy0isn9rhzn1fvfqs";
       }
 
       {
@@ -153,8 +153,8 @@ self: super:
       {
         name = "noctis";
         publisher = "liviuschera";
-        version = "10.24.0";
-        sha256 = "1lq7mwyix8kfkkdii24blsy29wszl6pafpi0zw3zkbdbm6i2ckd8";
+        version = "10.25.0";
+        sha256 = "1mgc5d2qz67d5al4cbbw0ycwml9dkh2nqzw3ssbmnhz7z2lirr7p";
       }
 
       {
@@ -188,8 +188,8 @@ self: super:
       {
         name = "pyright";
         publisher = "ms-pyright";
-        version = "1.1.19";
-        sha256 = "1f2q9iqp6ghh26y3psska5042r5can3mjrrw2jqysf54pnbq4r0k";
+        version = "1.1.20";
+        sha256 = "15nc10vvz47hrcl3p2bx44kq1zjm1c95vwqd2d8b76bgd2hkmq6g";
       }
 
       {
@@ -209,8 +209,8 @@ self: super:
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.1456";
-        sha256 = "0hx76528fjbvpwf4pv27d5cjr837qv8wg9qrb6fddn47cfzqqd8v";
+        version = "1.0.1482";
+        sha256 = "11z6vyjfv3kbny89bcl6072kppsf81p1pwnpr1kvs4wl4kiaxrby";
       }
 
       {
@@ -265,8 +265,8 @@ self: super:
       {
         name = "metals";
         publisher = "scalameta";
-        version = "1.6.3";
-        sha256 = "1mc3awybzd2ql1b86inirhsw3j2c7cs0b0nvbjp38jjpq674bmj7";
+        version = "1.7.2";
+        sha256 = "0d4a1648g7ziqgz0mj2n2gd0vzhgmd3nbwfsmfxn9l50zwxgvz6p";
       }
 
       {
@@ -307,8 +307,8 @@ self: super:
       {
         name = "vscode-java-test";
         publisher = "vscjava";
-        version = "0.22.0";
-        sha256 = "18ggnx5l6dpyii7ysr7g2h54gn7k7i2bapxarvc75y8pn8r6gcjm";
+        version = "0.22.1";
+        sha256 = "154f62kx8aibhr9n9c6368xrmsg4vk0pd3lqiy8ffdvrlcwjx4nl";
       }
 
       {
