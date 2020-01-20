@@ -14,10 +14,10 @@ let
     oldAttrs: rec {
       name = "${pname}-${version}";
       pname = stdenv.lib.removeSuffix "-${oldAttrs.version}" oldAttrs.name;
-      version = "2020-01-13";
+      version = "2020-01-19";
 
       src = builtins.fetchTarball {
-        url = "https://git.savannah.gnu.org/cgit/emacs.git/snapshot/emacs-6100f9a19e9d8d8e688ad8bbec2233bd6782cbde.tar.gz";
+        url = "https://git.savannah.gnu.org/cgit/emacs.git/snapshot/emacs-46fefb09745abbcdb4b56d80cd2bbd545afc39e1.tar.gz";
       };
 
       patches = [
