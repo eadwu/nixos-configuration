@@ -6,6 +6,7 @@
       ./atom.nix
       ./blender.nix
       ./code.nix
+      ./clight.nix
       ./dunst.nix
       ./emacs.nix
       ./glava.nix
