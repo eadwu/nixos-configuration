@@ -1,8 +1,8 @@
 diff --git a/block/bio.c b/block/bio.c
-index 43df756b68c4..c024f49983aa 100644
+index 906da3581a3e..fdb2fd18ec50 100644
 --- a/block/bio.c
 +++ b/block/bio.c
-@@ -947,6 +947,7 @@ int bio_iov_iter_get_pages(struct bio *bio, struct iov_iter *iter)
+@@ -996,6 +996,7 @@ int bio_iov_iter_get_pages(struct bio *bio, struct iov_iter *iter)
  		bio_set_flag(bio, BIO_NO_PAGE_REF);
  	return bio->bi_vcnt ? 0 : ret;
  }
@@ -10,7 +10,7 @@ index 43df756b68c4..c024f49983aa 100644
  
  static void submit_bio_wait_endio(struct bio *bio)
  {
-@@ -1640,6 +1641,7 @@ void bio_set_pages_dirty(struct bio *bio)
+@@ -1689,6 +1690,7 @@ void bio_set_pages_dirty(struct bio *bio)
  			set_page_dirty_lock(bvec->bv_page);
  	}
  }
@@ -18,7 +18,7 @@ index 43df756b68c4..c024f49983aa 100644
  
  /*
   * bio_check_pages_dirty() will check that all the BIO's pages are still dirty.
-@@ -1699,6 +1701,7 @@ void bio_check_pages_dirty(struct bio *bio)
+@@ -1748,6 +1750,7 @@ void bio_check_pages_dirty(struct bio *bio)
  	spin_unlock_irqrestore(&bio_dirty_lock, flags);
  	schedule_work(&bio_dirty_work);
  }
@@ -4650,10 +4650,10 @@ index 000000000000..6ea26ae5c3b8
 +#endif /* _BCACHEFS_H */
 diff --git a/fs/bcachefs/bcachefs_format.h b/fs/bcachefs/bcachefs_format.h
 new file mode 100644
-index 000000000000..f6141fde830b
+index 000000000000..3b5e70a727b7
 --- /dev/null
 +++ b/fs/bcachefs/bcachefs_format.h
-@@ -0,0 +1,1637 @@
+@@ -0,0 +1,1639 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +#ifndef _BCACHEFS_FORMAT_H
 +#define _BCACHEFS_FORMAT_H
@@ -5950,7 +5950,8 @@ index 000000000000..f6141fde830b
 +	x(reflink,			6)	\
 +	x(new_siphash,			7)	\
 +	x(inline_data,			8)	\
-+	x(new_extent_overwrite,		9)
++	x(new_extent_overwrite,		9)	\
++	x(incompressible,		10)
 +
 +enum bch_sb_feature {
 +#define x(f, n) BCH_FEATURE_##f,
@@ -6030,11 +6031,12 @@ index 000000000000..f6141fde830b
 +};
 +
 +#define BCH_COMPRESSION_TYPES()		\
-+	x(none,		0)		\
-+	x(lz4_old,	1)		\
-+	x(gzip,		2)		\
-+	x(lz4,		3)		\
-+	x(zstd,		4)
++	x(none,			0)	\
++	x(lz4_old,		1)	\
++	x(gzip,			2)	\
++	x(lz4,			3)	\
++	x(zstd,			4)	\
++	x(incompressible,	5)
 +
 +enum bch_compression_type {
 +#define x(t, n) BCH_COMPRESSION_TYPE_##t,
@@ -8800,10 +8802,10 @@ index 000000000000..f607a0cb37ed
 +#endif /* _BCACHEFS_BKEY_ON_STACK_H */
 diff --git a/fs/bcachefs/bkey_sort.c b/fs/bcachefs/bkey_sort.c
 new file mode 100644
-index 000000000000..18f842012f05
+index 000000000000..7cbb57042af1
 --- /dev/null
 +++ b/fs/bcachefs/bkey_sort.c
-@@ -0,0 +1,514 @@
+@@ -0,0 +1,520 @@
 +// SPDX-License-Identifier: GPL-2.0
 +#include "bcachefs.h"
 +#include "bkey_on_stack.h"
@@ -9016,28 +9018,38 @@ index 000000000000..18f842012f05
 +		       bool filter_whiteouts)
 +{
 +	struct bkey_packed *prev = NULL, *k_packed;
-+	struct bkey_s k;
++	struct bkey_on_stack k;
 +	struct btree_nr_keys nr;
-+	struct bkey unpacked;
 +
 +	memset(&nr, 0, sizeof(nr));
++	bkey_on_stack_init(&k);
 +
 +	while ((k_packed = bch2_btree_node_iter_next_all(iter, src))) {
 +		if (filter_whiteouts && bkey_whiteout(k_packed))
 +			continue;
 +
-+		k = __bkey_disassemble(src, k_packed, &unpacked);
++		/*
++		 * NOTE:
++		 * bch2_bkey_normalize may modify the key we pass it (dropping
++		 * stale pointers) and we don't have a write lock on the src
++		 * node; we have to make a copy of the entire key before calling
++		 * normalize
++		 */
++		bkey_on_stack_realloc(&k, c, k_packed->u64s + BKEY_U64s);
++		bch2_bkey_unpack(src, k.k, k_packed);
 +
 +		if (filter_whiteouts &&
-+		    bch2_bkey_normalize(c, k))
++		    bch2_bkey_normalize(c, bkey_i_to_s(k.k)))
 +			continue;
 +
-+		extent_sort_append(c, out_f, &nr, vstruct_last(dst), &prev, k);
++		extent_sort_append(c, out_f, &nr, vstruct_last(dst),
++				   &prev, bkey_i_to_s(k.k));
 +	}
 +
 +	extent_sort_advance_prev(out_f, &nr, vstruct_last(dst), &prev);
 +
 +	dst->u64s = cpu_to_le16((u64 *) prev - dst->_data);
++	bkey_on_stack_exit(&k, c);
 +	return nr;
 +}
 +
@@ -9060,23 +9072,18 @@ index 000000000000..18f842012f05
 +	sort_iter_sort(iter, sort_keys_cmp);
 +
 +	while ((in = sort_iter_next(iter, sort_keys_cmp))) {
++		bool needs_whiteout = false;
++
 +		if (bkey_whiteout(in) &&
 +		    (filter_whiteouts || !in->needs_whiteout))
 +			continue;
 +
-+		if (bkey_whiteout(in) &&
-+		    (next = sort_iter_peek(iter)) &&
-+		    !bkey_cmp_packed(iter->b, in, next)) {
++		while ((next = sort_iter_peek(iter)) &&
++		       !bkey_cmp_packed(iter->b, in, next)) {
 +			BUG_ON(in->needs_whiteout &&
 +			       next->needs_whiteout);
-+			/*
-+			 * XXX racy, called with read lock from write path
-+			 *
-+			 * leads to spurious BUG_ON() in bkey_unpack_key() in
-+			 * debug mode
-+			 */
-+			next->needs_whiteout |= in->needs_whiteout;
-+			continue;
++			needs_whiteout |= in->needs_whiteout;
++			in = sort_iter_next(iter, sort_keys_cmp);
 +		}
 +
 +		if (bkey_whiteout(in)) {
@@ -9085,6 +9092,7 @@ index 000000000000..18f842012f05
 +		} else {
 +			bkey_copy(out, in);
 +		}
++		out->needs_whiteout |= needs_whiteout;
 +		out = bkey_next(out);
 +	}
 +
@@ -9383,7 +9391,7 @@ index 000000000000..458a051fdac5
 +#endif /* _BCACHEFS_BKEY_SORT_H */
 diff --git a/fs/bcachefs/bset.c b/fs/bcachefs/bset.c
 new file mode 100644
-index 000000000000..d6792d276ecb
+index 000000000000..cf8fa59fada1
 --- /dev/null
 +++ b/fs/bcachefs/bset.c
 @@ -0,0 +1,1801 @@
@@ -10786,21 +10794,21 @@ index 000000000000..d6792d276ecb
 +{
 +	if (lossy_packed_search)
 +		while (m != btree_bkey_last(b, t) &&
-+		       bkey_iter_cmp_p_or_unp(b, search, lossy_packed_search,
-+					      m) > 0)
++		       bkey_iter_cmp_p_or_unp(b, m,
++					lossy_packed_search, search) < 0)
 +			m = bkey_next_skip_noops(m, btree_bkey_last(b, t));
 +
 +	if (!packed_search)
 +		while (m != btree_bkey_last(b, t) &&
-+		       bkey_iter_pos_cmp(b, search, m) > 0)
++		       bkey_iter_pos_cmp(b, m, search) < 0)
 +			m = bkey_next_skip_noops(m, btree_bkey_last(b, t));
 +
 +	if (btree_keys_expensive_checks(b)) {
 +		struct bkey_packed *prev = bch2_bkey_prev_all(b, t, m);
 +
 +		BUG_ON(prev &&
-+		       bkey_iter_cmp_p_or_unp(b, search, packed_search,
-+					      prev) <= 0);
++		       bkey_iter_cmp_p_or_unp(b, prev,
++					packed_search, search) >= 0);
 +	}
 +
 +	return m;
@@ -11190,10 +11198,10 @@ index 000000000000..d6792d276ecb
 +}
 diff --git a/fs/bcachefs/bset.h b/fs/bcachefs/bset.h
 new file mode 100644
-index 000000000000..2653a74b3b14
+index 000000000000..7338ccbc8cbd
 --- /dev/null
 +++ b/fs/bcachefs/bset.h
-@@ -0,0 +1,637 @@
+@@ -0,0 +1,631 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +#ifndef _BCACHEFS_BSET_H
 +#define _BCACHEFS_BSET_H
@@ -11395,12 +11403,6 @@ index 000000000000..2653a74b3b14
 +		if (btree_keys_expensive_checks(b)) {
 +			struct bkey dst2 = __bch2_bkey_unpack_key(&b->format, src);
 +
-+			/*
-+			 * hack around a harmless race when compacting whiteouts
-+			 * for a write:
-+			 */
-+			dst2.needs_whiteout = dst->needs_whiteout;
-+
 +			BUG_ON(memcmp(dst, &dst2, sizeof(*dst)));
 +		}
 +	}
@@ -11556,7 +11558,7 @@ index 000000000000..2653a74b3b14
 +static inline int bkey_cmp_p_or_unp(const struct btree *b,
 +				    const struct bkey_packed *l,
 +				    const struct bkey_packed *r_packed,
-+				    struct bpos *r)
++				    const struct bpos *r)
 +{
 +	EBUG_ON(r_packed && !bkey_packed(r_packed));
 +
@@ -11645,7 +11647,7 @@ index 000000000000..2653a74b3b14
 + * XXX: only need to compare pointers for keys that are both within a
 + * btree_node_iterator - we need to break ties for prev() to work correctly
 + */
-+static inline int bkey_iter_cmp(struct btree *b,
++static inline int bkey_iter_cmp(const struct btree *b,
 +				const struct bkey_packed *l,
 +				const struct bkey_packed *r)
 +{
@@ -11654,7 +11656,7 @@ index 000000000000..2653a74b3b14
 +		?: cmp_int(l, r);
 +}
 +
-+static inline int btree_node_iter_cmp(struct btree *b,
++static inline int btree_node_iter_cmp(const struct btree *b,
 +				      struct btree_node_iter_set l,
 +				      struct btree_node_iter_set r)
 +{
@@ -11663,22 +11665,22 @@ index 000000000000..2653a74b3b14
 +			__btree_node_offset_to_key(b, r.k));
 +}
 +
-+/* These assume l (the search key) is not a deleted key: */
-+static inline int bkey_iter_pos_cmp(struct btree *b,
-+			struct bpos *l,
-+			const struct bkey_packed *r)
++/* These assume r (the search key) is not a deleted key: */
++static inline int bkey_iter_pos_cmp(const struct btree *b,
++			const struct bkey_packed *l,
++			const struct bpos *r)
 +{
-+	return -bkey_cmp_left_packed(b, r, l)
-+		?: (int) bkey_deleted(r);
++	return bkey_cmp_left_packed(b, l, r)
++		?: -((int) bkey_deleted(l));
 +}
 +
-+static inline int bkey_iter_cmp_p_or_unp(struct btree *b,
-+			struct bpos *l,
-+			const struct bkey_packed *l_packed,
-+			const struct bkey_packed *r)
++static inline int bkey_iter_cmp_p_or_unp(const struct btree *b,
++				    const struct bkey_packed *l,
++				    const struct bkey_packed *r_packed,
++				    const struct bpos *r)
 +{
-+	return -bkey_cmp_p_or_unp(b, r, l_packed, l)
-+		?: (int) bkey_deleted(r);
++	return bkey_cmp_p_or_unp(b, l, r_packed, r)
++		?: -((int) bkey_deleted(l));
 +}
 +
 +static inline struct bkey_packed *
@@ -12768,7 +12770,7 @@ index 000000000000..0c737f35f430
 +}
 diff --git a/fs/bcachefs/btree_cache.h b/fs/bcachefs/btree_cache.h
 new file mode 100644
-index 000000000000..c5873c58439c
+index 000000000000..83358d6a4df8
 --- /dev/null
 +++ b/fs/bcachefs/btree_cache.h
 @@ -0,0 +1,90 @@
@@ -12849,7 +12851,7 @@ index 000000000000..c5873c58439c
 +	return c->opts.btree_node_size >> c->block_bits;
 +}
 +
-+#define BTREE_SPLIT_THRESHOLD(c)		(btree_blocks(c) * 3 / 4)
++#define BTREE_SPLIT_THRESHOLD(c)		(btree_max_u64s(c) * 3 / 4)
 +
 +#define BTREE_FOREGROUND_MERGE_THRESHOLD(c)	(btree_max_u64s(c) * 1 / 3)
 +#define BTREE_FOREGROUND_MERGE_HYSTERESIS(c)			\
@@ -16176,10 +16178,10 @@ index 000000000000..e90e89eee273
 +#endif /* _BCACHEFS_BTREE_IO_H */
 diff --git a/fs/bcachefs/btree_iter.c b/fs/bcachefs/btree_iter.c
 new file mode 100644
-index 000000000000..988c550c85eb
+index 000000000000..ea0555b806f0
 --- /dev/null
 +++ b/fs/bcachefs/btree_iter.c
-@@ -0,0 +1,2163 @@
+@@ -0,0 +1,2123 @@
 +// SPDX-License-Identifier: GPL-2.0
 +
 +#include "bcachefs.h"
@@ -16192,10 +16194,6 @@ index 000000000000..988c550c85eb
 +
 +#include <linux/prefetch.h>
 +#include <trace/events/bcachefs.h>
-+
-+static inline struct bkey_s_c __btree_iter_peek_all(struct btree_iter *,
-+						    struct btree_iter_level *,
-+						    struct bkey *);
 +
 +#define BTREE_ITER_NO_NODE_GET_LOCKS	((struct btree *) 1)
 +#define BTREE_ITER_NO_NODE_DROP		((struct btree *) 2)
@@ -16211,37 +16209,14 @@ index 000000000000..988c550c85eb
 +		(unsigned long) iter->l[l].b >= 128;
 +}
 +
-+/* Returns < 0 if @k is before iter pos, > 0 if @k is after */
-+static inline int __btree_iter_pos_cmp(struct btree_iter *iter,
-+				       const struct btree *b,
-+				       const struct bkey_packed *k,
-+				       bool interior_node)
++static inline struct bpos btree_iter_search_key(struct btree_iter *iter)
 +{
-+	int cmp = bkey_cmp_left_packed(b, k, &iter->pos);
++	struct bpos pos = iter->pos;
 +
-+	if (cmp)
-+		return cmp;
-+	if (bkey_deleted(k))
-+		return -1;
-+
-+	/*
-+	 * Normally, for extents we want the first key strictly greater than
-+	 * the iterator position - with the exception that for interior nodes,
-+	 * we don't want to advance past the last key if the iterator position
-+	 * is POS_MAX:
-+	 */
-+	if (iter->flags & BTREE_ITER_IS_EXTENTS &&
-+	    (!interior_node ||
-+	     bkey_cmp_left_packed_byval(b, k, POS_MAX)))
-+		return -1;
-+	return 1;
-+}
-+
-+static inline int btree_iter_pos_cmp(struct btree_iter *iter,
-+				     const struct btree *b,
-+				     const struct bkey_packed *k)
-+{
-+	return __btree_iter_pos_cmp(iter, b, k, b->level != 0);
++	if ((iter->flags & BTREE_ITER_IS_EXTENTS) &&
++	    bkey_cmp(pos, POS_MAX))
++		pos = bkey_successor(pos);
++	return pos;
 +}
 +
 +/* Btree node locking: */
@@ -16597,6 +16572,7 @@ index 000000000000..988c550c85eb
 +static void __bch2_btree_iter_verify(struct btree_iter *iter,
 +				     struct btree *b)
 +{
++	struct bpos pos = btree_iter_search_key(iter);
 +	struct btree_iter_level *l = &iter->l[b->level];
 +	struct btree_node_iter tmp = l->iter;
 +	struct bkey_packed *k;
@@ -16619,17 +16595,17 @@ index 000000000000..988c550c85eb
 +	k = b->level || iter->flags & BTREE_ITER_IS_EXTENTS
 +		? bch2_btree_node_iter_prev_filter(&tmp, b, KEY_TYPE_discard)
 +		: bch2_btree_node_iter_prev_all(&tmp, b);
-+	if (k && btree_iter_pos_cmp(iter, b, k) > 0) {
++	if (k && bkey_iter_pos_cmp(b, k, &pos) >= 0) {
 +		char buf[100];
 +		struct bkey uk = bkey_unpack_key(b, k);
 +
 +		bch2_bkey_to_text(&PBUF(buf), &uk);
-+		panic("prev key should be before iter pos:\n%s\n%llu:%llu\n",
++		panic("iterator should be before prev key:\n%s\n%llu:%llu\n",
 +		      buf, iter->pos.inode, iter->pos.offset);
 +	}
 +
 +	k = bch2_btree_node_iter_peek_all(&l->iter, b);
-+	if (k && btree_iter_pos_cmp(iter, b, k) < 0) {
++	if (k && bkey_iter_pos_cmp(b, k, &pos) < 0) {
 +		char buf[100];
 +		struct bkey uk = bkey_unpack_key(b, k);
 +
@@ -16677,15 +16653,19 @@ index 000000000000..988c550c85eb
 +}
 +
 +static void __bch2_btree_iter_fix_key_modified(struct btree_iter *iter,
-+						    struct btree *b,
-+						    struct bkey_packed *where)
++					       struct btree *b,
++					       struct bkey_packed *where)
 +{
-+	struct btree_node_iter *node_iter = &iter->l[0].iter;
++	struct btree_iter_level *l = &iter->l[b->level];
++	struct bpos pos = btree_iter_search_key(iter);
 +
-+	if (where == bch2_btree_node_iter_peek_all(node_iter, b)) {
-+		bkey_disassemble(b, where, &iter->k);
-+		btree_iter_set_dirty(iter, BTREE_ITER_NEED_PEEK);
-+	}
++	if (where != bch2_btree_node_iter_peek_all(&l->iter, l->b))
++		return;
++
++	if (bkey_iter_pos_cmp(l->b, where, &pos) < 0)
++		bch2_btree_node_iter_advance(&l->iter, l->b);
++
++	btree_iter_set_dirty(iter, BTREE_ITER_NEED_PEEK);
 +}
 +
 +void bch2_btree_iter_fix_key_modified(struct btree_iter *iter,
@@ -16717,6 +16697,7 @@ index 000000000000..988c550c85eb
 +	bool iter_current_key_modified =
 +		orig_iter_pos >= offset &&
 +		orig_iter_pos <= offset + clobber_u64s;
++	struct bpos iter_pos = btree_iter_search_key(iter);
 +
 +	btree_node_iter_for_each(node_iter, set)
 +		if (set->end == old_end)
@@ -16724,7 +16705,7 @@ index 000000000000..988c550c85eb
 +
 +	/* didn't find the bset in the iterator - might have to readd it: */
 +	if (new_u64s &&
-+	    btree_iter_pos_cmp(iter, b, where) > 0) {
++	    bkey_iter_pos_cmp(b, where, &iter_pos) >= 0) {
 +		bch2_btree_node_iter_push(node_iter, b, where, end);
 +		goto fixup_done;
 +	} else {
@@ -16739,7 +16720,7 @@ index 000000000000..988c550c85eb
 +		return;
 +
 +	if (new_u64s &&
-+	    btree_iter_pos_cmp(iter, b, where) > 0) {
++	    bkey_iter_pos_cmp(b, where, &iter_pos) >= 0) {
 +		set->k = offset;
 +	} else if (set->k < offset + clobber_u64s) {
 +		set->k = offset + new_u64s;
@@ -16884,11 +16865,12 @@ index 000000000000..988c550c85eb
 +					     struct btree_iter_level *l,
 +					     int max_advance)
 +{
++	struct bpos pos = btree_iter_search_key(iter);
 +	struct bkey_packed *k;
 +	int nr_advanced = 0;
 +
 +	while ((k = bch2_btree_node_iter_peek_all(&l->iter, l->b)) &&
-+	       btree_iter_pos_cmp(iter, l->b, k) < 0) {
++	       bkey_iter_pos_cmp(l->b, k, &pos) < 0) {
 +		if (max_advance > 0 && nr_advanced >= max_advance)
 +			return false;
 +
@@ -16947,13 +16929,7 @@ index 000000000000..988c550c85eb
 +static inline bool btree_iter_pos_after_node(struct btree_iter *iter,
 +					     struct btree *b)
 +{
-+	int cmp = bkey_cmp(b->key.k.p, iter->pos);
-+
-+	if (!cmp &&
-+	    (iter->flags & BTREE_ITER_IS_EXTENTS) &&
-+	    bkey_cmp(b->key.k.p, POS_MAX))
-+		cmp = -1;
-+	return cmp < 0;
++	return bkey_cmp(b->key.k.p, btree_iter_search_key(iter)) < 0;
 +}
 +
 +static inline bool btree_iter_pos_in_node(struct btree_iter *iter,
@@ -16967,16 +16943,10 @@ index 000000000000..988c550c85eb
 +static inline void __btree_iter_init(struct btree_iter *iter,
 +				     unsigned level)
 +{
++	struct bpos pos = btree_iter_search_key(iter);
 +	struct btree_iter_level *l = &iter->l[level];
 +
-+	bch2_btree_node_iter_init(&l->iter, l->b, &iter->pos);
-+
-+	if (iter->flags & BTREE_ITER_IS_EXTENTS)
-+		btree_iter_advance_to_pos(iter, l, -1);
-+
-+	/* Skip to first non whiteout: */
-+	if (level)
-+		bch2_btree_node_iter_peek(&l->iter, l->b);
++	bch2_btree_node_iter_init(&l->iter, l->b, &pos);
 +
 +	btree_iter_set_dirty(iter, BTREE_ITER_NEED_PEEK);
 +}
@@ -17553,12 +17523,6 @@ index 000000000000..988c550c85eb
 +		if (debug_check_iterators(iter->trans->c)) {
 +			struct bkey k = bkey_unpack_key(l->b, _k);
 +
-+			/*
-+			 * this flag is internal to the btree code,
-+			 * we don't care if it doesn't match - if it's now set
-+			 * it just means the key has been written out to disk:
-+			 */
-+			k.needs_whiteout = iter->k.needs_whiteout;
 +			BUG_ON(memcmp(&k, &iter->k, sizeof(k)));
 +		}
 +
@@ -17746,9 +17710,7 @@ index 000000000000..988c550c85eb
 +	int ret;
 +
 +recheck:
-+	while ((k = __btree_iter_peek_all(iter, l, &iter->k)).k &&
-+	       bkey_cmp(k.k->p, iter->pos) <= 0)
-+		bch2_btree_node_iter_advance(&l->iter, l->b);
++	btree_iter_advance_to_pos(iter, l, -1);
 +
 +	/*
 +	 * iterator is now at the correct position for inserting at iter->pos,
@@ -17757,9 +17719,27 @@ index 000000000000..988c550c85eb
 +	 */
 +
 +	node_iter = l->iter;
-+	if (k.k && bkey_whiteout(k.k))
-+		k = __btree_iter_unpack(iter, l, &iter->k,
-+			bch2_btree_node_iter_peek(&node_iter, l->b));
++	k = __btree_iter_unpack(iter, l, &iter->k,
++		bch2_btree_node_iter_peek(&node_iter, l->b));
++
++	if (k.k && bkey_cmp(bkey_start_pos(k.k), iter->pos) <= 0) {
++		/*
++		 * If there wasn't actually a hole, want the iterator to be
++		 * pointed at the key we found:
++		 *
++		 * XXX: actually, we shouldn't be changing the iterator here:
++		 * the iterator needs to be correct for inserting at iter->pos,
++		 * and there may be whiteouts between iter->pos and what this
++		 * iterator points at:
++		 */
++		l->iter = node_iter;
++
++		EBUG_ON(bkey_cmp(k.k->p, iter->pos) <= 0);
++		iter->uptodate = BTREE_ITER_UPTODATE;
++
++		__bch2_btree_iter_verify(iter, l->b);
++		return k;
++	}
 +
 +	/*
 +	 * If we got to the end of the node, check if we need to traverse to the
@@ -17772,24 +17752,6 @@ index 000000000000..988c550c85eb
 +			return bkey_s_c_err(ret);
 +
 +		goto recheck;
-+	}
-+
-+	if (k.k &&
-+	    !bkey_whiteout(k.k) &&
-+	    bkey_cmp(bkey_start_pos(k.k), iter->pos) <= 0) {
-+		/*
-+		 * if we skipped forward to find the first non whiteout and
-+		 * there _wasn't_ actually a hole, we want the iterator to be
-+		 * pointed at the key we found:
-+		 */
-+		l->iter = node_iter;
-+
-+		EBUG_ON(bkey_cmp(k.k->p, iter->pos) < 0);
-+		EBUG_ON(bkey_deleted(k.k));
-+		iter->uptodate = BTREE_ITER_UPTODATE;
-+
-+		__bch2_btree_iter_verify(iter, l->b);
-+		return k;
 +	}
 +
 +	/* hole */
@@ -18906,10 +18868,10 @@ index 000000000000..aaad2d289e79
 +
 diff --git a/fs/bcachefs/btree_types.h b/fs/bcachefs/btree_types.h
 new file mode 100644
-index 000000000000..86e52468c1aa
+index 000000000000..b7af88e05837
 --- /dev/null
 +++ b/fs/bcachefs/btree_types.h
-@@ -0,0 +1,559 @@
+@@ -0,0 +1,575 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +#ifndef _BCACHEFS_BTREE_TYPES_H
 +#define _BCACHEFS_BTREE_TYPES_H
@@ -19096,9 +19058,25 @@ index 000000000000..86e52468c1aa
 +
 +#define BTREE_ITER_TYPE			((1 << 2) - 1)
 +
++/*
++ * Iterate over all possible positions, synthesizing deleted keys for holes:
++ */
 +#define BTREE_ITER_SLOTS		(1 << 2)
++/*
++ * Indicates that intent locks should be taken on leaf nodes, because we expect
++ * to be doing updates:
++ */
 +#define BTREE_ITER_INTENT		(1 << 3)
++/*
++ * Causes the btree iterator code to prefetch additional btree nodes from disk:
++ */
 +#define BTREE_ITER_PREFETCH		(1 << 4)
++/*
++ * Indicates that this iterator should not be reused until transaction commit,
++ * either because a pending update references it or because the update depends
++ * on that particular key being locked (e.g. by the str_hash code, for hash
++ * table consistency)
++ */
 +#define BTREE_ITER_KEEP_UNTIL_COMMIT	(1 << 5)
 +/*
 + * Used in bch2_btree_iter_traverse(), to indicate whether we're searching for
@@ -19611,7 +19589,7 @@ index 000000000000..2c34bae64281
 +#endif /* _BCACHEFS_BTREE_UPDATE_H */
 diff --git a/fs/bcachefs/btree_update_interior.c b/fs/bcachefs/btree_update_interior.c
 new file mode 100644
-index 000000000000..d84bb6806683
+index 000000000000..748e6356f3d6
 --- /dev/null
 +++ b/fs/bcachefs/btree_update_interior.c
 @@ -0,0 +1,2245 @@
@@ -20808,7 +20786,7 @@ index 000000000000..d84bb6806683
 +				     BTREE_TRIGGER_GC);
 +
 +	while ((k = bch2_btree_node_iter_peek_all(node_iter, b)) &&
-+	       bkey_iter_pos_cmp(b, &insert->k.p, k) > 0)
++	       bkey_iter_pos_cmp(b, k, &insert->k.p) < 0)
 +		bch2_btree_node_iter_advance(node_iter, b);
 +
 +	/*
@@ -21002,7 +20980,7 @@ index 000000000000..d84bb6806683
 +	if (keys)
 +		btree_split_insert_keys(as, n1, iter, keys);
 +
-+	if (vstruct_blocks(n1->data, c->block_bits) > BTREE_SPLIT_THRESHOLD(c)) {
++	if (bset_u64s(&n1->set[0]) > BTREE_SPLIT_THRESHOLD(c)) {
 +		trace_btree_split(c, b);
 +
 +		n2 = __btree_split_node(as, n1, iter);
@@ -22204,10 +22182,10 @@ index 000000000000..2d8e0b7f3aaf
 +#endif /* _BCACHEFS_BTREE_UPDATE_INTERIOR_H */
 diff --git a/fs/bcachefs/btree_update_leaf.c b/fs/bcachefs/btree_update_leaf.c
 new file mode 100644
-index 000000000000..d05ed96c4280
+index 000000000000..afd2086edeff
 --- /dev/null
 +++ b/fs/bcachefs/btree_update_leaf.c
-@@ -0,0 +1,976 @@
+@@ -0,0 +1,984 @@
 +// SPDX-License-Identifier: GPL-2.0
 +
 +#include "bcachefs.h"
@@ -22274,12 +22252,45 @@ index 000000000000..d05ed96c4280
 +		bkey_cmp(insert->k.p, b->data->max_key) > 0);
 +
 +	k = bch2_btree_node_iter_peek_all(node_iter, b);
-+	if (k && !bkey_cmp_packed(b, k, &insert->k)) {
-+		BUG_ON(bkey_whiteout(k));
++	if (k && bkey_cmp_packed(b, k, &insert->k))
++		k = NULL;
 +
++	/* @k is the key being overwritten/deleted, if any: */
++
++	EBUG_ON(k && bkey_whiteout(k));
++
++	if (bkey_whiteout(&insert->k)) {
++		/* Deleting: */
++
++		/* Not found? Nothing to do: */
++		if (!k)
++			return false;
++
++		btree_account_key_drop(b, k);
++		k->type = KEY_TYPE_deleted;
++
++		if (k->needs_whiteout) {
++			push_whiteout(iter->trans->c, b, k);
++			k->needs_whiteout = false;
++		}
++
++		if (k >= btree_bset_last(b)->start) {
++			clobber_u64s = k->u64s;
++
++			bch2_bset_delete(b, k, clobber_u64s);
++			bch2_btree_node_iter_fix(iter, b, node_iter, k,
++						 clobber_u64s, 0);
++		} else {
++			bch2_btree_iter_fix_key_modified(iter, b, k);
++		}
++
++		return true;
++	}
++
++	if (k) {
++		/* Overwriting: */
 +		if (!bkey_written(b, k) &&
-+		    bkey_val_u64s(&insert->k) == bkeyp_val_u64s(f, k) &&
-+		    !bkey_whiteout(&insert->k)) {
++		    bkey_val_u64s(&insert->k) == bkeyp_val_u64s(f, k)) {
 +			k->type = insert->k.type;
 +			memcpy_u64s(bkeyp_val(f, k), &insert->v,
 +				    bkey_val_u64s(&insert->k));
@@ -22287,50 +22298,17 @@ index 000000000000..d05ed96c4280
 +		}
 +
 +		btree_account_key_drop(b, k);
++		k->type = KEY_TYPE_deleted;
 +
-+		if (bkey_whiteout(&insert->k)) {
-+			unsigned clobber_u64s = k->u64s, new_u64s = k->u64s;
-+
-+			k->type = KEY_TYPE_deleted;
-+
-+			if (k->needs_whiteout) {
-+				push_whiteout(iter->trans->c, b, k);
-+				k->needs_whiteout = false;
-+			}
-+
-+			if (k >= btree_bset_last(b)->start) {
-+				bch2_bset_delete(b, k, clobber_u64s);
-+				new_u64s = 0;
-+			}
-+
-+			bch2_btree_node_iter_fix(iter, b, node_iter, k,
-+						 clobber_u64s, new_u64s);
-+			return true;
-+
-+		}
++		insert->k.needs_whiteout = k->needs_whiteout;
++		k->needs_whiteout = false;
 +
 +		if (k >= btree_bset_last(b)->start) {
 +			clobber_u64s = k->u64s;
 +			goto overwrite;
++		} else {
++			bch2_btree_iter_fix_key_modified(iter, b, k);
 +		}
-+
-+		insert->k.needs_whiteout = k->needs_whiteout;
-+		k->needs_whiteout = false;
-+		k->type = KEY_TYPE_deleted;
-+		/*
-+		 * XXX: we should be able to do this without two calls to
-+		 * bch2_btree_node_iter_fix:
-+		 */
-+		bch2_btree_node_iter_fix(iter, b, node_iter, k,
-+					 k->u64s, k->u64s);
-+	} else {
-+		/*
-+		 * Deleting, but the key to delete wasn't found - nothing to do:
-+		 */
-+		if (bkey_whiteout(&insert->k))
-+			return false;
-+
-+		insert->k.needs_whiteout = false;
 +	}
 +
 +	k = bch2_btree_node_iter_bset_pos(node_iter, b, bset_tree_last(b));
@@ -22916,10 +22894,18 @@ index 000000000000..d05ed96c4280
 +		trans_trigger_run = false;
 +
 +		trans_for_each_update(trans, i) {
-+			/* we know trans->nounlock won't be set here: */
-+			if (unlikely(!(i->iter->locks_want < 1
-+				       ? __bch2_btree_iter_upgrade(i->iter, 1)
-+				       : i->iter->uptodate <= BTREE_ITER_NEED_PEEK))) {
++			if (unlikely(i->iter->uptodate > BTREE_ITER_NEED_PEEK)) {
++				trace_trans_restart_traverse(trans->ip);
++				ret = -EINTR;
++				goto out;
++			}
++
++			/*
++			 * We're not using bch2_btree_iter_upgrade here because
++			 * we know trans->nounlock can't be set:
++			 */
++			if (unlikely(i->iter->locks_want < 1 &&
++				     !__bch2_btree_iter_upgrade(i->iter, 1))) {
 +				trace_trans_restart_upgrade(trans->ip);
 +				ret = -EINTR;
 +				goto out;
@@ -26486,10 +26472,10 @@ index 000000000000..3a4890d39ff9
 +#endif /* _BCACHEFS_CHARDEV_H */
 diff --git a/fs/bcachefs/checksum.c b/fs/bcachefs/checksum.c
 new file mode 100644
-index 000000000000..a5c947e8adf3
+index 000000000000..6f1afa4a3119
 --- /dev/null
 +++ b/fs/bcachefs/checksum.c
-@@ -0,0 +1,616 @@
+@@ -0,0 +1,617 @@
 +// SPDX-License-Identifier: GPL-2.0
 +#include "bcachefs.h"
 +#include "checksum.h"
@@ -26817,7 +26803,7 @@ index 000000000000..a5c947e8adf3
 +
 +	BUG_ON(len_a + len_b > bio_sectors(bio));
 +	BUG_ON(crc_old.uncompressed_size != bio_sectors(bio));
-+	BUG_ON(crc_old.compression_type);
++	BUG_ON(crc_is_compressed(crc_old));
 +	BUG_ON(bch2_csum_type_is_encryption(crc_old.csum_type) !=
 +	       bch2_csum_type_is_encryption(new_csum_type));
 +
@@ -26846,6 +26832,7 @@ index 000000000000..a5c947e8adf3
 +		if (i->crc)
 +			*i->crc = (struct bch_extent_crc_unpacked) {
 +				.csum_type		= i->csum_type,
++				.compression_type	= crc_old.compression_type,
 +				.compressed_size	= i->len,
 +				.uncompressed_size	= i->len,
 +				.offset			= 0,
@@ -27108,10 +27095,10 @@ index 000000000000..a5c947e8adf3
 +}
 diff --git a/fs/bcachefs/checksum.h b/fs/bcachefs/checksum.h
 new file mode 100644
-index 000000000000..ca9e45906dc8
+index 000000000000..24dee8039d57
 --- /dev/null
 +++ b/fs/bcachefs/checksum.h
-@@ -0,0 +1,199 @@
+@@ -0,0 +1,202 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +#ifndef _BCACHEFS_CHECKSUM_H
 +#define _BCACHEFS_CHECKSUM_H
@@ -27269,13 +27256,16 @@ index 000000000000..ca9e45906dc8
 +static inline struct nonce extent_nonce(struct bversion version,
 +					struct bch_extent_crc_unpacked crc)
 +{
-+	unsigned size = crc.compression_type ? crc.uncompressed_size : 0;
++	unsigned compression_type = crc_is_compressed(crc)
++		? crc.compression_type
++		: 0;
++	unsigned size = compression_type ? crc.uncompressed_size : 0;
 +	struct nonce nonce = (struct nonce) {{
 +		[0] = cpu_to_le32(size << 22),
 +		[1] = cpu_to_le32(version.lo),
 +		[2] = cpu_to_le32(version.lo >> 32),
 +		[3] = cpu_to_le32(version.hi|
-+				  (crc.compression_type << 24))^BCH_NONCE_EXTENT,
++				  (compression_type << 24))^BCH_NONCE_EXTENT,
 +	}};
 +
 +	return nonce_add(nonce, crc.nonce << 9);
@@ -27600,7 +27590,7 @@ index 000000000000..92c740a47565
 +#endif /* _BCACHEFS_CLOCK_TYPES_H */
 diff --git a/fs/bcachefs/compress.c b/fs/bcachefs/compress.c
 new file mode 100644
-index 000000000000..bb557eda111b
+index 000000000000..0959bb864dc5
 --- /dev/null
 +++ b/fs/bcachefs/compress.c
 @@ -0,0 +1,623 @@
@@ -28040,7 +28030,7 @@ index 000000000000..bb557eda111b
 +	bio_unmap_or_unbounce(c, dst_data);
 +	return compression_type;
 +err:
-+	compression_type = 0;
++	compression_type = BCH_COMPRESSION_TYPE_incompressible;
 +	goto out;
 +}
 +
@@ -32413,10 +32403,10 @@ index 000000000000..e9dc8091ba3f
 +#endif /* _BCACHEFS_EXTENT_UPDATE_H */
 diff --git a/fs/bcachefs/extents.c b/fs/bcachefs/extents.c
 new file mode 100644
-index 000000000000..ca208b060955
+index 000000000000..a19b91f9beb4
 --- /dev/null
 +++ b/fs/bcachefs/extents.c
-@@ -0,0 +1,1220 @@
+@@ -0,0 +1,1231 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Copyright (C) 2010 Kent Overstreet <kent.overstreet@gmail.com>
@@ -32647,7 +32637,8 @@ index 000000000000..ca208b060955
 +	struct extent_ptr_decoded p;
 +	char buf[160];
 +
-+	if (!test_bit(BCH_FS_INITIAL_GC_DONE, &c->flags))
++	if (!test_bit(JOURNAL_REPLAY_DONE, &c->journal.flags) ||
++	    !test_bit(BCH_FS_INITIAL_GC_DONE, &c->flags))
 +		return;
 +
 +	if (!percpu_down_read_trylock(&c->mark_lock))
@@ -32755,7 +32746,7 @@ index 000000000000..ca208b060955
 +			if (!bch2_checksum_mergeable(crc_l.csum_type))
 +				return BCH_MERGE_NOMERGE;
 +
-+			if (crc_l.compression_type)
++			if (crc_is_compressed(crc_l))
 +				return BCH_MERGE_NOMERGE;
 +
 +			if (crc_l.csum_type &&
@@ -32866,7 +32857,7 @@ index 000000000000..ca208b060955
 +static inline bool can_narrow_crc(struct bch_extent_crc_unpacked u,
 +				  struct bch_extent_crc_unpacked n)
 +{
-+	return !u.compression_type &&
++	return !crc_is_compressed(u) &&
 +		u.csum_type &&
 +		u.uncompressed_size > u.live_size &&
 +		bch2_csum_type_is_encryption(u.csum_type) ==
@@ -32910,7 +32901,7 @@ index 000000000000..ca208b060955
 +	/* Find a checksum entry that covers only live data: */
 +	if (!n.csum_type) {
 +		bkey_for_each_crc(&k->k, ptrs, u, i)
-+			if (!u.compression_type &&
++			if (!crc_is_compressed(u) &&
 +			    u.csum_type &&
 +			    u.live_size == u.uncompressed_size) {
 +				n = u;
@@ -32919,7 +32910,7 @@ index 000000000000..ca208b060955
 +		return false;
 +	}
 +found:
-+	BUG_ON(n.compression_type);
++	BUG_ON(crc_is_compressed(n));
 +	BUG_ON(n.offset);
 +	BUG_ON(n.live_size != k->k.size);
 +
@@ -33028,8 +33019,7 @@ index 000000000000..ca208b060955
 +		struct extent_ptr_decoded p;
 +
 +		bkey_for_each_ptr_decode(k.k, ptrs, p, entry)
-+			ret += !p.ptr.cached &&
-+				p.crc.compression_type == BCH_COMPRESSION_TYPE_none;
++			ret += !p.ptr.cached && !crc_is_compressed(p.crc);
 +	}
 +
 +	return ret;
@@ -33043,11 +33033,22 @@ index 000000000000..ca208b060955
 +	unsigned ret = 0;
 +
 +	bkey_for_each_ptr_decode(k.k, ptrs, p, entry)
-+		if (!p.ptr.cached &&
-+		    p.crc.compression_type != BCH_COMPRESSION_TYPE_none)
++		if (!p.ptr.cached && crc_is_compressed(p.crc))
 +			ret += p.crc.compressed_size;
 +
 +	return ret;
++}
++
++bool bch2_bkey_is_incompressible(struct bkey_s_c k)
++{
++	struct bkey_ptrs_c ptrs = bch2_bkey_ptrs_c(k);
++	const union bch_extent_entry *entry;
++	struct bch_extent_crc_unpacked crc;
++
++	bkey_for_each_crc(k.k, ptrs, crc, entry)
++		if (crc.compression_type == BCH_COMPRESSION_TYPE_incompressible)
++			return true;
++	return false;
 +}
 +
 +bool bch2_check_range_allocated(struct bch_fs *c, struct bpos pos, u64 size,
@@ -33639,10 +33640,10 @@ index 000000000000..ca208b060955
 +}
 diff --git a/fs/bcachefs/extents.h b/fs/bcachefs/extents.h
 new file mode 100644
-index 000000000000..7c5a41e6d79d
+index 000000000000..0d8554172263
 --- /dev/null
 +++ b/fs/bcachefs/extents.h
-@@ -0,0 +1,575 @@
+@@ -0,0 +1,582 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +#ifndef _BCACHEFS_EXTENTS_H
 +#define _BCACHEFS_EXTENTS_H
@@ -33818,6 +33819,12 @@ index 000000000000..7c5a41e6d79d
 +		BUG();
 +	}
 +#undef common_fields
++}
++
++static inline bool crc_is_compressed(struct bch_extent_crc_unpacked crc)
++{
++	return (crc.compression_type != BCH_COMPRESSION_TYPE_none &&
++		crc.compression_type != BCH_COMPRESSION_TYPE_incompressible);
 +}
 +
 +/* bkey_ptrs: generically over any key type that has ptrs */
@@ -34128,6 +34135,7 @@ index 000000000000..7c5a41e6d79d
 +unsigned bch2_bkey_nr_ptrs(struct bkey_s_c);
 +unsigned bch2_bkey_nr_ptrs_allocated(struct bkey_s_c);
 +unsigned bch2_bkey_nr_ptrs_fully_allocated(struct bkey_s_c);
++bool bch2_bkey_is_incompressible(struct bkey_s_c);
 +unsigned bch2_bkey_sectors_compressed(struct bkey_s_c);
 +bool bch2_check_range_allocated(struct bch_fs *, struct bpos, u64, unsigned);
 +unsigned bch2_bkey_durability(struct bch_fs *, struct bkey_s_c);
@@ -42638,10 +42646,10 @@ index 000000000000..bb759a46dc41
 +#endif /* _BCACHEFS_INODE_H */
 diff --git a/fs/bcachefs/io.c b/fs/bcachefs/io.c
 new file mode 100644
-index 000000000000..4c7dd0994a28
+index 000000000000..ca83d79e06fe
 --- /dev/null
 +++ b/fs/bcachefs/io.c
-@@ -0,0 +1,2297 @@
+@@ -0,0 +1,2306 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Some low level IO code, and hacks for various block layer limitations
@@ -43190,8 +43198,13 @@ index 000000000000..4c7dd0994a28
 +	 * particularly want to plumb io_opts all the way through the btree
 +	 * update stack right now
 +	 */
-+	for_each_keylist_key(keys, k)
++	for_each_keylist_key(keys, k) {
 +		bch2_rebalance_add_key(c, bkey_i_to_s_c(k), &op->opts);
++
++		if (bch2_bkey_is_incompressible(bkey_i_to_s_c(k)))
++			bch2_check_set_feature(op->c, BCH_FEATURE_incompressible);
++
++	}
 +
 +	if (!bch2_keylist_empty(keys)) {
 +		u64 sectors_start = keylist_sectors(keys);
@@ -43428,8 +43441,9 @@ index 000000000000..4c7dd0994a28
 +	/* Can we just write the entire extent as is? */
 +	if (op->crc.uncompressed_size == op->crc.live_size &&
 +	    op->crc.compressed_size <= wp->sectors_free &&
-+	    op->crc.compression_type == op->compression_type) {
-+		if (!op->crc.compression_type &&
++	    (op->crc.compression_type == op->compression_type ||
++	     op->incompressible)) {
++		if (!crc_is_compressed(op->crc) &&
 +		    op->csum_type != op->crc.csum_type &&
 +		    bch2_write_rechecksum(c, op, op->csum_type))
 +			return PREP_ENCODED_CHECKSUM_ERR;
@@ -43441,7 +43455,7 @@ index 000000000000..4c7dd0994a28
 +	 * If the data is compressed and we couldn't write the entire extent as
 +	 * is, we have to decompress it:
 +	 */
-+	if (op->crc.compression_type) {
++	if (crc_is_compressed(op->crc)) {
 +		struct bch_csum csum;
 +
 +		if (bch2_write_decrypt(op))
@@ -43508,6 +43522,7 @@ index 000000000000..4c7dd0994a28
 +		ret = -EIO;
 +		goto err;
 +	case PREP_ENCODED_CHECKSUM_ERR:
++		BUG();
 +		goto csum_err;
 +	case PREP_ENCODED_DO_WRITE:
 +		/* XXX look for bug here */
@@ -43552,11 +43567,13 @@ index 000000000000..4c7dd0994a28
 +		       bch2_csum_type_is_encryption(op->crc.csum_type));
 +		BUG_ON(op->compression_type && !bounce);
 +
-+		crc.compression_type = op->compression_type
-+			?  bch2_bio_compress(c, dst, &dst_len, src, &src_len,
-+					     op->compression_type)
++		crc.compression_type = op->incompressible
++			? BCH_COMPRESSION_TYPE_incompressible
++			: op->compression_type
++			? bch2_bio_compress(c, dst, &dst_len, src, &src_len,
++					    op->compression_type)
 +			: 0;
-+		if (!crc.compression_type) {
++		if (!crc_is_compressed(crc)) {
 +			dst_len = min(dst->bi_iter.bi_size, src->bi_iter.bi_size);
 +			dst_len = min_t(unsigned, dst_len, wp->sectors_free << 9);
 +
@@ -43585,7 +43602,7 @@ index 000000000000..4c7dd0994a28
 +		}
 +
 +		if ((op->flags & BCH_WRITE_DATA_ENCODED) &&
-+		    !crc.compression_type &&
++		    !crc_is_compressed(crc) &&
 +		    bch2_csum_type_is_encryption(op->crc.csum_type) ==
 +		    bch2_csum_type_is_encryption(op->csum_type)) {
 +			/*
@@ -43982,6 +43999,7 @@ index 000000000000..4c7dd0994a28
 +
 +static struct promote_op *__promote_alloc(struct bch_fs *c,
 +					  enum btree_id btree_id,
++					  struct bkey_s_c k,
 +					  struct bpos pos,
 +					  struct extent_ptr_decoded *pick,
 +					  struct bch_io_opts opts,
@@ -44038,8 +44056,7 @@ index 000000000000..4c7dd0994a28
 +			(struct data_opts) {
 +				.target = opts.promote_target
 +			},
-+			btree_id,
-+			bkey_s_c_null);
++			btree_id, k);
 +	BUG_ON(ret);
 +
 +	return op;
@@ -44081,7 +44098,7 @@ index 000000000000..4c7dd0994a28
 +				  k.k->type == KEY_TYPE_reflink_v
 +				  ? BTREE_ID_REFLINK
 +				  : BTREE_ID_EXTENTS,
-+				  pos, pick, opts, sectors, rbio);
++				  k, pos, pick, opts, sectors, rbio);
 +	if (!promote)
 +		return NULL;
 +
@@ -44345,7 +44362,7 @@ index 000000000000..4c7dd0994a28
 +	u64 data_offset = rbio->pos.offset - rbio->pick.crc.offset;
 +	int ret;
 +
-+	if (rbio->pick.crc.compression_type)
++	if (crc_is_compressed(rbio->pick.crc))
 +		return;
 +
 +	bkey_on_stack_init(&new);
@@ -44430,7 +44447,7 @@ index 000000000000..4c7dd0994a28
 +	crc.offset     += rbio->offset_into_extent;
 +	crc.live_size	= bvec_iter_sectors(rbio->bvec_iter);
 +
-+	if (crc.compression_type != BCH_COMPRESSION_TYPE_none) {
++	if (crc_is_compressed(crc)) {
 +		bch2_encrypt_bio(c, crc.csum_type, nonce, src);
 +		if (bch2_bio_uncompress(c, src, dst, dst_iter, crc))
 +			goto decompression_err;
@@ -44527,7 +44544,7 @@ index 000000000000..4c7dd0994a28
 +	}
 +
 +	if (rbio->narrow_crcs ||
-+	    rbio->pick.crc.compression_type ||
++	    crc_is_compressed(rbio->pick.crc) ||
 +	    bch2_csum_type_is_encryption(rbio->pick.crc.csum_type))
 +		context = RBIO_CONTEXT_UNBOUND,	wq = system_unbound_wq;
 +	else if (rbio->pick.crc.csum_type)
@@ -44638,7 +44655,7 @@ index 000000000000..4c7dd0994a28
 +
 +	EBUG_ON(offset_into_extent + bvec_iter_sectors(iter) > k.k->size);
 +
-+	if (pick.crc.compression_type != BCH_COMPRESSION_TYPE_none ||
++	if (crc_is_compressed(pick.crc) ||
 +	    (pick.crc.csum_type != BCH_CSUM_NONE &&
 +	     (bvec_iter_sectors(iter) != pick.crc.uncompressed_size ||
 +	      (bch2_csum_type_is_encryption(pick.crc.csum_type) &&
@@ -44653,7 +44670,7 @@ index 000000000000..4c7dd0994a28
 +					&rbio, &bounce, &read_full);
 +
 +	if (!read_full) {
-+		EBUG_ON(pick.crc.compression_type);
++		EBUG_ON(crc_is_compressed(pick.crc));
 +		EBUG_ON(pick.crc.csum_type &&
 +			(bvec_iter_sectors(iter) != pick.crc.uncompressed_size ||
 +			 bvec_iter_sectors(iter) != pick.crc.live_size ||
@@ -45111,10 +45128,10 @@ index 000000000000..45c950942d78
 +#endif /* _BCACHEFS_IO_H */
 diff --git a/fs/bcachefs/io_types.h b/fs/bcachefs/io_types.h
 new file mode 100644
-index 000000000000..c37b7d7401e9
+index 000000000000..7f7b69b32e80
 --- /dev/null
 +++ b/fs/bcachefs/io_types.h
-@@ -0,0 +1,148 @@
+@@ -0,0 +1,149 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +#ifndef _BCACHEFS_IO_TYPES_H
 +#define _BCACHEFS_IO_TYPES_H
@@ -45222,6 +45239,7 @@ index 000000000000..c37b7d7401e9
 +	unsigned		nr_replicas:4;
 +	unsigned		nr_replicas_required:4;
 +	unsigned		alloc_reserve:4;
++	unsigned		incompressible:1;
 +
 +	struct bch_devs_list	devs_have;
 +	u16			target;
@@ -49897,10 +49915,10 @@ index 000000000000..027efaa0d575
 +#endif /* _BCACHEFS_MIGRATE_H */
 diff --git a/fs/bcachefs/move.c b/fs/bcachefs/move.c
 new file mode 100644
-index 000000000000..257e00ae6fa7
+index 000000000000..ecc74ebe0579
 --- /dev/null
 +++ b/fs/bcachefs/move.c
-@@ -0,0 +1,805 @@
+@@ -0,0 +1,810 @@
 +// SPDX-License-Identifier: GPL-2.0
 +
 +#include "bcachefs.h"
@@ -50118,6 +50136,9 @@ index 000000000000..257e00ae6fa7
 +			    enum btree_id btree_id,
 +			    struct bkey_s_c k)
 +{
++	struct bkey_ptrs_c ptrs = bch2_bkey_ptrs_c(k);
++	const union bch_extent_entry *entry;
++	struct extent_ptr_decoded p;
 +	int ret;
 +
 +	m->btree_id	= btree_id;
@@ -50126,9 +50147,14 @@ index 000000000000..257e00ae6fa7
 +	m->nr_ptrs_reserved = 0;
 +
 +	bch2_write_op_init(&m->op, c, io_opts);
-+	m->op.compression_type =
-+		bch2_compression_opt_to_type[io_opts.background_compression ?:
-+					     io_opts.compression];
++
++	if (!bch2_bkey_is_incompressible(k))
++		m->op.compression_type =
++			bch2_compression_opt_to_type[io_opts.background_compression ?:
++						     io_opts.compression];
++	else
++		m->op.incompressible = true;
++
 +	m->op.target	= data_opts.target,
 +	m->op.write_point = wp;
 +
@@ -50168,14 +50194,11 @@ index 000000000000..257e00ae6fa7
 +		break;
 +	}
 +	case DATA_REWRITE: {
-+		struct bkey_ptrs_c ptrs = bch2_bkey_ptrs_c(k);
-+		const union bch_extent_entry *entry;
-+		struct extent_ptr_decoded p;
 +		unsigned compressed_sectors = 0;
 +
 +		bkey_for_each_ptr_decode(k.k, ptrs, p, entry)
 +			if (!p.ptr.cached &&
-+			    p.crc.compression_type != BCH_COMPRESSION_TYPE_none &&
++			    crc_is_compressed(p.crc) &&
 +			    bch2_dev_in_target(c, p.ptr.dev, data_opts.target))
 +				compressed_sectors += p.crc.compressed_size;
 +
@@ -52916,10 +52939,10 @@ index 000000000000..6a136083d389
 +#endif /* _BCACHEFS_QUOTA_TYPES_H */
 diff --git a/fs/bcachefs/rebalance.c b/fs/bcachefs/rebalance.c
 new file mode 100644
-index 000000000000..84b3fb6eb101
+index 000000000000..ab1934325948
 --- /dev/null
 +++ b/fs/bcachefs/rebalance.c
-@@ -0,0 +1,332 @@
+@@ -0,0 +1,330 @@
 +// SPDX-License-Identifier: GPL-2.0
 +
 +#include "bcachefs.h"
@@ -52939,50 +52962,52 @@ index 000000000000..84b3fb6eb101
 +#include <linux/sched/cputime.h>
 +#include <trace/events/bcachefs.h>
 +
-+static inline bool rebalance_ptr_pred(struct bch_fs *c,
-+				      struct extent_ptr_decoded p,
-+				      struct bch_io_opts *io_opts)
++/*
++ * Check if an extent should be moved:
++ * returns -1 if it should not be moved, or
++ * device of pointer that should be moved, if known, or INT_MAX if unknown
++ */
++static int __bch2_rebalance_pred(struct bch_fs *c,
++				 struct bkey_s_c k,
++				 struct bch_io_opts *io_opts)
 +{
-+	if (io_opts->background_target &&
-+	    !bch2_dev_in_target(c, p.ptr.dev, io_opts->background_target) &&
-+	    !p.ptr.cached)
-+		return true;
++	struct bkey_ptrs_c ptrs = bch2_bkey_ptrs_c(k);
++	const union bch_extent_entry *entry;
++	struct extent_ptr_decoded p;
 +
 +	if (io_opts->background_compression &&
-+	    p.crc.compression_type !=
-+	    bch2_compression_opt_to_type[io_opts->background_compression])
-+		return true;
++	    !bch2_bkey_is_incompressible(k))
++		bkey_for_each_ptr_decode(k.k, ptrs, p, entry)
++			if (!p.ptr.cached &&
++			    p.crc.compression_type !=
++			    bch2_compression_opt_to_type[io_opts->background_compression])
++				return p.ptr.dev;
 +
-+	return false;
++	if (io_opts->background_target)
++		bkey_for_each_ptr_decode(k.k, ptrs, p, entry)
++			if (!p.ptr.cached &&
++			    !bch2_dev_in_target(c, p.ptr.dev, io_opts->background_target))
++				return p.ptr.dev;
++
++	return -1;
 +}
 +
 +void bch2_rebalance_add_key(struct bch_fs *c,
 +			    struct bkey_s_c k,
 +			    struct bch_io_opts *io_opts)
 +{
-+	struct bkey_ptrs_c ptrs = bch2_bkey_ptrs_c(k);
-+	const union bch_extent_entry *entry;
-+	struct extent_ptr_decoded p;
++	atomic64_t *counter;
++	int dev;
 +
-+	if (!io_opts->background_target &&
-+	    !io_opts->background_compression)
++	dev = __bch2_rebalance_pred(c, k, io_opts);
++	if (dev < 0)
 +		return;
 +
-+	bkey_for_each_ptr_decode(k.k, ptrs, p, entry)
-+		if (rebalance_ptr_pred(c, p, io_opts)) {
-+			struct bch_dev *ca = bch_dev_bkey_exists(c, p.ptr.dev);
++	counter = dev < INT_MAX
++		? &bch_dev_bkey_exists(c, dev)->rebalance_work
++		: &c->rebalance.work_unknown_dev;
 +
-+			if (atomic64_add_return(p.crc.compressed_size,
-+						&ca->rebalance_work) ==
-+			    p.crc.compressed_size)
-+				rebalance_wakeup(c);
-+		}
-+}
-+
-+void bch2_rebalance_add_work(struct bch_fs *c, u64 sectors)
-+{
-+	if (atomic64_add_return(sectors, &c->rebalance.work_unknown_dev) ==
-+	    sectors)
++	if (atomic64_add_return(k.k->size, counter) == k.k->size)
 +		rebalance_wakeup(c);
 +}
 +
@@ -52991,26 +53016,20 @@ index 000000000000..84b3fb6eb101
 +				    struct bch_io_opts *io_opts,
 +				    struct data_opts *data_opts)
 +{
-+	struct bkey_ptrs_c ptrs = bch2_bkey_ptrs_c(k);
-+	const union bch_extent_entry *entry;
-+	struct extent_ptr_decoded p;
-+	unsigned nr_replicas = 0;
-+
-+	bkey_for_each_ptr_decode(k.k, ptrs, p, entry) {
-+		nr_replicas += !p.ptr.cached;
-+
-+		if (rebalance_ptr_pred(c, p, io_opts))
-+			goto found;
++	if (__bch2_rebalance_pred(c, k, io_opts) >= 0) {
++		data_opts->target		= io_opts->background_target;
++		data_opts->btree_insert_flags	= 0;
++		return DATA_ADD_REPLICAS;
++	} else {
++		return DATA_SKIP;
 +	}
++}
 +
-+	if (nr_replicas < io_opts->data_replicas)
-+		goto found;
-+
-+	return DATA_SKIP;
-+found:
-+	data_opts->target		= io_opts->background_target;
-+	data_opts->btree_insert_flags	= 0;
-+	return DATA_ADD_REPLICAS;
++void bch2_rebalance_add_work(struct bch_fs *c, u64 sectors)
++{
++	if (atomic64_add_return(sectors, &c->rebalance.work_unknown_dev) ==
++	    sectors)
++		rebalance_wakeup(c);
 +}
 +
 +struct rebalance_work {
@@ -53105,6 +53124,8 @@ index 000000000000..84b3fb6eb101
 +	prev_cputime	= curr_cputime();
 +
 +	while (!kthread_wait_freezable(r->enabled)) {
++		cond_resched();
++
 +		start			= jiffies;
 +		cputime			= curr_cputime();
 +
@@ -60202,7 +60223,7 @@ index 000000000000..20406ebd6f5b
 +#endif /* _BCACHEFS_SUPER_TYPES_H */
 diff --git a/fs/bcachefs/sysfs.c b/fs/bcachefs/sysfs.c
 new file mode 100644
-index 000000000000..602def1ee95a
+index 000000000000..d78ffcc0e8a4
 --- /dev/null
 +++ b/fs/bcachefs/sysfs.c
 @@ -0,0 +1,1078 @@
@@ -60484,7 +60505,7 @@ index 000000000000..602def1ee95a
 +			struct extent_ptr_decoded p;
 +
 +			extent_for_each_ptr_decode(e, p, entry) {
-+				if (p.crc.compression_type == BCH_COMPRESSION_TYPE_none) {
++				if (!crc_is_compressed(p.crc)) {
 +					nr_uncompressed_extents++;
 +					uncompressed_sectors += e.k->size;
 +				} else {
@@ -64453,10 +64474,10 @@ index 000000000000..4151065ab853
 +
 +#endif /* _BCACHEFS_XATTR_H */
 diff --git a/fs/cifs/file.c b/fs/cifs/file.c
-index c32650f14c9b..e7fc3691ba58 100644
+index 969543034b4d..0148022276fd 100644
 --- a/fs/cifs/file.c
 +++ b/fs/cifs/file.c
-@@ -4206,20 +4206,12 @@ readpages_get_pages(struct address_space *mapping, struct list_head *page_list,
+@@ -4230,20 +4230,12 @@ readpages_get_pages(struct address_space *mapping, struct list_head *page_list,
  
  	page = lru_to_page(page_list);
  
@@ -64480,7 +64501,7 @@ index c32650f14c9b..e7fc3691ba58 100644
  
  	/* move first page to the tmplist */
  	*offset = (loff_t)page->index << PAGE_SHIFT;
-@@ -4238,11 +4230,8 @@ readpages_get_pages(struct address_space *mapping, struct list_head *page_list,
+@@ -4262,11 +4254,8 @@ readpages_get_pages(struct address_space *mapping, struct list_head *page_list,
  		if (*bytes + PAGE_SIZE > rsize)
  			break;
  
@@ -64523,10 +64544,10 @@ index e88cf0554e65..0cb4172ff0ae 100644
  }
  EXPORT_SYMBOL(d_tmpfile);
 diff --git a/fs/inode.c b/fs/inode.c
-index fef457a42882..5ed16ac10bac 100644
+index 96d62d97694e..108507060fbc 100644
 --- a/fs/inode.c
 +++ b/fs/inode.c
-@@ -1494,6 +1494,46 @@ int insert_inode_locked(struct inode *inode)
+@@ -1501,6 +1501,46 @@ int insert_inode_locked(struct inode *inode)
  }
  EXPORT_SYMBOL(insert_inode_locked);
  
@@ -67305,7 +67326,7 @@ index 000000000000..75fc9a1b4bce
 +}
 +module_init(dynamic_fault_init);
 diff --git a/mm/filemap.c b/mm/filemap.c
-index 85b7d087eb45..609b209c966a 100644
+index 1f5731768222..074b33f9d91a 100644
 --- a/mm/filemap.c
 +++ b/mm/filemap.c
 @@ -116,6 +116,69 @@
