@@ -1,4 +1,4 @@
-{ ... }:
+{ pkgs, ... }:
 
 {
   imports =
@@ -21,7 +21,13 @@
     signing-certificate = "/boot/secureboot/db.crt";
   };
 
-  environment.sessionVariables.LIBVA_DRIVER_NAME = "iHD";
+  environment.sessionVariables = {
+    LIBVA_DRIVER_NAME = "iHD";
+  };
+
+  environment.systemPackages = with pkgs; [
+    libsmbios
+  ];
 
   hardware.nvidia.prime = {
     intelBusId = "PCI:0:2:0";
