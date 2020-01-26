@@ -2,7 +2,8 @@
 
 let
   compileModule = import ./clight/compileModule.nix;
-in {
+in
+{
   home.file."${config.xdg.dataHome}/clight/modules.d/inhibit_bl".source =
     "${compileModule {
       name = "inhibit_bl";
