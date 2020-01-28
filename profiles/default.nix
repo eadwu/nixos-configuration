@@ -10,6 +10,8 @@
 
   console.earlySetup = true;
 
+  documentation.dev.enable = true;
+
   environment = {
     shells = [
       "${pkgs.zsh}/bin/zsh"
@@ -21,6 +23,7 @@
       htop
       libarchive
       openssl
+      man-pages
       nixopsUnstable
       nix-index
       nixpkgs-fmt
