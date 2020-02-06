@@ -20,8 +20,6 @@
         window = 20,
         period = 18 * (60 / 15)
       })
-      -- Enable DNSSEC
-      trust_anchors.add_file('${config.services.kresd.cacheDir}/root.keys')
 
       -- Forward queries
       policy.add(policy.all(policy.TLS_FORWARD({
