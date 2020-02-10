@@ -14,15 +14,15 @@ let
     oldAttrs: rec {
       name = "${pname}-${version}";
       pname = stdenv.lib.removeSuffix "-${oldAttrs.version}" oldAttrs.name;
-      version = "2020-01-26";
+      version = "2020-02-10";
 
       src = builtins.fetchTarball {
-        url = "https://git.savannah.gnu.org/cgit/emacs.git/snapshot/emacs-23ef804eb55ed7324509b81638c66532344fe523.tar.gz";
+        url = "https://git.savannah.gnu.org/cgit/emacs.git/snapshot/emacs-ac9acc1864b02b92de4eb2e98db7b5b0cd03e019.tar.gz";
       };
 
       patches = [
         ../../patches/emacs/clean-env.patch
-        <nixpkgs/pkgs/applications/editors/emacs/tramp-detect-wrapped-gvfsd.patch>
+        ../../patches/emacs/tramp-detect-wrapped-gvfsd.patch
       ];
 
       buildInputs = oldAttrs.buildInputs ++ (with pkgs; [ harfbuzz ]);

@@ -10,7 +10,7 @@
 
 (add-to-list
  'default-frame-alist
- '(font . "IBM Plex Mono-8"))
+ '(font . "Recursive Mono Lnr b030st-8"))
 
 (setq cursor-in-non-selected-windows t
       display-line-numbers-current-absolute t
