@@ -55,8 +55,8 @@ self: super:
       {
         name = "latex-workshop";
         publisher = "James-Yu";
-        version = "8.6.0";
-        sha256 = "1zalfb86xlfk1prh2m9550q0g07h0hm4dxhim3qhsn1ncp93wk2q";
+        version = "8.7.1";
+        sha256 = "0zq66k7z2xkl0r1967n1lrfxfwf1cc15wsm11f1c9r6k4piyzdgq";
       }
 
       {
@@ -69,8 +69,8 @@ self: super:
       {
         name = "vscode-hie-server";
         publisher = "alanz";
-        version = "0.0.34";
-        sha256 = "0cipm36l3219r1yhk4j7l02mc2c0chfnv7wl44n1h0966jp1sda3";
+        version = "0.0.37";
+        sha256 = "005whyqxisw959vgm1d6m3ll0q1ydgq5jm8ziv721n4m63dk77dj";
       }
 
       {
@@ -111,8 +111,8 @@ self: super:
       {
         name = "githistory";
         publisher = "donjayamanne";
-        version = "0.4.13";
-        sha256 = "0alhmd1mi441l7cfv2p7xmz2w34l6vgs0dz8nhw2pap8w67mnyr3";
+        version = "0.5.0";
+        sha256 = "0vqi0f1xfif7liswfp01basmhx5ykfkw7fjhr576vlk4g088hv94";
       }
 
       {
@@ -181,8 +181,8 @@ self: super:
       {
         name = "vscode-docker";
         publisher = "ms-azuretools";
-        version = "0.9.0";
-        sha256 = "0wka4sgq5xjgqq2dc3zimrdcbl9166lavscz7zm6v4n6f9s2pfj0";
+        version = "0.10.0";
+        sha256 = "1n4pviahpr67y6zz3nvj6841dv0vpdrg9wi9w5viv9vc3psj5mkp";
       }
 
       {
@@ -258,15 +258,15 @@ self: super:
       {
         name = "scala";
         publisher = "scala-lang";
-        version = "0.3.8";
-        sha256 = "17dl10m3ayf57sqgil4mr9fjdm7i8gb5clrs227b768pp2d39ll9";
+        version = "0.3.9";
+        sha256 = "0l6zrpp2klqdym977zygmbzf0478lbqmivcxa2xmqyi34c9vwli7";
       }
 
       {
         name = "metals";
         publisher = "scalameta";
-        version = "1.7.2";
-        sha256 = "0d4a1648g7ziqgz0mj2n2gd0vzhgmd3nbwfsmfxn9l50zwxgvz6p";
+        version = "1.7.8";
+        sha256 = "0bl0j1inzrg9ylil5lb79q26j34gfy023xcv04ycrjsjkhlslpqc";
       }
 
       {
@@ -314,8 +314,8 @@ self: super:
       {
         name = "vscode-maven";
         publisher = "vscjava";
-        version = "0.20.2";
-        sha256 = "02fp7imsa3xg1rvck1g57ccxb946gk7c82n58qjckq0fwspn8g4p";
+        version = "0.21.0";
+        sha256 = "0c7ydyjj4m5mxgyi7yqqb8vd20d5mag230blah9bw6xw68y2fg40";
       }
     ];
   };
