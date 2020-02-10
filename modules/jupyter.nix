@@ -3,7 +3,7 @@
 {
   services.jupyter = {
     enable = true;
-    password = "open('${config.nixos.settings.credentials}/jupyter', 'r', encoding='utf8').read().strip()";
+    password = "'sha1:2dbd9701ebff:951b7987996e7fb05c664dc88d66b28f51bb30ba'";
     notebookDir = "~/Notebooks";
     kernels = {
       mth309 = let
