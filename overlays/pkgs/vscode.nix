@@ -32,27 +32,6 @@ self: super:
       }
 
       {
-        name = "Ionide-FAKE";
-        publisher = "Ionide";
-        version = "1.2.3";
-        sha256 = "0ijgnxcdmb1ij3szcjlyxs2lb1kly5l26lg9z2fa7hfn67rrds29";
-      }
-
-      {
-        name = "Ionide-Paket";
-        publisher = "Ionide";
-        version = "1.12.0";
-        sha256 = "10ik4jhvh05363swdfnr7phlnsndypaq3bkrl612z2kvv38q5kl7";
-      }
-
-      {
-        name = "Ionide-fsharp";
-        publisher = "Ionide";
-        version = "4.5.0";
-        sha256 = "08lvlkl27irdvshfhmvshz3d68pwcqsf1nwlccjhsg850282732k";
-      }
-
-      {
         name = "latex-workshop";
         publisher = "James-Yu";
         version = "8.7.1";

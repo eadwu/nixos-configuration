@@ -58,7 +58,6 @@ in
         gitAndTools.hub
         git-lfs
         # Languages / SDKs
-        fsharp
         gcc
         llvmPackages.clang-unwrapped
         mongodb
@@ -87,7 +86,6 @@ in
         ffmpeg
         gnupg
         imagemagick7
-        mono
         nix-diff
         rofi
         scrot

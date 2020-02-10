@@ -121,9 +121,6 @@ in
     "javascriptreact"
   ];
   "filesize.use24HourFormat" = false;
-  "FSharp.dotnetRoot" = "${dotnet-sdk}/bin";
-  "FSharp.fsiFilePath" = "${fsharp}/bin/fsharpi";
-  "FSharp.monoPath" = "${mono}/bin/mono";
   "gitlens.advanced.messages" = {
     "suppressCommitHasNoPreviousCommitWarning" = false;
     "suppressCommitNotFoundWarning" = false;
