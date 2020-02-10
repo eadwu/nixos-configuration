@@ -8,8 +8,8 @@ with config.nixos; {
       ../../profiles/desktop.nix
 
       ../../hardware/dell/9570.nix
-      ../../hardware/gpu/nvidia/disable
-      # ../../hardware/gpu/nvidia/offload
+      # ../../hardware/gpu/nvidia/disable
+      ../../hardware/gpu/nvidia/offload
       # ../../hardware/gpu/nvidia/sync
 
       ../../hardware/profiles/yubikey.nix
