@@ -59,6 +59,7 @@ in
         git-lfs
         # Languages / SDKs
         gcc
+        gdb
         llvmPackages.clang-unwrapped
         mongodb
         mysql57
@@ -67,6 +68,7 @@ in
         openjdk
         python
         python3
+        multimarkdown
         rWrapper
         sass
         sbt
