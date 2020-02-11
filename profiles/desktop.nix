@@ -66,7 +66,6 @@ in
         nasm
         nodejs
         openjdk
-        python
         python3
         multimarkdown
         rWrapper
