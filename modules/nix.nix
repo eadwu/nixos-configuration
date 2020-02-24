@@ -5,7 +5,7 @@ with config.nixos; {
     autoOptimiseStore = true;
     buildCores = 0;
     distributedBuilds = true;
-    package = pkgs.nixUnstable;
+    package = pkgs.nixFlakes;
     requireSignedBinaryCaches = true;
     useSandbox = true;
     trustedUsers = [ "root" settings.system.user ];
@@ -36,6 +36,7 @@ with config.nixos; {
 
     extraOptions = ''
       show-trace = true
+      experimental-features = flakes nix-command
       # Getting the latest vivaldi snapshot uses IFD
       # allow-import-from-derivation = false
       # Useful when the builder has a faster internet connection than yours
