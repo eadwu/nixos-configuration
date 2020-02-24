@@ -5,7 +5,6 @@
 
 (electric-pair-mode t)
 (global-hl-line-mode t)
-(color-theme-sanityinc-tomorrow-night)
 (add-hook 'before-save-hook 'delete-trailing-whitespace)
 
 (add-to-list
@@ -27,5 +26,11 @@
 
 (defvaralias 'c-basic-offset 'tab-width)
 (defvaralias 'cperl-indent-level 'tab-width)
+
+(use-package doom-themes
+  :config
+  (if window-system
+    (load-theme 'doom-wilmersdorf t)
+    (load-theme 'doom-nord t)))
 
 (provide 'editor)

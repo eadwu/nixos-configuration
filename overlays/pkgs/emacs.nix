@@ -14,10 +14,10 @@ let
     oldAttrs: rec {
       name = "${pname}-${version}";
       pname = stdenv.lib.removeSuffix "-${oldAttrs.version}" oldAttrs.name;
-      version = "2020-02-10";
+      version = "2020-02-23";
 
       src = builtins.fetchTarball {
-        url = "https://git.savannah.gnu.org/cgit/emacs.git/snapshot/emacs-ac9acc1864b02b92de4eb2e98db7b5b0cd03e019.tar.gz";
+        url = "https://git.savannah.gnu.org/cgit/emacs.git/snapshot/emacs-9d626dffc6ba62c0d7a1a5c712f576ed8684fd66.tar.gz";
       };
 
       patches = [
@@ -40,13 +40,13 @@ in
     ) ++ (
       with epkgs.melpaPackages; [
         beacon
-        color-theme-sanityinc-tomorrow
         company
         company-auctex
         company-lsp
         company-web
         counsel
         # cquery # needs cquery executable
+        doom-themes
         diminish # needed for use-package?
         emmet-mode
         flycheck

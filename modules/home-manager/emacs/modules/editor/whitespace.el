@@ -1,7 +1,7 @@
 (use-package whitespace
   :diminish
   :custom
-  (whitespace-style (quote (face empty trailing tab-mark space-mark newline-mark)))
+  (whitespace-style (quote (face tabs spaces newline empty trailing tab-mark space-mark newline-mark)))
   (whitespace-display-mappings '(
                                (space-mark   ?\    [?\u00B7]     [?.])
                                (space-mark   ?\xA0 [?\u00A4]     [?_])
