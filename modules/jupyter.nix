@@ -8,7 +8,7 @@
     kernels = {
       mth309 = let
         env = (pkgs.python3.withPackages (pythonPackages: with pythonPackages;
-          [ ipykernel sympy requests ] ));
+          [ ipykernel sympy requests matplotlib ] ));
       in {
         displayName = "Python 3 for MTH309";
         argv = [
