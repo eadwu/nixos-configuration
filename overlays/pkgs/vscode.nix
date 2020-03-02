@@ -90,8 +90,8 @@ self: super:
       {
         name = "githistory";
         publisher = "donjayamanne";
-        version = "0.5.3";
-        sha256 = "1ix75a9gpyhq8135xcgin1vjwdi7rsnp96x4v86p9hs1zpv7mm6q";
+        version = "0.5.5";
+        sha256 = "0v6sfzlia07ga3cskc3cmysq49i2b9619pm5s8vffml4m8qc4sv6";
       }
 
       {
@@ -132,8 +132,8 @@ self: super:
       {
         name = "noctis";
         publisher = "liviuschera";
-        version = "10.26.0";
-        sha256 = "1raq5ipdgkcdprb7250z0icb62kpvgjx09chqmacb5301fzds2i8";
+        version = "10.27.0";
+        sha256 = "1jf1470yn6gplv71rgrnhq2vf9nl3qqs1rfgwrba0k1b1ak2v8hk";
       }
 
       {
@@ -209,8 +209,8 @@ self: super:
       {
         name = "ruby";
         publisher = "rebornix";
-        version = "0.26.0";
-        sha256 = "0l9q2z6bjd568ly3vzksmf6c50kzghp74ixwrhjsfd0wxqmryair";
+        version = "0.27.0";
+        sha256 = "1y0fvciqxkj7nwvh4x25vrjfk1rym9h5fd38s89qfla36ac88fpr";
       }
 
       {
@@ -244,8 +244,8 @@ self: super:
       {
         name = "metals";
         publisher = "scalameta";
-        version = "1.7.8";
-        sha256 = "0bl0j1inzrg9ylil5lb79q26j34gfy023xcv04ycrjsjkhlslpqc";
+        version = "1.8.0";
+        sha256 = "0r1r96xclr8c3rjgs944zdim9rjq6hfajvv7yh3hn75cy684bck5";
       }
 
       {
@@ -286,8 +286,8 @@ self: super:
       {
         name = "vscode-java-test";
         publisher = "vscjava";
-        version = "0.22.1";
-        sha256 = "154f62kx8aibhr9n9c6368xrmsg4vk0pd3lqiy8ffdvrlcwjx4nl";
+        version = "0.22.2";
+        sha256 = "0cwr53drbr9bix9qfwm42c61icj81jn3q9fldin96418h32bf9fb";
       }
 
       {
