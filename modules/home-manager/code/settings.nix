@@ -10,7 +10,7 @@ in
     "source.organizeImports" = true;
   };
   "editor.cursorBlinking" = "smooth";
-  "editor.fontFamily" = "'Recursive Mono Lnr b030st', 'Anonymous Pro', 'IBM Plex Mono'";
+  "editor.fontFamily" = "'Rec Mono Linear', 'Anonymous Pro', 'IBM Plex Mono'";
   "editor.fontLigatures" = "'dlig','ss01','ss05','ss08','ss09','ss20','frac'";
   "editor.fontSize" = 12;
   "editor.fontWeight" = "normal";

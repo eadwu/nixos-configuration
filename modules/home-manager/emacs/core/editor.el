@@ -9,7 +9,7 @@
 
 (add-to-list
  'default-frame-alist
- '(font . "Recursive Mono Lnr b030st-8"))
+ '(font . "Rec Mono Linear-8"))
 
 (setq cursor-in-non-selected-windows t
       display-line-numbers-current-absolute t
