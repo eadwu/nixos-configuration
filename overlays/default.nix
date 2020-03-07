@@ -19,10 +19,6 @@ in
       unfreeEnableUnrar = true;
     };
 
-    blender = super.blender.override {
-      enableNumpy = true;
-    };
-
     boxpub = (
       import (
         builtins.fetchTarball {
