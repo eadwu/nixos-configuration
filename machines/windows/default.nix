@@ -22,7 +22,7 @@ with config.nixos; {
 
   fonts.fontconfig = {
     antialias = false;
-    dpi = 230;
+    dpi = 200;
   };
 
   console = {
