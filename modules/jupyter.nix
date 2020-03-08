@@ -1,16 +1,19 @@
 { config, pkgs, ... }:
 
-{
+let
+  packageOverrides = _: super: {
+    pytorch = super.pytorch-bin;
+  };
+
+  python = pkgs.python37.override { inherit packageOverrides; };
+in {
   services.jupyter = {
     enable = true;
     password = "'sha1:2dbd9701ebff:951b7987996e7fb05c664dc88d66b28f51bb30ba'";
     notebookDir = "~/Notebooks";
-    kernels = {
-      mth309 = let
-        env = (pkgs.python3.withPackages (pythonPackages: with pythonPackages;
-          [ jupyter ipykernel sympy requests matplotlib ] ));
-      in {
-        displayName = "Python 3 for MTH309";
+    kernels = let
+      kernel = target: env: {
+        displayName = "Python 3 for ${target}";
         argv = [
           "${env.interpreter}"
           "-m"
@@ -22,6 +25,15 @@
         logo32 = "${env}/${env.sitePackages}/ipykernel/resources/logo-32x32.png";
         logo64 = "${env}/${env.sitePackages}/ipykernel/resources/logo-64x64.png";
       };
+    in {
+      fastai = kernel "fast.ai" (python.withPackages (pythonPackages: with pythonPackages;
+        [ jupyter ipykernel
+          fastai fastai2 pyarrow
+          graphviz ipywidgets matplotlib nbdev pandas scikitlearn
+            azure-cognitiveservices-search-imagesearch ] ));
+
+      mth309 = kernel "MTH309" (python.withPackages (pythonPackages: with pythonPackages;
+          [ jupyter ipykernel sympy requests matplotlib ] ));
     };
   };
 
