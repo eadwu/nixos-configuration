@@ -16,6 +16,7 @@ in
         ./bcachefs.nix
 
         ../modules/backlight
+        ../modules/ccache.nix
         ../modules/clight.nix
         ../modules/picom.nix
         ../modules/cups.nix
