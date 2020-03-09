@@ -40,6 +40,7 @@
     gnome3.gnome-disk-utility
     google-musicmanager
     jetbrains.idea-ultimate
+    riot-desktop
     rstudioWrapper
     typora
     vivaldi
