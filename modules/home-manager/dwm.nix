@@ -228,7 +228,7 @@
       "module/date" = {
         type = "internal/date";
         interval = 1;
-        date = "%a %b %d";
+        date = "%A, %B %d %Y";
 
         label = "[  %date% ]";
       };
@@ -236,7 +236,7 @@
       "module/time" = {
         type = "internal/date";
         interval = 1;
-        time = "%I:%M %p";
+        time = "%r";
 
         label = "[  %time% ]";
       };
