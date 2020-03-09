@@ -5,7 +5,7 @@ let
     pytorch = super.pytorch-bin;
   };
 
-  python = pkgs.python37.override { inherit packageOverrides; };
+  python = pkgs.python3.override { inherit packageOverrides; };
 in {
   services.jupyter = {
     enable = true;
