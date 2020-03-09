@@ -10,7 +10,7 @@ self: super: let
               (n: v: lib.nameValuePair n v)
               (import (./. + "/pkgs/${filename}") self super)
           )
-          (builtins.attrNames (builtins.readDir ./pkgs))
+          (builtins.attrNames (lib.filterAttrs (_: v: v == "regular") (builtins.readDir ./pkgs)))
       )
     );
 in
