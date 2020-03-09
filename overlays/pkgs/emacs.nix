@@ -2,7 +2,7 @@ self: super:
 
 let
   inherit (self) pkgs;
-  inherit (pkgs) epkgs stdenv emacsPackagesNgGen;
+  inherit (pkgs) epkgs stdenv fetchurl emacsPackagesNgGen;
 
   emacs27 = (
     super.emacs.override {
@@ -14,15 +14,16 @@ let
     oldAttrs: rec {
       name = "${pname}-${version}";
       pname = stdenv.lib.removeSuffix "-${oldAttrs.version}" oldAttrs.name;
-      version = "2020-03-08";
+      version = "27.0.90";
 
-      src = builtins.fetchTarball {
-        url = "https://git.savannah.gnu.org/cgit/emacs.git/snapshot/emacs-a461baae79af3cea8780e9d9a845a1e859e96e5e.tar.gz";
+      src = fetchurl {
+        url = "https://git.savannah.gnu.org/cgit/emacs.git/snapshot/${name}.tar.gz";
+        sha256 = "sha256-Rynqv8zfGA/9n/OZXb2ww5Xa0uRb+OQy+ChThvjVv4I=";
       };
 
       patches = [
         ../../patches/emacs/clean-env.patch
-        ../../patches/emacs/tramp-detect-wrapped-gvfsd.patch
+        <nixpkgs/pkgs/applications/editors/emacs/tramp-detect-wrapped-gvfsd.patch>
       ];
 
       buildInputs = oldAttrs.buildInputs ++ (with pkgs; [ harfbuzz ]);
