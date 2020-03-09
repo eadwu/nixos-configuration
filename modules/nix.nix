@@ -65,7 +65,11 @@ with config.nixos; {
           };
         }
       )
-    ] ++ lib.optional (builtins.pathExists <nixpkgs-overlays>) (import <nixpkgs-overlays>);
+    ] ++ lib.optionals (builtins.pathExists <nixpkgs-overlays>) (
+      map
+        (p: import (<nixpkgs-overlays> + "/${p}"))
+        (builtins.attrNames (lib.filterAttrs (_: v: v == "regular") (builtins.readDir <nixpkgs-overlays>)))
+    );
 
     config = {
       allowUnfree = true;
