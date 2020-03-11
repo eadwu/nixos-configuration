@@ -9432,7 +9432,7 @@ index 000000000000..458a051fdac5
 +#endif /* _BCACHEFS_BKEY_SORT_H */
 diff --git a/fs/bcachefs/bset.c b/fs/bcachefs/bset.c
 new file mode 100644
-index 000000000000..abf87ebd4906
+index 000000000000..1efb7fb31e09
 --- /dev/null
 +++ b/fs/bcachefs/bset.c
 @@ -0,0 +1,1802 @@
@@ -9517,8 +9517,8 @@ index 000000000000..abf87ebd4906
 +		_n = bkey_next_skip_noops(_k, vstruct_last(i));
 +
 +		bch2_bkey_to_text(&PBUF(buf), &k);
-+		printk(KERN_ERR "block %u key %5u: %s\n", set,
-+		       __btree_node_key_to_offset(b, _k), buf);
++		printk(KERN_ERR "block %u key %5zu: %s\n", set,
++		       _k->_data - i->_data, buf);
 +
 +		if (_n == vstruct_last(i))
 +			continue;
@@ -32567,7 +32567,7 @@ index 000000000000..e9dc8091ba3f
 +#endif /* _BCACHEFS_EXTENT_UPDATE_H */
 diff --git a/fs/bcachefs/extents.c b/fs/bcachefs/extents.c
 new file mode 100644
-index 000000000000..10feb856e314
+index 000000000000..cb88dd15a86c
 --- /dev/null
 +++ b/fs/bcachefs/extents.c
 @@ -0,0 +1,1236 @@
@@ -32918,7 +32918,7 @@ index 000000000000..10feb856e314
 +			    crc_r.uncompressed_size > c->sb.encoded_extent_max)
 +				return BCH_MERGE_NOMERGE;
 +
-+			if (crc_l.uncompressed_size + crc_r.uncompressed_size - 1 >
++			if (crc_l.uncompressed_size + crc_r.uncompressed_size >
 +			    bch2_crc_field_size_max[extent_entry_type(en_l)])
 +				return BCH_MERGE_NOMERGE;
 +
@@ -33136,15 +33136,15 @@ index 000000000000..10feb856e314
 +	enum bch_extent_entry_type type;
 +
 +	if (bch_crc_bytes[new.csum_type]	<= 4 &&
-+	    new.uncompressed_size - 1		<= CRC32_SIZE_MAX &&
++	    new.uncompressed_size		<= CRC32_SIZE_MAX &&
 +	    new.nonce				<= CRC32_NONCE_MAX)
 +		type = BCH_EXTENT_ENTRY_crc32;
 +	else if (bch_crc_bytes[new.csum_type]	<= 10 &&
-+		   new.uncompressed_size - 1	<= CRC64_SIZE_MAX &&
++		   new.uncompressed_size	<= CRC64_SIZE_MAX &&
 +		   new.nonce			<= CRC64_NONCE_MAX)
 +		type = BCH_EXTENT_ENTRY_crc64;
 +	else if (bch_crc_bytes[new.csum_type]	<= 16 &&
-+		   new.uncompressed_size - 1	<= CRC128_SIZE_MAX &&
++		   new.uncompressed_size	<= CRC128_SIZE_MAX &&
 +		   new.nonce			<= CRC128_NONCE_MAX)
 +		type = BCH_EXTENT_ENTRY_crc128;
 +	else
@@ -42843,10 +42843,10 @@ index 000000000000..bb759a46dc41
 +#endif /* _BCACHEFS_INODE_H */
 diff --git a/fs/bcachefs/io.c b/fs/bcachefs/io.c
 new file mode 100644
-index 000000000000..7cc26af16a1b
+index 000000000000..7312ab2a1435
 --- /dev/null
 +++ b/fs/bcachefs/io.c
-@@ -0,0 +1,2306 @@
+@@ -0,0 +1,2307 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Some low level IO code, and hacks for various block layer limitations
@@ -44070,7 +44070,8 @@ index 000000000000..7cc26af16a1b
 +
 +	if (c->opts.nochanges ||
 +	    !percpu_ref_tryget(&c->writes)) {
-+		__bcache_io_error(c, "read only");
++		if (!(op->flags & BCH_WRITE_FROM_INTERNAL))
++			__bcache_io_error(c, "read only");
 +		op->error = -EROFS;
 +		goto err;
 +	}
@@ -45155,10 +45156,10 @@ index 000000000000..7cc26af16a1b
 +}
 diff --git a/fs/bcachefs/io.h b/fs/bcachefs/io.h
 new file mode 100644
-index 000000000000..37f7fa6102fc
+index 000000000000..e45dcf9635ae
 --- /dev/null
 +++ b/fs/bcachefs/io.h
-@@ -0,0 +1,165 @@
+@@ -0,0 +1,166 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +#ifndef _BCACHEFS_IO_H
 +#define _BCACHEFS_IO_H
@@ -45192,10 +45193,11 @@ index 000000000000..37f7fa6102fc
 +	BCH_WRITE_ONLY_SPECIFIED_DEVS	= (1 << 6),
 +	BCH_WRITE_NOPUT_RESERVATION	= (1 << 7),
 +	BCH_WRITE_WROTE_DATA_INLINE	= (1 << 8),
++	BCH_WRITE_FROM_INTERNAL		= (1 << 9),
 +
 +	/* Internal: */
-+	BCH_WRITE_JOURNAL_SEQ_PTR	= (1 << 9),
-+	BCH_WRITE_SKIP_CLOSURE_PUT	= (1 << 10),
++	BCH_WRITE_JOURNAL_SEQ_PTR	= (1 << 10),
++	BCH_WRITE_SKIP_CLOSURE_PUT	= (1 << 11),
 +};
 +
 +static inline u64 *op_journal_seq(struct bch_write_op *op)
@@ -50100,10 +50102,10 @@ index 000000000000..027efaa0d575
 +#endif /* _BCACHEFS_MIGRATE_H */
 diff --git a/fs/bcachefs/move.c b/fs/bcachefs/move.c
 new file mode 100644
-index 000000000000..ecc74ebe0579
+index 000000000000..4afda95f4017
 --- /dev/null
 +++ b/fs/bcachefs/move.c
-@@ -0,0 +1,810 @@
+@@ -0,0 +1,811 @@
 +// SPDX-License-Identifier: GPL-2.0
 +
 +#include "bcachefs.h"
@@ -50349,7 +50351,8 @@ index 000000000000..ecc74ebe0579
 +	m->op.flags |= BCH_WRITE_ONLY_SPECIFIED_DEVS|
 +		BCH_WRITE_PAGES_STABLE|
 +		BCH_WRITE_PAGES_OWNED|
-+		BCH_WRITE_DATA_ENCODED;
++		BCH_WRITE_DATA_ENCODED|
++		BCH_WRITE_FROM_INTERNAL;
 +
 +	m->op.nr_replicas	= 1;
 +	m->op.nr_replicas_required = 1;
@@ -53527,10 +53530,10 @@ index 000000000000..192c6be20ced
 +#endif /* _BCACHEFS_REBALANCE_TYPES_H */
 diff --git a/fs/bcachefs/recovery.c b/fs/bcachefs/recovery.c
 new file mode 100644
-index 000000000000..1871485c079d
+index 000000000000..712a6b1fd968
 --- /dev/null
 +++ b/fs/bcachefs/recovery.c
-@@ -0,0 +1,1142 @@
+@@ -0,0 +1,1145 @@
 +// SPDX-License-Identifier: GPL-2.0
 +
 +#include "bcachefs.h"
@@ -53950,14 +53953,17 @@ index 000000000000..1871485c079d
 +				     enum btree_id id, struct bkey_i *k)
 +{
 +	struct btree_iter *iter;
++	int ret;
 +
 +	iter = bch2_trans_get_iter(trans, id, bkey_start_pos(&k->k),
 +				   BTREE_ITER_INTENT);
 +	if (IS_ERR(iter))
 +		return PTR_ERR(iter);
 +
-+	bch2_trans_update(trans, iter, k, BTREE_TRIGGER_NORUN);
-+	return 0;
++	ret   = bch2_btree_iter_traverse(iter) ?:
++		bch2_trans_update(trans, iter, k, BTREE_TRIGGER_NORUN);
++	bch2_trans_iter_put(trans, iter);
++	return ret;
 +}
 +
 +static int bch2_journal_replay_key(struct bch_fs *c, enum btree_id id,
@@ -66773,10 +66779,10 @@ index 3321d04dfa5a..15f5c5ea0832 100644
  	bool
  	depends on !NO_IOMEM
 diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
-index 93d97f9b0157..a23af13e86bc 100644
+index f61d834e02fe..225b0062cf79 100644
 --- a/lib/Kconfig.debug
 +++ b/lib/Kconfig.debug
-@@ -1405,6 +1405,15 @@ config DEBUG_CREDENTIALS
+@@ -1394,6 +1394,15 @@ config DEBUG_CREDENTIALS
  
  source "kernel/rcu/Kconfig.debug"
  
@@ -66792,7 +66798,7 @@ index 93d97f9b0157..a23af13e86bc 100644
  config DEBUG_WQ_FORCE_RR_CPU
  	bool "Force round-robin CPU selection for unbound work items"
  	depends on DEBUG_KERNEL
-@@ -1633,6 +1642,11 @@ config LATENCYTOP
+@@ -1622,6 +1631,11 @@ config LATENCYTOP
  	  Enable this option if you want to use the LatencyTOP tool
  	  to find out which userspace is blocking on what kernel operations.
  
@@ -68518,7 +68524,7 @@ index 1f5731768222..074b33f9d91a 100644
  }
  
 diff --git a/mm/gup.c b/mm/gup.c
-index 8f236a335ae9..0da65afb3344 100644
+index 745b4036cdfd..b636581e008a 100644
 --- a/mm/gup.c
 +++ b/mm/gup.c
 @@ -840,6 +840,13 @@ static long __get_user_pages(struct task_struct *tsk, struct mm_struct *mm,
