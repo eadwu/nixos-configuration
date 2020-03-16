@@ -25,6 +25,7 @@ in
         ../modules/jupyter.nix
         ../modules/libvirt.nix
         ../modules/logind
+        ../modules/lorri.nix
         ../modules/mpd
         ../modules/netdata.nix
         ../modules/network
@@ -62,7 +63,7 @@ in
         gcc
         gdb
         llvmPackages.clang-unwrapped
-        mongodb
+        # mongodb
         mysql57
         nasm
         nodejs
@@ -88,7 +89,7 @@ in
         ffmpeg
         gnupg
         imagemagick7
-        nix-diff
+        # nix-diff
         rofi
         scrot
         st
