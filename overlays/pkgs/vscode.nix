@@ -160,15 +160,15 @@ self: super:
       {
         name = "vscode-docker";
         publisher = "ms-azuretools";
-        version = "0.10.0";
-        sha256 = "1n4pviahpr67y6zz3nvj6841dv0vpdrg9wi9w5viv9vc3psj5mkp";
+        version = "1.0.0";
+        sha256 = "1zljdgym3kz4plb2a3z0yxvpqf4lnf215rajjs5sr7dxx3dwrxdg";
       }
 
       {
         name = "pyright";
         publisher = "ms-pyright";
-        version = "1.1.26";
-        sha256 = "0lxnycrxpdnmg9kz83pxlbjx4w26m7p1iypj5bzdd1jmp8yrlpqn";
+        version = "1.1.27";
+        sha256 = "1pid8adbwalhs8h9m7p5ra2xjgs2nn0ap4mkkr9r35ffdm5jxff8";
       }
 
       {
@@ -188,8 +188,8 @@ self: super:
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.1711";
-        sha256 = "04pjbi24d1yzf2xgx92i0rm6mkgzn7amddln0am8a42agkalyxf1";
+        version = "1.0.1742";
+        sha256 = "108rxmr8h7fc56wnpw37721ailka8kbzh22hq3hb8dmw9r6s9fci";
       }
 
       {
@@ -293,8 +293,8 @@ self: super:
       {
         name = "vscode-maven";
         publisher = "vscjava";
-        version = "0.21.0";
-        sha256 = "0c7ydyjj4m5mxgyi7yqqb8vd20d5mag230blah9bw6xw68y2fg40";
+        version = "0.21.1";
+        sha256 = "04wjjr70f0q77321hqmh0axfwilqjdb9ipnf5qrclsql8jsz86wp";
       }
     ];
   };

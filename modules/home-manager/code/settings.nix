@@ -48,8 +48,8 @@ in
     "notificationLink.foreground" = "#616161";
     "editorWidget.border" = "#616161";
   };
-  "workbench.colorTheme" = "Noctis Minimus";
-  "workbench.iconTheme" = "eq-material-theme-icons-ocean";
+  "workbench.colorTheme" = "Material Theme Ocean";
+  "workbench.iconTheme" = "vs-seti";
   "workbench.sideBar.location" = "right";
   "breadcrumbs.enabled" = true;
   "window.menuBarVisibility" = "toggle";
@@ -187,13 +187,14 @@ in
   ];
   "latex-workshop.latexindent.path" = "${texlive.combined.scheme-full}/bin/latexindent";
   "latex-workshop.synctex.path" = "${texlive.combined.scheme-full}/bin/synctex";
-  "latex-workshop.texcount.path" = "${texlive.combined.scheme-full}/bin/texcount";
+  "latex-workshop.texdoc.path" = "${texlive.combined.scheme-full}/bin/texdoc";
   "latex-workshop.view.pdf.viewer" = "tab";
   "materialTheme.accent" = "Graphite";
   "npm.packageManager" = "yarn";
   "path-intellisense.showHiddenFiles" = true;
   "python.autoComplete.addBrackets" = true;
   "python.autoUpdateLanguageServer" = false;
+  "python.dataScience.ignoreVscodeTheme" = true;
   "python.formatting.provider" = "yapf";
   "python.formatting.yapfPath" = "${python3Packages.yapf}/bin/yapf";
   "python.jediEnabled" = false;
@@ -209,9 +210,8 @@ in
   "python.linting.pylamaPath" = "${python3Packages.pylama}/bin/pylama";
   "python.linting.pylintPath" = "${python3Packages.pylint}/bin/pylint";
   "python.pythonPath" = "${python3Packages.python}/bin/python3";
-  "python.testing.pyTestEnabled" = false;
-  "python.testing.pyTestPath" = "${python3Packages.pytest}/bin/pytest";
   "python.testing.unittestEnabled" = true;
+  "maven.executable.path" = "${maven}/bin/mvn";
   "maven.terminal.useJavaHome" = true;
   "metals.javaHome" = JAVA_HOME;
   "rust.rustfmt_path" = "${rustPlatform.rust}/bin/rustfmt";
