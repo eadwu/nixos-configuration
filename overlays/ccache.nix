@@ -3,7 +3,7 @@ self: super:
 let
   lib = super.stdenv.lib;
   pkgs = lib.genAttrs
-    [ "linux_latest" "linux_testing" "emacs" "shogun" ]
+    [ "linux_latest" "emacs" ]
     (attr: (super.${attr}.override { stdenv = builtins.trace "with ccache: ${attr}" self.ccacheStdenv; }));
 in {
   ccacheWrapper = super.ccacheWrapper.override {
