@@ -5,13 +5,13 @@
     [
       ./bcachefs.nix
 
-      <nixpkgs/nixos/modules/profiles/hardened.nix>
       <nixpkgs/nixos/modules/installer/cd-dvd/channel.nix>
       <nixpkgs/nixos/modules/installer/cd-dvd/installation-cd-minimal.nix>
     ];
 
   boot = {
     zfs.enableUnstable = true;
+    kernelPackages = lib.mkForce pkgs.linuxPackages_latest;
 
     kernelPatches = lib.mkBefore [
       (import ../patches/kernel/disable-amateur-radio-support.nix)
@@ -52,9 +52,4 @@
   };
 
   nixpkgs.config.allowUnfree = true;
-
-  security = {
-    allowUserNamespaces = true;
-    allowSimultaneousMultithreading = true;
-  };
 }
