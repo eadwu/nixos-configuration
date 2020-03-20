@@ -35,10 +35,6 @@ with config.nixos; {
     extraOptions = ''
       show-trace = true
       experimental-features = flakes nix-command
-      # Getting the latest vivaldi snapshot uses IFD
-      # allow-import-from-derivation = false
-      # Useful when the builder has a faster internet connection than yours
-      # builders-use-substitutes = true
     '';
 
     nixPath = [ "/etc/nixos" ]
