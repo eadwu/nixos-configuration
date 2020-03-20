@@ -12,17 +12,15 @@ with config.nixos; {
     allowedUsers = [ "@wheel" ];
 
     binaryCaches = [
-      "https://config.cachix.org/"
-      "https://all-hies.cachix.org/"
-      "https://boxpub.cachix.org/"
+      "https://sys.cachix.org/"
       "https://rpi.cachix.org/"
+      "https://all-hies.cachix.org/"
     ];
 
     binaryCachePublicKeys = [
-      "config.cachix.org-1:dR/yvjsRz8TWkZj5mKcTckVTpHWCy9aPiRwGIvhAP9A="
-      "all-hies.cachix.org-1:JjrzAOEUsD9ZMt8fdFbzo3jNAyEWlPAwdVuHw4RD43k="
-      "boxpub.cachix.org-1:H+WS+f/7uZml+Koio43kDpA7emp6aJ6kAwRS47oX0Zo="
+      "sys.cachix.org-1:+pkmJFQq2g1Oq/u3bDlcyL4EwYWwlvmFWZpUwMDN3M4="
       "rpi.cachix.org-1:Rfb3+jN/+LcMvuTkGFkB9uTkRcNUq97AGSFxF1wMPDU="
+      "all-hies.cachix.org-1:JjrzAOEUsD9ZMt8fdFbzo3jNAyEWlPAwdVuHw4RD43k="
     ];
 
     buildMachines = [

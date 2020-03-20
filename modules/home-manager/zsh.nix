@@ -25,7 +25,7 @@
         }
 
         nix-upload-system () {
-          cachix push config \
+          cachix push sys \
             $(nix-derive-output $(nix-build "<nixpkgs/nixos>" \
               -A config.system.build.toplevel \
               --no-out-link))
