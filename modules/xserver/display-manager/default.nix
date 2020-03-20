@@ -33,6 +33,11 @@ with config.nixos; {
     };
   };
 
+  security.pam.u2f = {
+    enable = true;
+    control = "required";
+  };
+
   security.pam.services = {
     lightdm.u2fAuth = true;
     sddm.u2fAuth = true;

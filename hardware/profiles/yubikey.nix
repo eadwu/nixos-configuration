@@ -25,6 +25,4 @@ in
   environment.systemPackages = with pkgs; [ pam_u2f yubikey-personalization ];
 
   hardware.u2f.enable = true;
-  security.pam.u2f.enable = true;
-  security.pam.u2f.control = "required";
 }
