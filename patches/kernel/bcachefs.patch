@@ -32157,10 +32157,10 @@ index 000000000000..de319794ccd1
 +#endif /* _BCACHEFS_ERROR_H */
 diff --git a/fs/bcachefs/extent_update.c b/fs/bcachefs/extent_update.c
 new file mode 100644
-index 000000000000..beb3b694e33c
+index 000000000000..8e5070d5a39b
 --- /dev/null
 +++ b/fs/bcachefs/extent_update.c
-@@ -0,0 +1,210 @@
+@@ -0,0 +1,214 @@
 +// SPDX-License-Identifier: GPL-2.0
 +#include "bcachefs.h"
 +#include "bkey_on_stack.h"
@@ -32207,6 +32207,10 @@ index 000000000000..beb3b694e33c
 +	 * extent we're inserting and overwriting:
 +	 */
 +	*nr_iters += 1;
++	if (*nr_iters >= max_iters) {
++		*end = bpos_min(*end, k.k->p);
++		ret = 1;
++	}
 +
 +	switch (k.k->type) {
 +	case KEY_TYPE_extent:
