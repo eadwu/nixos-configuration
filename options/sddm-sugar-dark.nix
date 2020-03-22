@@ -79,7 +79,7 @@ let
 
       font = mkOption {
         type = types.str;
-        default = "Optician Sans";
+        default = "Comfortaa";
       };
 
       fontSize = mkOption {

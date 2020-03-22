@@ -3,7 +3,7 @@
 {
   programs.rofi = {
     enable = true;
-    font = "Optician Sans 8";
+    font = "Comfortaa 8";
     lines = 30;
     location = "left";
     padding = 28;

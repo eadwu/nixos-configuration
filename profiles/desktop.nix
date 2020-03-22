@@ -108,11 +108,11 @@ in
       enableGhostscriptFonts = true;
       fonts = with pkgs; [
         anonymousPro
+        comfortaa
         corefonts
         font-awesome_5
         ibm-plex
         liberation_ttf
-        optician-sans
         noto-fonts-cjk
         recursive
         unifont

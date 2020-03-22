@@ -53,7 +53,7 @@ assert builtins.pathExists ./xmonad/xmonad.hs;
         border-bottom-size = 8;
         border-color = colors.color1;
 
-        font-0 = "Optician Sans:size=8;3";
+        font-0 = "Comfortaa:size=8;3";
         font-1 = "Font Awesome 5 Free:style=Regular:size=7;3";
         font-2 = "Font Awesome 5 Free:style=Solid:size=7;3";
         font-3 = "Font Awesome 5 Brands:size=7;3";
