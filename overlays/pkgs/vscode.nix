@@ -34,8 +34,8 @@ self: super:
       {
         name = "latex-workshop";
         publisher = "James-Yu";
-        version = "8.7.2";
-        sha256 = "17rv3yqns8jh1y7j36nyrs1kxg30hwrhyhviccwjrwy08ls9qvqk";
+        version = "8.8.0";
+        sha256 = "1nj12w0bxmqd18k2rqpxq7aibjhyzlw844zspghg5qmlwa44rzdm";
       }
 
       {
@@ -90,8 +90,8 @@ self: super:
       {
         name = "githistory";
         publisher = "donjayamanne";
-        version = "0.6.2";
-        sha256 = "01qx6yiy64vfmg5305mrw6w18baa7a55h8wrq47h1wrmfyca52js";
+        version = "0.6.3";
+        sha256 = "0h989yl1mmi5kfmskcdi1xcjmgv9kpzkx5znjaby8wzdwjlprm1p";
       }
 
       {
@@ -167,8 +167,8 @@ self: super:
       {
         name = "pyright";
         publisher = "ms-pyright";
-        version = "1.1.27";
-        sha256 = "1pid8adbwalhs8h9m7p5ra2xjgs2nn0ap4mkkr9r35ffdm5jxff8";
+        version = "1.1.28";
+        sha256 = "19qwxjjb1q2fp776wyjfjkmnvcgvx0xr1lw24ja2aifbfwcvvylh";
       }
 
       {
@@ -188,8 +188,8 @@ self: super:
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.1742";
-        sha256 = "108rxmr8h7fc56wnpw37721ailka8kbzh22hq3hb8dmw9r6s9fci";
+        version = "1.0.1783";
+        sha256 = "0vn2ddkjh3bdsg50ygi864p03z6ipvns02wh7njvrsb7k7j8hr1v";
       }
 
       {
@@ -244,8 +244,8 @@ self: super:
       {
         name = "metals";
         publisher = "scalameta";
-        version = "1.8.0";
-        sha256 = "0r1r96xclr8c3rjgs944zdim9rjq6hfajvv7yh3hn75cy684bck5";
+        version = "1.8.4";
+        sha256 = "0j64hpbll0mqspvikgg54lh279z1xmvdmmxjy0cf20az8cz19fwf";
       }
 
       {
@@ -258,8 +258,8 @@ self: super:
       {
         name = "vscode-stylelint";
         publisher = "stylelint";
-        version = "0.83.0";
-        sha256 = "1q5kj1dw55hr7k7y80mzi5h35r3z5k187qwz5y01rdi0sjsc64aa";
+        version = "0.84.0";
+        sha256 = "0n8shcx63ilhv9ncqm57nnn1fdm5bz53vhc0p6kffl3gs1axkx9x";
       }
 
       {
@@ -293,8 +293,8 @@ self: super:
       {
         name = "vscode-maven";
         publisher = "vscjava";
-        version = "0.21.1";
-        sha256 = "04wjjr70f0q77321hqmh0axfwilqjdb9ipnf5qrclsql8jsz86wp";
+        version = "0.21.2";
+        sha256 = "1ivmxf41ywxaihmqrg4l6qxrj5x9xag126s4lfzmgnb9cl86f489";
       }
     ];
   };
