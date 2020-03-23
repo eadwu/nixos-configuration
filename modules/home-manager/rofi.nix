@@ -1,26 +1,16 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 
 {
   programs.rofi = {
     enable = true;
-    font = "Comfortaa 8";
-    lines = 30;
-    location = "left";
-    padding = 28;
-    scrollbar = false;
-    separator = "none";
     terminal = "${pkgs.st}/bin/st";
-    theme = "~/.config/rofi/theme.rasi";
-    width = -50;
-    borderWidth = 0;
-
-    extraConfig = ''
-      rofi.columns: 1
-      rofi.dpi: 1
-      rofi.modi: drun,run,window,ssh
-      rofi.show-icons: true
-    '';
   };
 
-  xdg.configFile."rofi/theme.rasi".source = ./rofi/theme.rasi;
+  xdg.configFile = lib.genAttrs
+    (map
+      (attr: "rofi/${attr}")
+      (builtins.attrNames
+        (lib.filterAttrs (_: v: v == "regular")
+        (builtins.readDir ./rofi))))
+    (path: { source = (builtins.toString ./.) + "/${path}"; });
 }
