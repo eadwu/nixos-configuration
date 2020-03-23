@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
 {
   xresources.properties = {
@@ -23,7 +23,10 @@
     "*color14" = "#1de9b6";
     "*color15" = "#cccccc";
     "*color66" = "#0c0e14";
-  };
+  } // (with config.sysConfig.fonts.fontconfig; lib.optionalAttrs (dpi != 0) {
+    "*dpi" = dpi;
+    "Xft.dpi" = dpi;
+  });
 
   xsession = {
     enable = true;
