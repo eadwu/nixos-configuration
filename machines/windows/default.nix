@@ -22,8 +22,8 @@ with config.nixos; {
   environment.variables.QT_AUTO_SCREEN_SCALE_FACTOR = toString settings.xserver.dpiScale;
 
   fonts.fontconfig = {
-    antialias = false;
-    dpi = 200;
+    antialias = true;
+    dpi = 193;
   };
 
   console = {
