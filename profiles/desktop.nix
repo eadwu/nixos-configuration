@@ -22,7 +22,6 @@ in
         ../modules/cups.nix
         ../modules/emacs.nix
         ../modules/i3color.nix
-        ../modules/jupyter.nix
         ../modules/libvirt.nix
         ../modules/logind
         ../modules/lorri.nix
