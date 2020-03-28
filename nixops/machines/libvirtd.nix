@@ -1,7 +1,11 @@
 { lib, ... }:
 
 {
-  imports = [ ./. ];
+  imports =
+    [
+      ./.
+      <nixpkgs/nixos/modules/profiles/qemu-guest.nix>
+    ];
 
   deployment.targetEnv = "libvirtd";
   deployment.libvirtd = {
