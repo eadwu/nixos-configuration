@@ -8,9 +8,8 @@ with config.nixos; {
     ];
 
   environment.etc."iwd/main.conf".text = lib.generators.toINI {} {
-    General = {
-      AddressRandomization = "once";
-    };
+    # https://www.phoronix.com/scan.php?page=news_item&px=IWD-MAC-Override-Randomize
+    General.AddressRandomization = "network";
   };
 
   networking = {
