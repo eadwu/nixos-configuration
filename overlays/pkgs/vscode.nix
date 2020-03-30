@@ -83,8 +83,8 @@ self: super:
       {
         name = "vscode-eslint";
         publisher = "dbaeumer";
-        version = "2.1.1";
-        sha256 = "11ybn0hrarp1v06zjql9lcbvr70ryhij8v2v23q45gm0qgmpk5ib";
+        version = "2.1.2";
+        sha256 = "0dzkl40i6611m39sxrnyn111vpi32hlpjq9ifbl7iyxqdnipwlaj";
       }
 
       {
@@ -167,8 +167,8 @@ self: super:
       {
         name = "pyright";
         publisher = "ms-pyright";
-        version = "1.1.28";
-        sha256 = "19qwxjjb1q2fp776wyjfjkmnvcgvx0xr1lw24ja2aifbfwcvvylh";
+        version = "1.1.30";
+        sha256 = "1yd94cccrjij6skblkznyxkkf6rbfxk2lxbwhhp31x62lvyv05s3";
       }
 
       {
@@ -188,8 +188,8 @@ self: super:
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.1783";
-        sha256 = "0vn2ddkjh3bdsg50ygi864p03z6ipvns02wh7njvrsb7k7j8hr1v";
+        version = "1.0.1847";
+        sha256 = "0mcfqr91w20bp3zwndc1c6qsns3vn0c2c2qbn2k8hblsifcdqaph";
       }
 
       {
@@ -239,13 +239,6 @@ self: super:
         publisher = "scala-lang";
         version = "0.3.9";
         sha256 = "0l6zrpp2klqdym977zygmbzf0478lbqmivcxa2xmqyi34c9vwli7";
-      }
-
-      {
-        name = "metals";
-        publisher = "scalameta";
-        version = "1.8.4";
-        sha256 = "0j64hpbll0mqspvikgg54lh279z1xmvdmmxjy0cf20az8cz19fwf";
       }
 
       {

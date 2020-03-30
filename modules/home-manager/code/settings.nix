@@ -194,7 +194,6 @@ in
   "path-intellisense.showHiddenFiles" = true;
   "python.autoComplete.addBrackets" = true;
   "python.autoUpdateLanguageServer" = false;
-  "python.dataScience.ignoreVscodeTheme" = true;
   "python.formatting.provider" = "yapf";
   "python.formatting.yapfPath" = "${python3Packages.yapf}/bin/yapf";
   "python.jediEnabled" = false;
