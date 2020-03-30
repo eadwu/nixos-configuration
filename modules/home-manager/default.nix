@@ -9,7 +9,7 @@
 
       # Window Manager
       # ./bspwm.nix
-      ./dwm.nix
-      # ./xmonad.nix
+      # ./dwm.nix
+      ./xmonad.nix
     ];
 }

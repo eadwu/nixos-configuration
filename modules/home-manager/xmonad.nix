@@ -3,8 +3,11 @@
 assert builtins.pathExists ./xmonad/xmonad.hs;
 
 {
+  fonts.fontconfig.enable = true;
+
   home.packages = with pkgs; [
     polybar
+    (nerdfonts.override { fonts = [ "LiberationMono" ]; })
   ];
 
   home.sessionVariables = {
@@ -23,14 +26,23 @@ assert builtins.pathExists ./xmonad/xmonad.hs;
 
     config = rec {
       settings = {
-        compositing-foreground = "source";
+        # No fake transparency, need compositor
+        pseudo-transparency = false;
+
+        # Compositing operators
+        compositing-background = "source";
+        compositing-foreground = "over";
+        compositing-overline = "over";
+        compositing-underline = "over";
+        compositing-border = "over";
       };
 
       colors = rec {
-        # #00${xrdb:*background} for transparency
-        background = ''''${xrdb:*background}'';
-        # ${xrdb:*foreground}
+        background = "#d80c0e14";
+        solid-background = ''''${xrdb:*background}'';
         foreground = ''''${xrdb:*foreground}'';
+
+        accent = "#c3e88d";
 
         color0 = background;
         color1 = ''''${xrdb:*color0}'';
@@ -38,42 +50,70 @@ assert builtins.pathExists ./xmonad/xmonad.hs;
         color3 = ''''${xrdb:*color5}'';
       };
 
-      "section/universal" = {
+      "section/universal" = rec {
         width = "100%";
+        height = 20 * config.sysConfig.nixos.settings.xserver.dpiScale;
         offset-x = 0;
         offset-y = 0;
         enable-ipc = true;
         override-redirect = true;
 
-        background = colors.color1;
+        background = colors.background;
         foreground = colors.foreground;
 
-        # "Fake" padding
-        border-top-size = 8;
-        border-bottom-size = 8;
-        border-color = colors.color1;
+        line-size = 2;
+        line-color = colors.accent;
 
-        font-0 = "Comfortaa:size=8;3";
+        font-0 = "Comfortaa:size=8;5";
         font-1 = "Font Awesome 5 Free:style=Regular:size=7;3";
         font-2 = "Font Awesome 5 Free:style=Solid:size=7;3";
         font-3 = "Font Awesome 5 Brands:size=7;3";
         font-4 = "Unifont:size=7;3";
         font-5 = "Weather Icons:size=8;4";
+        font-6 = "LiterationSans Nerd Font Mono:size=18;12";
       } // (with config.sysConfig.fonts.fontconfig; lib.optionalAttrs (dpi != 0) { inherit dpi; });
 
       "bar/workspace" = {
         "inherit" = "section/universal";
         bottom = true;
 
-        modules-left = "ewmh";
+        modules-left = "ewmh right-bottom";
         modules-right =
-          "temperature0 temperature1 temperature2 temperature3 temperature4 temperature5 cpu memory";
+          "left-bottom temperature0 temperature1 temperature2 temperature3 temperature4 temperature5 cpu right-top left-bottom memory";
       };
 
-      "bar/stat" = {
+      "bar/stat" = let
+        sep = "right-bottom left-top";
+      in {
         "inherit" = "section/universal";
 
-        modules-right = "filesystem network0 network1 network2 network3 battery backlight volume date";
+        modules-right = "left-top filesystem ${sep} network0 network1 network2 network3 battery ${sep} backlight volume ${sep} date";
+      };
+
+      "section/powerline" = {
+        type = "custom/text";
+        content-background = colors.background;
+        content-foreground = colors.solid-background;
+      };
+
+      "module/right-bottom" = {
+        "inherit" = "section/powerline";
+        content = "%{T7}%{T-}";
+      };
+
+      "module/left-bottom" = {
+        "inherit" = "section/powerline";
+        content = "%{T7}%{T-}";
+      };
+
+      "module/right-top" = {
+        "inherit" = "section/powerline";
+        content = "%{T7}%{T-}";
+      };
+
+      "module/left-top" = {
+        "inherit" = "section/powerline";
+        content = "%{T7}%{T-}";
       };
 
       "module/ewmh" = {
@@ -81,14 +121,19 @@ assert builtins.pathExists ./xmonad/xmonad.hs;
         icon-default = "KISS";
 
         label-empty = "%{T3}%{T-}";
+        label-empty-background = colors.solid-background;
         label-empty-foreground = "#382e37";
         label-empty-padding = 2;
 
         label-active = "%{T3}%{T-}";
-        label-active-foreground = colors.color2;
+        label-active-background = colors.solid-background;
+        label-active-foreground = colors.accent;
+        label-active-overline = colors.accent;
+        label-active-underline = colors.accent;
         label-active-padding = 2;
 
         label-occupied = "%{T3}%{T-}";
+        label-occupied-background = colors.solid-background;
         label-occupied-foreground = "#382e37";
         label-occupied-padding = 2;
 
@@ -104,17 +149,20 @@ assert builtins.pathExists ./xmonad/xmonad.hs;
         thermal-zone = 0;
         warn-temperature = 80;
 
-        label-background = colors.color1;
-        label-padding = 1;
-        label-warn-background = colors.color1;
-        label-warn-padding = 1;
+        label-background = colors.solid-background;
+        label-padding = 2;
+        label-warn-background = colors.solid-background;
+        label-warn-padding = 2;
 
-        format = "[ %{F#a1887f}<ramp>%{F-} <label> ]";
-        format-background = colors.color1;
-        format-warn = "[ %{F#a1887f}<ramp>%{F-} <label-warn> ]";
-        format-underline = "#5d4037";
-        format-warn-background = colors.color1;
-        format-warn-underline = "#5d4037";
+        format = "%{F#a1887f}<ramp>%{F-} <label>";
+        format-background = colors.solid-background;
+        format-background-padding-left = 2;
+        format-warn = "%{F#a1887f}<ramp>%{F-} <label-warn>";
+        format-warn-background = colors.solid-background;
+        format-warn-padding-left = 2;
+
+        format-overline = "#5d4037";
+        format-warn-overline = "#5d4037";
 
         ramp-0 = "%{T3}%{T-}";
         ramp-1 = "%{T3}%{T-}";
@@ -159,10 +207,10 @@ assert builtins.pathExists ./xmonad/xmonad.hs;
 
         label = "%percentage%%";
 
-        format = "[ %{F#a1887f}%{F-} <label> <ramp-coreload> ]";
-        format-background = colors.color1;
-        format-padding = 1;
-        format-underline = "#5d4037";
+        format = "%{F#a1887f}%{F-} <label> <ramp-coreload>";
+        format-background = colors.solid-background;
+        format-padding = 2;
+        format-overline = "#5d4037";
 
         ramp-coreload-0 = "%{T5}▁%{T-}";
         ramp-coreload-1 = "%{T5}▂%{T-}";
@@ -181,10 +229,10 @@ assert builtins.pathExists ./xmonad/xmonad.hs;
 
         label = "%percentage_used%%";
 
-        format = "[ %{F#e57373}%{F-} <label> <bar-used> ]";
-        format-background = colors.color1;
-        format-padding = 1;
-        format-underline = "#d32f2f";
+        format = "%{F#e57373}%{F-} <label> <bar-used>";
+        format-background = colors.solid-background;
+        format-padding = 2;
+        format-overline = "#d32f2f";
 
         bar-used-width = 30;
         bar-used-indicator = "|";
@@ -198,12 +246,12 @@ assert builtins.pathExists ./xmonad/xmonad.hs;
         interval = 1;
         fixed-values = true;
 
-        label-mounted = "[ %{F#ff8a65}%{F-} %free% ]";
-        label-mounted-background = colors.color1;
-        label-mounted-padding = 1;
-        label-unmounted = "[ %{F#ff8a65}%{F-} N/A ]";
-        label-unmounted-background = colors.color1;
-        label-unmounted-padding = 1;
+        label-mounted = "%{F#ff8a65}%{F-} %free%";
+        label-mounted-background = colors.solid-background;
+        label-mounted-padding = 2;
+        label-unmounted = "%{F#ff8a65}%{F-} N/A";
+        label-unmounted-background = colors.solid-background;
+        label-unmounted-padding = 2;
 
         format-mounted = "<label-mounted>";
         format-unmounted = "<label-unmounted>";
@@ -216,12 +264,12 @@ assert builtins.pathExists ./xmonad/xmonad.hs;
         type = "internal/network";
         interval = 1; # 3.0
 
-        label-connected = "[ %{F#64b5f6}%{F-} %essid% - %local_ip% ]";
-        label-connected-background = colors.color1;
-        label-connected-padding = 1;
-        label-disconnected = "[ %{F#64b5f6}%{F-} N/A ]";
-        label-disconnected-background = colors.color1;
-        label-disconnected-padding = 1;
+        label-connected = "%{F#64b5f6}%{F-} %essid% - %local_ip%";
+        label-connected-background = colors.solid-background;
+        label-connected-padding = 2;
+        label-disconnected = "%{F#64b5f6}%{F-} N/A";
+        label-disconnected-background = colors.solid-background;
+        label-disconnected-padding = 2;
 
         format-connected = "<label-connected>";
         format-connected-underline = "#1976d2";
@@ -262,18 +310,18 @@ assert builtins.pathExists ./xmonad/xmonad.hs;
         poll-interval = 1;
 
         label-full = "%{F#81c784}%{F-} %percentage%%";
-        label-full-background = colors.color1;
-        label-full-padding = 1;
         label-charging = "%percentage%% (%time%)";
         label-discharging = "%percentage%% (%consumption%, %time%)";
 
-        format-full = "[ <label-full> ]";
-        format-charging = "[ <animation-charging> <label-charging> ]";
-        format-charging-background = colors.color1;
-        format-charging-padding = 1;
-        format-discharging = "[ <ramp-capacity> <label-discharging> ]";
-        format-discharging-background = colors.color1;
-        format-discharging-padding = 1;
+        format-full = "<label-full>";
+        format-full-background = colors.solid-background;
+        format-full-padding = 2;
+        format-charging = "<animation-charging> <label-charging>";
+        format-charging-background = colors.solid-background;
+        format-charging-padding = 2;
+        format-discharging = "<ramp-capacity> <label-discharging>";
+        format-discharging-background = colors.solid-background;
+        format-discharging-padding = 2;
 
         format-full-underline = "#388e3c";
         format-charging-underline = "#388e3c";
@@ -299,9 +347,9 @@ assert builtins.pathExists ./xmonad/xmonad.hs;
 
         label = "%percentage%%";
 
-        format = "[ %{F#fff176}<ramp>%{F-} <label> <bar> ]";
-        format-background = colors.color1;
-        format-padding = 1;
+        format = "%{F#fff176}<ramp>%{F-} <label> <bar>";
+        format-background = colors.solid-background;
+        format-padding = 2;
         format-underline = "#fbc02d";
 
         bar-empty = "%{T5}━%{T-}";
@@ -336,13 +384,13 @@ assert builtins.pathExists ./xmonad/xmonad.hs;
         label-muted = "%{F#e57373}%{F-} muted";
         label-volume = "%percentage%%";
 
-        format-muted = "[ <label-muted> ]";
+        format-muted = "<label-muted>";
         format-muted-underline = "#5d4037";
-        format-muted-background = colors.color1;
-        format-muted-padding = 1;
-        format-volume = "[ %{F#e57373}<ramp-volume>%{F-} <label-volume> <bar-volume> ]";
-        format-volume-background = colors.color1;
-        format-volume-padding = 1;
+        format-muted-background = colors.solid-background;
+        format-muted-padding = 2;
+        format-volume = "%{F#e57373}<ramp-volume>%{F-} <label-volume> <bar-volume>";
+        format-volume-background = colors.solid-background;
+        format-volume-padding = 2;
         format-volume-underline = "#5d4037";
 
         bar-volume-empty = "%{T5}━%{T-}";
@@ -367,9 +415,9 @@ assert builtins.pathExists ./xmonad/xmonad.hs;
         time = "%I:%M %p";
         time-alt = "%r";
 
-        label = "[ %{F#81c784}%{F-} %date% ] [ %{F#81c784}%{F-} %time% ]";
-        label-background = colors.color1;
-        label-padding = 1;
+        label = "%{F#81c784}%{F-} %date% %{F#81c784}%{F-} %time%";
+        label-background = colors.solid-background;
+        label-padding = 2;
 
         format-underline = "#388e3c";
       };

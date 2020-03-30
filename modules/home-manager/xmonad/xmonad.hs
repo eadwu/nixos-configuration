@@ -171,7 +171,7 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((0                 , xF86XK_KbdBrightnessUp), spawn "sudo kbd_backlight +")
 
     -- Rofi
-    , ((modm              , xK_z     ), spawn "rofi -no-lazy-grab -show drun")
+    , ((modm              , xK_z     ), spawn "rofi -no-lazy-grab -show drun -theme ~/.config/rofi/launcher_icons_full.rasi")
 
     -- Restart polybar
     , ((modm .|. shiftMask, xK_Escape), spawn "polybar-msg cmd restart")
@@ -273,6 +273,7 @@ myManageHook = composeAll
     , className =? "jetbrains-idea-ce"   --> (doShift (fromJust $ (myWorkspaces !!! 1)))
     , className =? "Blender"             --> (doShift (fromJust $ (myWorkspaces !!! 1)))
     , className =? "discord"             --> (doShift (fromJust $ (myWorkspaces !!! 3)))
+    , className =? "Riot"                --> (doShift (fromJust $ (myWorkspaces !!! 3)))
     , title     =? "GLava"               --> doFloat
     , title     =? "Notejot"             --> doFloat
     , className =? "Zenity"              --> doFloat
