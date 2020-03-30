@@ -49,6 +49,8 @@ in
         # cquery # needs cquery executable
         doom-themes
         diminish # needed for use-package?
+        ein
+        elpy
         emmet-mode
         flycheck
         flycheck-inline
