@@ -7,7 +7,7 @@ assert builtins.pathExists ./xmonad/xmonad.hs;
 
   home.packages = with pkgs; [
     polybar
-    (nerdfonts.override { fonts = [ "LiberationMono" ]; })
+    (nerdfonts.override { withFont = "LiberationMono"; })
   ];
 
   home.sessionVariables = {
@@ -410,10 +410,10 @@ assert builtins.pathExists ./xmonad/xmonad.hs;
       "module/date" = {
         type = "internal/date";
         interval = 1;
-        date = "%a %b %d";
-        date-alt = "%A, %B %d %Y";
-        time = "%I:%M %p";
-        time-alt = "%r";
+        date = "%A, %B %d %Y";
+        date-alt = "%a %b %d";
+        time = "%r";
+        time-alt = "%I:%M %p";
 
         label = "%{F#81c784}%{F-} %date% %{F#81c784}%{F-} %time%";
         label-background = colors.solid-background;

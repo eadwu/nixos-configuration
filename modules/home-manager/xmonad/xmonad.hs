@@ -171,7 +171,7 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((0                 , xF86XK_KbdBrightnessUp), spawn "sudo kbd_backlight +")
 
     -- Rofi
-    , ((modm              , xK_z     ), spawn "rofi -no-lazy-grab -show drun -theme ~/.config/rofi/launcher_icons_full.rasi")
+    , ((modm              , xK_z     ), spawn "rofi -no-lazy-grab -show drun -theme ~/.config/rofi/screen.rasi")
 
     -- Restart polybar
     , ((modm .|. shiftMask, xK_Escape), spawn "polybar-msg cmd restart")
@@ -311,7 +311,7 @@ myLogHook = return ()
 -- per-workspace layout choices.
 --
 -- By default, do nothing.
-myStartupHook = return ()
+myStartupHook = spawn "polybar-msg cmd restart"
 
 ------------------------------------------------------------------------
 -- Now run xmonad with all the defaults we set up.
