@@ -32,6 +32,7 @@
 
     kernelPatches = lib.mkBefore [
       (import ../../patches/kernel/disable-amateur-radio-support.nix)
+      (import ../../patches/kernel/lockdown.nix)
     ];
   };
 
