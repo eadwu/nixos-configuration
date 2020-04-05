@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ flakes, config, pkgs, ... }:
 
 let
   cachix = (
@@ -91,7 +91,7 @@ in
         # nix-diff
         rofi
         scrot
-        st
+        flakes.external.st
         wakatime
         xorg.xsetroot
       ];
