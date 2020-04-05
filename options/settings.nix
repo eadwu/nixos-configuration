@@ -73,9 +73,7 @@ in
     xserver = {
       background = mkOption {
         type = types.path;
-        default = "${builtins.fetchurl {
-          url = "https://gitlab.com/eadwu/backgrounds/raw/master/plasma-5-14-final-4k.jpg";
-        }}";
+        default = "${nixos-icons}/share/icons/hicolor/128x128/apps/nix-snowflake.png";
         description = ''
           The wallpaper to use in X.Org
         '';
