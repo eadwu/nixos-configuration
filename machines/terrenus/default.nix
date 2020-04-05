@@ -3,8 +3,7 @@
 with config.nixos; {
   imports =
     [
-      (((if (builtins.pathExists "/mnt") then "/mnt" else ""))
-        + "/etc/nixos/hardware-configuration.nix")
+      ./hardware-configuration.nix
 
       ../../profiles/desktop.nix
 
