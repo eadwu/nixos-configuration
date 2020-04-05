@@ -21,10 +21,13 @@ let
         sha256 = "sha256-Rynqv8zfGA/9n/OZXb2ww5Xa0uRb+OQy+ChThvjVv4I=";
       };
 
-      patches = [
-        ../../patches/emacs/clean-env.patch
-        <nixpkgs/pkgs/applications/editors/emacs/tramp-detect-wrapped-gvfsd.patch>
-      ];
+      patches =
+        (builtins.filter
+          (patch: (builtins.baseNameOf patch) != "clean-env.patch")
+          oldAttrs.patches)
+        ++ [
+          ../../patches/emacs/clean-env.patch
+        ];
 
       buildInputs = oldAttrs.buildInputs ++ (with pkgs; [ harfbuzz ]);
     }
