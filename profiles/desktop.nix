@@ -89,7 +89,7 @@ in
         gnupg
         imagemagick7
         # nix-diff
-        rofi
+        flakes.external.rofi
         scrot
         flakes.external.st
         wakatime
