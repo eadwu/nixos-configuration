@@ -1,5 +1,4 @@
-{ config, pkgs, ... }:
-
+{ config, pkgs, lib, ... }:
 let
   yubikey-config = path: {
     twoFactor = true;
@@ -19,8 +18,9 @@ in
   boot.initrd.kernelModules = [ "vfat" "nls_cp437" "nls_iso8859-1" "usbhid" ];
   boot.initrd.luks.yubikeySupport = true;
 
-  boot.initrd.luks.devices."cryptroot".yubikey = yubikey-config "/crypt-storage/cryptroot";
-  boot.initrd.luks.devices."cryptswap".yubikey = yubikey-config "/crypt-storage/cryptswap";
+  boot.initrd.luks.devices = lib.genAttrs
+    [ "cryptroot" "cryptswap" ]
+    (device: { yubikey = yubikey-config "/crypt-storage/${device}"; });
 
   environment.systemPackages = with pkgs; [ pam_u2f yubikey-personalization ];
 
