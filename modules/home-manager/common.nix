@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ flakes, sysConfig, pkgs, lib, ... }:
 
 {
   imports =
@@ -34,7 +34,7 @@
     # Other
     ## Applications
     ark
-    discord
+    flakes.external.discord-canary
     evince
     gimp
     gnome3.gnome-disk-utility
@@ -43,7 +43,7 @@
     riot-desktop
     rstudioWrapper
     typora
-    vivaldi
+    flakes.external.vivaldi-snapshot
     winusb
     xfce.mousepad
     ## Console
@@ -64,9 +64,9 @@
   ];
 
   nixpkgs = {
-    inherit (config.sysConfig.nixpkgs) config overlays;
+    inherit (sysConfig.nixpkgs) config overlays;
   };
 
   xdg.configFile."nixpkgs/config.nix".text =
-    lib.generators.toPretty {} config.sysConfig.nixpkgs.config;
+    lib.generators.toPretty {} sysConfig.nixpkgs.config;
 }

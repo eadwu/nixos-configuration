@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ sysConfig, pkgs, lib, ... }:
 
 {
   xresources.properties = {
@@ -23,7 +23,7 @@
     "*color14" = "#1de9b6";
     "*color15" = "#cccccc";
     "*color66" = "#0c0e14";
-  } // (with config.sysConfig.fonts.fontconfig; lib.optionalAttrs (dpi != 0) {
+  } // (with sysConfig.fonts.fontconfig; lib.optionalAttrs (dpi != 0) {
     "*dpi" = dpi;
     "Xft.dpi" = dpi;
   });
@@ -34,7 +34,7 @@
     pointerCursor = {
       name = "Paper";
       package = pkgs.paper-icon-theme;
-      size = 32 * config.sysConfig.nixos.settings.xserver.dpiScale;
+      size = 32 * sysConfig.nixos.settings.xserver.dpiScale;
     };
 
     profileExtra = ''

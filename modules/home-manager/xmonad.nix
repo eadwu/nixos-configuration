@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ sysConfig, pkgs, lib, ... }:
 
 assert builtins.pathExists ./xmonad/xmonad.hs;
 
@@ -52,7 +52,7 @@ assert builtins.pathExists ./xmonad/xmonad.hs;
 
       "section/universal" = rec {
         width = "100%";
-        height = 20 * config.sysConfig.nixos.settings.xserver.dpiScale;
+        height = 20 * sysConfig.nixos.settings.xserver.dpiScale;
         offset-x = 0;
         offset-y = 0;
         enable-ipc = true;
@@ -71,7 +71,7 @@ assert builtins.pathExists ./xmonad/xmonad.hs;
         font-4 = "Unifont:size=7;3";
         font-5 = "Weather Icons:size=8;4";
         font-6 = "LiterationSans Nerd Font Mono:size=18;12";
-      } // (with config.sysConfig.fonts.fontconfig; lib.optionalAttrs (dpi != 0) { inherit dpi; });
+      } // (with sysConfig.fonts.fontconfig; lib.optionalAttrs (dpi != 0) { inherit dpi; });
 
       "bar/workspace" = {
         "inherit" = "section/universal";

@@ -1,9 +1,9 @@
-{ pkgs, lib, ... }:
+{ flakes, lib, ... }:
 
 {
   programs.rofi = {
     enable = true;
-    terminal = "${pkgs.st}/bin/st";
+    terminal = "${flakes.external.st}/bin/st";
   };
 
   xdg.configFile = lib.genAttrs
