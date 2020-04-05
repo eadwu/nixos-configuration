@@ -80,13 +80,4 @@ with config.nixos; {
 
       ServerAliveInterval 4
   '';
-
-  system = {
-    stateVersion = lib.mkDefault "19.03";
-
-    autoUpgrade = {
-      enable = false;
-      channel = "https://nixos.org/channels/nixpkgs-unstable";
-    };
-  };
 }
