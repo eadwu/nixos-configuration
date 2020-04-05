@@ -83,9 +83,10 @@
       ];
 
       blur = {
-        method = "gaussian";
         size = 10;
+        strength = 2;
         deviation = 5.0;
+        method = "dual_kawase";
       };
 
       # Other
