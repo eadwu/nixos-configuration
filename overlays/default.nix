@@ -37,42 +37,6 @@ in
       }
     );
 
-    discord = super.discord-canary.overrideAttrs (
-      _: rec {
-        pname = "discord";
-        version = "canary";
-
-        src = builtins.fetchTarball {
-          name = "${pname}-${version}.tar.gz";
-          url = "https://discordapp.com/api/download/canary?platform=linux&format=tar.gz";
-        };
-      }
-    );
-
-    dmenu = super.dmenu.overrideAttrs (
-      _: rec {
-        name = "${pname}-${version}";
-        pname = "dmenu";
-        version = "develop";
-
-        src = builtins.fetchTarball {
-          url = "https://gitlab.com/eadwu/dmenu/-/archive/${version}/${name}.tar.gz";
-        };
-      }
-    );
-
-    dwm = super.dwm.overrideAttrs (
-      _: rec {
-        name = "${pname}-${version}";
-        pname = "dwm";
-        version = "develop";
-
-        src = builtins.fetchTarball {
-          url = "https://gitlab.com/eadwu/dwm/-/archive/${version}/${name}.tar.gz";
-        };
-      }
-    );
-
     glava = super.glava.override {
       enableGlfw = true;
     };
@@ -121,18 +85,6 @@ in
       mpdSupport = true;
       pulseSupport = true;
     };
-
-    st = super.st.overrideAttrs (
-      _: rec {
-        name = "${pname}-${version}";
-        pname = "st";
-        version = "develop";
-
-        src = builtins.fetchTarball {
-          url = "https://gitlab.com/eadwu/st/-/archive/${version}/${name}.tar.gz";
-        };
-      }
-    );
 
     typora = super.typora.override {
       withPandoc = true;
