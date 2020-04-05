@@ -8,7 +8,7 @@
 
   disabledModules =
     [
-      <nixpkgs/nixos/modules/services/hardware/undervolt.nix>
+      "services/hardware/undervolt.nix"
     ];
 
   environment.systemPackages = with pkgs; [ pcm ];
