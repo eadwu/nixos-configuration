@@ -4,6 +4,10 @@
   programs.rofi = {
     enable = true;
     terminal = "${flakes.external.st}/bin/st";
+    extraConfig = ''
+      rofi.modi: drun,run,window,ssh
+      rofi.threads: 0;
+    '';
   };
 
   xdg.configFile = lib.genAttrs
