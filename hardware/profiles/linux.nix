@@ -1,9 +1,9 @@
-{ lib, ... }:
+{ flakes, lib, ... }:
 
 {
   imports =
     [
-      <nixpkgs/nixos/modules/profiles/hardened.nix>
+      (flakes.nixpkgs.path + "/nixos/modules/profiles/hardened.nix")
     ];
 
   boot = {
