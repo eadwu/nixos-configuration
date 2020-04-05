@@ -34,7 +34,7 @@ with config.nixos; {
   nixos.settings = {
     xserver.dpiScale = 2;
     system.user = "xps";
-    machine.hostname = "nixOSS";
+    machine.hostname = "terrenus";
     machine.screen.width = 3840;
     machine.screen.height = 2160;
   };
