@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 
 {
   programs = {
@@ -21,9 +21,19 @@
         }
 
         nix-build-system () {
-          nix build $@ \
-            -f "<nixpkgs/nixos>" \
-            config.system.build.toplevel
+          if [ $# -lt 1 ]; then
+            echo "Expected at least one argument, nix-build-system <flakePath>"
+            exit 1
+          fi
+
+          flakePath="$1"
+          outLink="$(mktemp -d)/system"
+
+          shift
+          nix build "$@" --out-link "$outLink" \
+            --no-update-lock-file --no-write-lock-file \
+            "$flakePath#nixosConfigurations.${config.networking.hostName}".config.system.build.toplevel
+          printf "$outLink"
         }
       '';
 

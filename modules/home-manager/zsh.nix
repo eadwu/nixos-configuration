@@ -25,10 +25,9 @@
         }
 
         nix-upload-system () {
-          cachix push sys \
-            $(nix-derive-output $(nix-build "<nixpkgs/nixos>" \
-              -A config.system.build.toplevel \
-              --no-out-link))
+          flakePath="$1"
+          shift
+          cachix push sys $(nix-derive-output $(nix-build-system "$flakePath" "$@"))
         }
       '';
     };
