@@ -1,22 +1,5 @@
-{ pkgs, ... }:
+{ flakes, pkgs, ... }:
 
-let
-  gtk-theme-collections = pkgs.stdenv.mkDerivation rec {
-    pname = "gtk-theme-collections";
-    version = "master";
-
-    src = builtins.fetchTarball {
-      url = "https://github.com/addy-dclxvi/gtk-theme-collections/archive/${version}.tar.gz";
-    };
-
-    dontBuild = true;
-
-    installPhase = ''
-      mkdir -p $out/share/themes
-      find . -mindepth 1 -maxdepth 1 -type d -exec cp -r "{}" $out/share/themes \;
-    '';
-  };
-in
 {
   gtk = {
     enable = true;
@@ -33,7 +16,7 @@ in
 
     theme = {
       name = "Noita";
-      package = gtk-theme-collections;
+      package = flakes.external.gtk-theme-collections;
     };
 
     gtk3.extraConfig = {
