@@ -39,8 +39,6 @@ with config.nixos; {
     machine.screen.height = 2160;
   };
 
-  nix.nixPath = [ "nixos-config=${builtins.toString ./.}" ];
-
   programs.zsh.interactiveShellInit = ''
     bios-upgrade () {
       ${pkgs.fwupd}/bin/fwupdmgr get-devices

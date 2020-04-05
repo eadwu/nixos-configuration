@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ flakes, config, pkgs, lib, ... }:
 
 with config.nixos; {
   nix = {
@@ -37,17 +37,11 @@ with config.nixos; {
       experimental-features = flakes nix-command
     '';
 
-    nixPath = [ "/etc/nixos" ]
-    ++ (
-      if builtins.pathExists ../../nixpkgs
-      then [ "nixpkgs=${builtins.toString ../../nixpkgs}" ]
-      else [
-        "nixpkgs=https://gitlab.com/eadwu/nixpkgs/-/archive/develop/nixpkgs-develop.tar.gz"
-        "nixpkgs=https://api.github.com/repos/eadwu/nixpkgs/tarball/develop"
-      ]
-    )
-    ++ lib.optional (builtins.pathExists ../overlays)
-      "nixpkgs-overlays=${builtins.toString ../overlays}";
+    nixPath =
+      [
+        "nixpkgs=${flakes.nixpkgs.path}"
+        "nixpkgs-overlays=${builtins.toString ../overlays}"
+      ];
   };
 
   nixpkgs = {
@@ -59,11 +53,9 @@ with config.nixos; {
           };
         }
       )
-    ] ++ lib.optionals (builtins.pathExists <nixpkgs-overlays>) (
-      map
-        (p: import (<nixpkgs-overlays> + "/${p}"))
-        (builtins.attrNames (lib.filterAttrs (_: v: v == "regular") (builtins.readDir <nixpkgs-overlays>)))
-    );
+    ] ++ map
+      (p: import (../overlays + "/${p}"))
+      (builtins.attrNames (lib.filterAttrs (_: v: v == "regular") (builtins.readDir ../overlays)));
 
     config = {
       allowUnfree = true;
