@@ -27,7 +27,16 @@
         nix-upload-system () {
           flakePath="$1"
           shift
-          cachix push sys $(nix-derive-output $(nix-build-system "$flakePath" "$@"))
+
+          outLink=$(nix-build-system "$flakePath" "$@")
+          errno="$?"
+
+          if [ "$errno" -ne "0" ]; then
+            echo "Unexpected error while building the configuration"
+            exit "$errno"
+          fi
+
+          cachix push sys $(nix-derive-output $outLink)
         }
       '';
     };

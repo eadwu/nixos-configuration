@@ -27,12 +27,20 @@
           fi
 
           flakePath="$1"
-          outLink="$(mktemp -d)/system"
+          tmpdir="$(mktemp -d)"
+          outLink="$tmpdir/system"
 
           shift
-          nix build "$@" --out-link "$outLink" \
-            --no-update-lock-file --no-write-lock-file \
+          nix build "$@" --out-link "$outLink" --keep-going --recreate-lock-file \
             "$flakePath#nixosConfigurations.${config.networking.hostName}".config.system.build.toplevel
+
+          if [ $? -ne 0 ]; then
+            echo "Unexpected error while building the configuration"
+            unlink "$outLink/system"
+            rm -rf "$tmpdir"
+            exit 2
+          fi
+
           printf "$outLink"
         }
       '';
