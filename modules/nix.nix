@@ -42,6 +42,24 @@ with config.nixos; {
         "nixpkgs=${flakes.nixpkgs.path}"
         "nixpkgs-overlays=${builtins.toString ../overlays}"
       ];
+
+    registry =
+      {
+        nixpkgs = {
+          from = { type = "indirect"; id = "nixpkgs"; };
+          to = { type = "github"; owner = "eadwu"; repo = "nixpkgs"; ref = "develop"; };
+        };
+
+        upstream = {
+          from = { type = "indirect"; id = "upstream"; };
+          to = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; };
+        };
+
+        custom = {
+          from = { type = "indirect"; id = "custom"; };
+          to = { type = "github"; owner = "eadwu"; repo = "flakes"; };
+        };
+      };
   };
 
   nixpkgs = {
