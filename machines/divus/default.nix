@@ -62,7 +62,7 @@
     lsof
     blktrace
     iotop
-    nix-universal-prefetch
+    nix-prefetch-scripts
     pciutils
     usbutils
   ];
