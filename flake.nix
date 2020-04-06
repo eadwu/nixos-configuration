@@ -1,12 +1,12 @@
 {
   edition = 201909;
 
-  inputs.nixpkgs.url = "github:eadwu/nixpkgs/develop";
-  inputs.home-manager.url = "github:eadwu/home-manager";
-  inputs.external.url = "github:eadwu/flakes";
+  inputs.nixpkgs.uri = github:eadwu/nixpkgs/develop;
+  inputs.home-manager.uri = github:eadwu/home-manager;
+  inputs.external.uri = github:eadwu/flakes;
 
-  inputs.home-manager.inputs.nixpkgs.url = "github:eadwu/nixpkgs/develop";
-  inputs.external.inputs.nixpkgs.url = "github:eadwu/nixpkgs/develop";
+  inputs.home-manager.inputs.nixpkgs.uri = github:eadwu/nixpkgs/develop;
+  inputs.external.inputs.nixpkgs.uri = github:eadwu/nixpkgs/develop;
 
   outputs = inputs@{ self, nixpkgs, home-manager, ... }: {
 
