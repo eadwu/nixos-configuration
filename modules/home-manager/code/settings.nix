@@ -6,6 +6,7 @@ let
   JAVA_HOME = "${openjdk}/lib/openjdk";
 in
 {
+  "diffEditor.ignoreTrimWhitespace" = false;
   "editor.codeActionsOnSave" = {
     "source.organizeImports" = true;
   };

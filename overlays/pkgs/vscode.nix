@@ -132,15 +132,15 @@ self: super:
       {
         name = "noctis";
         publisher = "liviuschera";
-        version = "10.28.0";
-        sha256 = "1f583k4w1172n5nfq950jzmlrg2fi5df8cyzfb9q83k4sakrvnvi";
+        version = "10.29.1";
+        sha256 = "0i65b3irajj3ssvd834f6c684jz4sj0b3cx3ilp0krlc1642cqn7";
       }
 
       {
         name = "vscode-language-babel";
         publisher = "mgmcdermott";
-        version = "0.0.26";
-        sha256 = "1n0i0kylx7gvk5r95kjlvnyhbn58kz10p7s2jgh09bxnv32r7mx2";
+        version = "0.0.27";
+        sha256 = "0a2wywb696fxkbkarpyjkfx50xr4kn5j5z8gb2cj71w165kngw51";
       }
 
       {
@@ -188,8 +188,8 @@ self: super:
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.1847";
-        sha256 = "0mcfqr91w20bp3zwndc1c6qsns3vn0c2c2qbn2k8hblsifcdqaph";
+        version = "1.0.1891";
+        sha256 = "0ys2z72a9crc8sn8lipzqdsrjgccbr5zig0fy7mk0rhvsgraqa4j";
       }
 
       {
@@ -216,8 +216,8 @@ self: super:
       {
         name = "java";
         publisher = "redhat";
-        version = "0.58.0";
-        sha256 = "1knxz10lx3cmfkb4sivwqx5hi9kd2vi9rab4lyp3z08pzcxzagha";
+        version = "0.59.1";
+        sha256 = "1rfzciilr7qyms5k4m8npqzi4pg2h739hzvmgz8adc52kis5fiyc";
       }
 
       {
@@ -279,8 +279,8 @@ self: super:
       {
         name = "vscode-java-test";
         publisher = "vscjava";
-        version = "0.22.2";
-        sha256 = "0cwr53drbr9bix9qfwm42c61icj81jn3q9fldin96418h32bf9fb";
+        version = "0.22.3";
+        sha256 = "0l7lpdzk05zvl81wyxjiqkmw1kbx286j2kq8jjq396alxfznv48k";
       }
 
       {
