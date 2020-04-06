@@ -79,7 +79,7 @@ with config.nixos; {
       ffmpeg
       gnupg
       imagemagick7
-      # nix-diff
+      nix-diff
       flakes.external.rofi
       scrot
       flakes.external.st
