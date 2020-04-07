@@ -23,7 +23,7 @@
         nix-build-system () {
           if [ $# -lt 1 ]; then
             echo "Expected at least one argument, nix-build-system <flakePath>"
-            exit 1
+            return 1
           fi
 
           flakePath="$1"
@@ -38,7 +38,7 @@
             echo "Unexpected error while building the configuration"
             unlink "$outLink/system"
             rm -rf "$tmpdir"
-            exit 2
+            return 2
           fi
 
           printf "$outLink"

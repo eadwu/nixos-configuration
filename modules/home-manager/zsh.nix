@@ -33,7 +33,7 @@
 
           if [ "$errno" -ne "0" ]; then
             echo "Unexpected error while building the configuration"
-            exit "$errno"
+            return "$errno"
           fi
 
           cachix push sys $(nix-derive-output $outLink)
