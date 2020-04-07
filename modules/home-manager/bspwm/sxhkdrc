@@ -41,7 +41,7 @@ alt + grave
 
 # program launcher
 alt + z
-  rofi -show drun
+  rofi -no-lazy-grab -show drun -theme ~/.config/rofi/full_left.rasi
 
 #
 # bspwm hotkeys

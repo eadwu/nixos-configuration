@@ -171,7 +171,7 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((0                 , xF86XK_KbdBrightnessUp), spawn "sudo kbd_backlight +")
 
     -- Rofi
-    , ((modm              , xK_z     ), spawn "rofi -no-lazy-grab -show drun -theme ~/.config/rofi/screen.rasi")
+    , ((modm              , xK_z     ), spawn "rofi -no-lazy-grab -show drun -theme ~/.config/rofi/full_left.rasi")
 
     -- Restart polybar
     , ((modm .|. shiftMask, xK_Escape), spawn "polybar-msg cmd restart")
