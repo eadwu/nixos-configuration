@@ -16,7 +16,7 @@
       specialArgs.flakes = nixpkgs.lib.genAttrs
         (builtins.attrNames inputs)
         (flake:
-          (if (inputs.${flake} ? packages)
+          (if (inputs.${flake} ? packages && inputs.${flake}.packages ? ${system})
             then inputs.${flake}.packages.${system}
             else {})
           // {
