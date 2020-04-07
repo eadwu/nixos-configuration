@@ -69,7 +69,7 @@ with config.nixos; {
       ## Haskell
       stack
       ## Rust
-      rustPlatform.rust
+      flakes.external.rustPlatform.rust
       # Build Tools
       cmake
       gnumake
@@ -89,7 +89,7 @@ with config.nixos; {
 
     variables = {
       DOCKER_ID_USER = settings.docker.user;
-      RUST_SRC_PATH = "${pkgs.rustPlatform.rustcSrc}/lib/rustlib/src/rust/src";
+      RUST_SRC_PATH = "${flakes.external.rustPlatform.rust-src}/lib/rustlib/src/rust/src";
     };
   };
 
