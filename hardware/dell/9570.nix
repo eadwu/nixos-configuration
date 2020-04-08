@@ -15,12 +15,6 @@
     "psmouse.synaptics_intertouch=0"
   ];
 
-  boot.loader.systemd-boot = {
-    signed = true;
-    signing-key = "/boot/secureboot/db.key";
-    signing-certificate = "/boot/secureboot/db.crt";
-  };
-
   environment.sessionVariables = {
     LIBVA_DRIVER_NAME = "iHD";
   };
