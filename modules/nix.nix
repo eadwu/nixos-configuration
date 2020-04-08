@@ -45,14 +45,9 @@ with config.nixos; {
 
     registry =
       {
-        nixpkgs = {
-          from = { type = "indirect"; id = "nixpkgs"; };
+        local = {
+          from = { type = "indirect"; id = "local"; };
           to = { type = "github"; owner = "eadwu"; repo = "nixpkgs"; ref = "develop"; };
-        };
-
-        upstream = {
-          from = { type = "indirect"; id = "upstream"; };
-          to = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; };
         };
 
         custom = {
