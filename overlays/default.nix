@@ -19,14 +19,6 @@ in
       unfreeEnableUnrar = true;
     };
 
-    boxpub = (
-      import (
-        builtins.fetchTarball {
-          url = "https://git.sr.ht/~eadwu/boxpub/archive/master.tar.gz";
-        }
-      ) {}
-    ).boxpub;
-
     capitaine-cursors = super.capitaine-cursors.overrideAttrs (
       _: rec {
         version = "master";
