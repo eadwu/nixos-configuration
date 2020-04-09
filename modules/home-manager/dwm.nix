@@ -1,4 +1,4 @@
-{ flakes, pkgs, ... }:
+{ pkgs, ... }:
 
 {
   home = {
@@ -12,7 +12,7 @@
   };
 
   xsession.windowManager.command = ''
-    ${flakes.external.dwm}/bin/dwm
+    ${dwm}/bin/dwm
   '';
 
   services.polybar = {

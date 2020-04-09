@@ -1,4 +1,4 @@
-{ flakes, pkgs, ... }:
+{ pkgs, ... }:
 
 {
   gtk = {
@@ -16,7 +16,7 @@
 
     theme = {
       name = "Noita";
-      package = flakes.external.gtk-theme-collections;
+      package = pkgs.gtk-theme-collections;
     };
 
     gtk3.extraConfig = {

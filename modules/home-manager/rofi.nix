@@ -1,9 +1,9 @@
-{ flakes, lib, ... }:
+{ pkgs, lib, ... }:
 
 {
   programs.rofi = {
     enable = true;
-    terminal = "${flakes.external.st}/bin/st";
+    terminal = "${pkgs.st}/bin/st";
     extraConfig = ''
       rofi.modi: drun,run,window,ssh
       rofi.threads: 0;

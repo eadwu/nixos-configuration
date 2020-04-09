@@ -1,4 +1,4 @@
-{ flakes, config, pkgs, ... }:
+{ config, pkgs, ... }:
 
 with config.nixos; {
   imports =
@@ -69,27 +69,27 @@ with config.nixos; {
       ## Haskell
       stack
       ## Rust
-      flakes.external.rustPlatform.rust
+      rustPlatform.rust
       # Build Tools
       cmake
       gnumake
       # Misc
-      flakes.external.cachix
+      cachix
       epubcheck
       ffmpeg
       gnupg
       imagemagick7
       nix-diff
-      flakes.external.rofi
+      rofi
       scrot
-      flakes.external.st
+      st
       wakatime
       xorg.xsetroot
     ];
 
     variables = {
       DOCKER_ID_USER = settings.docker.user;
-      RUST_SRC_PATH = "${flakes.external.rustPlatform.rust-src}/lib/rustlib/src/rust/src";
+      RUST_SRC_PATH = "${pkgs.rustPlatform.rust-src}/lib/rustlib/src/rust/src";
     };
   };
 

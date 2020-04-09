@@ -1,4 +1,4 @@
-{ flakes, sysConfig, pkgs, lib, ... }:
+{ sysConfig, pkgs, lib, ... }:
 
 {
   imports =
@@ -34,7 +34,7 @@
     # Other
     ## Applications
     ark
-    flakes.external.discord-canary
+    discord-canary
     evince
     gimp
     gnome3.gnome-disk-utility
@@ -43,7 +43,7 @@
     riot-desktop
     rstudioWrapper
     typora
-    flakes.external.vivaldi-snapshot
+    vivaldi-snapshot
     winusb
     xfce.mousepad
     ## Console

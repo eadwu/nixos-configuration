@@ -1,4 +1,4 @@
-{ flakes, pkgs, ... }:
+{ pkgs, ... }:
 
 with pkgs;
 
@@ -214,10 +214,10 @@ in
   "maven.executable.path" = "${maven}/bin/mvn";
   "maven.terminal.useJavaHome" = true;
   "metals.javaHome" = JAVA_HOME;
-  "rust.rustfmt_path" = "${flakes.external.rustPlatform.rust}/bin/rustfmt";
+  "rust.rustfmt_path" = "${rustPlatform.rust}/bin/rustfmt";
   "rust-client.channel" = "nightly";
   "rust-client.disableRustup" = true;
-  "rust-client.rlsPath" = "${flakes.external.rustPlatform.rust}/bin/rls";
+  "rust-client.rlsPath" = "${rustPlatform.rust}/bin/rls";
   "sqlite.sqlite3" = "${sqlite}/bin/sqlite3";
   "tslint.packageManager" = "yarn";
   "tslint.validateWithDefaultConfig" = true;
