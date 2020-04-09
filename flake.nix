@@ -1,12 +1,12 @@
 {
   edition = 201909;
 
-  inputs.nixpkgs.uri = github:eadwu/nixpkgs/develop;
-  inputs.home-manager.uri = github:eadwu/home-manager;
-  inputs.external.uri = github:eadwu/flakes;
+  inputs.nixpkgs = { type = "github"; owner = "eadwu"; repo = "nixpkgs"; ref = "develop"; };
+  inputs.external = { type = "github"; owner = "eadwu"; repo = "flakes"; };
+  inputs.home-manager = { type = "github"; owner = "eadwu"; repo = "home-manager"; };
 
-  inputs.home-manager.inputs.nixpkgs.uri = github:eadwu/nixpkgs/develop;
-  inputs.external.inputs.nixpkgs.uri = github:eadwu/nixpkgs/develop;
+  inputs.external.inputs.nixpkgs.follows = "/nixpkgs";
+  inputs.home-manager.inputs.nixpkgs.follows = "/nixpkgs";
 
   outputs = inputs@{ self, nixpkgs, home-manager, ... }: {
 
