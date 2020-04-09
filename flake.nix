@@ -33,6 +33,8 @@
         nixpkgs.lib.singleton ({ ... }: {
           imports = [ ./machines/terrenus ];
 
+          nixpkgs.overlays = [ (inputs.external.overlays system) ];
+
           system.stateVersion = "19.03";
           system.configurationRevision = if (self ? rev)
             then self.rev
