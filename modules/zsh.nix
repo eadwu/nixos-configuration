@@ -36,7 +36,6 @@
 
           if [ $? -ne 0 ]; then
             echo "Unexpected error while building the configuration"
-            unlink "$outLink/system"
             rm -rf "$tmpdir"
             return 2
           fi
