@@ -1,22 +1,14 @@
-{ pkgs, lib, ... }:
+{ modulesPath, pkgs, lib, ... }:
 
 {
   imports =
     [
       ./bcachefs.nix
 
-      <nixpkgs/nixos/modules/installer/cd-dvd/channel.nix>
-      <nixpkgs/nixos/modules/installer/cd-dvd/installation-cd-minimal.nix>
+      "${modulesPath}/installer/cd-dvd/installation-cd-minimal.nix"
     ];
 
-  boot = {
-    zfs.enableUnstable = true;
-    kernelPackages = lib.mkForce pkgs.linuxPackages_latest;
-
-    kernelPatches = lib.mkBefore [
-      (import ../patches/kernel/disable-amateur-radio-support.nix)
-    ];
-  };
+  boot.zfs.enableUnstable = true;
 
   console = {
     earlySetup = true;
