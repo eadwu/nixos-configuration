@@ -8,17 +8,17 @@
   inputs.external.inputs.nixpkgs.follows = "/nixpkgs";
   inputs.home-manager.inputs.nixpkgs.follows = "/nixpkgs";
 
-  outputs = inputs@{ self, nixpkgs, home-manager, ... }: {
+  outputs = inputs@{ self, nixpkgs, home-manager, ... }: with nixpkgs.lib; {
 
-    isoImage = (nixpkgs.lib.nixosSystem rec {
+    isoImage = (nixosSystem rec {
       system = "x86_64-linux";
-      modules = nixpkgs.lib.singleton (import ./profiles/iso.nix);
+      modules = singleton (import ./profiles/iso.nix);
     }).config.system.build.isoImage;
 
-    nixosConfigurations.terrenus = nixpkgs.lib.nixosSystem rec {
+    nixosConfigurations.terrenus = nixosSystem rec {
       system = "x86_64-linux";
       # TODO: Figure out why _module.args gives infinite recursion
-      specialArgs.flakes = nixpkgs.lib.genAttrs
+      specialArgs.flakes = genAttrs
         (builtins.attrNames inputs)
         (flake:
           (if (inputs.${flake} ? packages && inputs.${flake}.packages ? ${system})
@@ -30,10 +30,10 @@
           });
 
       modules =
-        nixpkgs.lib.singleton ({ ... }: {
-          imports = [ ./machines/terrenus ];
+        singleton ({ ... }: {
+          imports = singleton ./machines/terrenus;
 
-          nixpkgs.overlays = [ (inputs.external.overlays system) ];
+          nixpkgs.overlays = singleton (inputs.external.overlays system);
 
           system.stateVersion = "19.03";
           system.configurationRevision = if (self ? rev)
