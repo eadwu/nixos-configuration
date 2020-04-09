@@ -10,6 +10,11 @@
 
   outputs = inputs@{ self, nixpkgs, home-manager, ... }: {
 
+    isoImage = (nixpkgs.lib.nixosSystem rec {
+      system = "x86_64-linux";
+      modules = nixpkgs.lib.singleton (import ./profiles/iso.nix);
+    }).config.system.build.isoImage;
+
     nixosConfigurations.terrenus = nixpkgs.lib.nixosSystem rec {
       system = "x86_64-linux";
       # TODO: Figure out why _module.args gives infinite recursion
