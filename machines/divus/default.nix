@@ -157,37 +157,6 @@
     publish.addresses = true;
   };
 
-  services.fail2ban = {
-    enable = true;
-    jails.DEFAULT = ''
-      blocktype = DROP
-    '';
-
-    # 4 failed logins over 12 hours before blocking the IP for a day
-    jails.sshd = ''
-      enabled = true
-      port = ssh
-      banaction = iptables-multiport
-
-      filter = sshd
-      maxretry = 4
-      findtime = 43200
-      bantime = 86400
-    '';
-
-    # 35 failed logins over 3 days before blocking the IP for a week
-    jails.sshdgank = ''
-      enabled = true
-      port = ssh
-      banaction = iptables-multiport
-
-      filter = sshd
-      maxretry = 35
-      findtime = 259200
-      bantime = 608400
-    '';
-  };
-
   services.irqbalance.enable = true;
 
   services.openssh = {
