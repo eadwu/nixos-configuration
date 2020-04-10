@@ -12,6 +12,15 @@
       "iTCO_wdt"
     ];
 
+    kernel.sysctl = {
+      # Upstream systemd defaults to only sync
+      # https://github.com/NixOS/nixpkgs/issues/83694#issuecomment-605657381
+      "kernel.sysrq" = 438;
+
+      # Turn off kexec, even if it's built in.
+      "kernel.kexec_load_disabled" = 1;
+    };
+
     kernelModules = [
       # Filesystem support
       "ext4"
