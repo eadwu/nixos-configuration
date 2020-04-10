@@ -33,7 +33,7 @@
         singleton ({ ... }: {
           imports = singleton ./machines/terrenus;
 
-          nixpkgs.overlays = singleton (inputs.external.overlays system);
+          nixpkgs.overlays = mkBefore (singleton (inputs.external.overlays system));
 
           system.stateVersion = "19.03";
           system.configurationRevision = if (self ? rev)
