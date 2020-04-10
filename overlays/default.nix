@@ -19,16 +19,6 @@ in
       unfreeEnableUnrar = true;
     };
 
-    capitaine-cursors = super.capitaine-cursors.overrideAttrs (
-      _: rec {
-        version = "master";
-
-        src = builtins.fetchTarball {
-          url = "https://github.com/keeferrourke/capitaine-cursors/archive/${version}.tar.gz";
-        };
-      }
-    );
-
     glava = super.glava.override {
       enableGlfw = true;
     };
@@ -45,18 +35,6 @@ in
     knot-resolver = super.knot-resolver.override {
       extraFeatures = true;
     };
-
-    lightdm-enso-os-greeter = super.lightdm-enso-os-greeter.overrideAttrs (
-      _: rec {
-        name = "${pname}-${version}";
-        pname = "lightdm-enso-os-greeter";
-        version = "master";
-
-        src = builtins.fetchTarball {
-          url = "https://github.com/nick92/Enso-OS/archive/${version}.tar.gz";
-        };
-      }
-    );
 
     ncmpcpp = super.ncmpcpp.override {
       clockSupport = true;
