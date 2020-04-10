@@ -15,7 +15,7 @@
     };
 
     settings = {
-      captures = 20;
+      captures = 16;
       screen_samples = 20;
       screen_contrib = 0.2;
       gamma_long_transition = true;
