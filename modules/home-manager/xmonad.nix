@@ -7,7 +7,7 @@ assert builtins.pathExists ./xmonad/xmonad.hs;
 
   home.packages = with pkgs; [
     polybar
-    (nerdfonts.override { withFont = "LiberationMono"; })
+    liberation-mono
   ];
 
   home.sessionVariables = {
