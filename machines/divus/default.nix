@@ -4,10 +4,9 @@
   imports =
     [
       # ./kvm-support.nix
-      ./hardened.nix
+      # ./hardened.nix
       # ./libvirtd.nix
       ./networkd.nix
-      ./wireless.nix
     ];
 
   boot.cleanTmpDir = true;
