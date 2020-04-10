@@ -118,10 +118,14 @@ with config.nixos; {
   programs.zsh = {
     interactiveShellInit = ''
       nix-generate-iso () {
-        nix build $@ \
-          -f "<nixpkgs/nixos>" \
-          -I nixos-config=${builtins.toString ./iso.nix} \
-          config.system.build.isoImage
+        if [ $# -lt 1 ]; then
+          echo "Expected at least one argument, nix-generate-iso <flakePath>"
+          return 1
+        fi
+
+        flakePath="$1"
+        shift
+        nix build "$@" --recreate-lock-file "$flakePath#isoImage"
       }
 
       nix-generate-sd () {
