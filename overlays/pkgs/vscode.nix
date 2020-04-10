@@ -1,24 +1,7 @@
 self: super:
 
 {
-  vscode = (
-    super.vscode.override {
-      isInsiders = true;
-    }
-  ).overrideAttrs (
-    _: rec {
-      name = "${pname}-${version}";
-      pname = "vscode-insiders";
-      version = "nightly";
-
-      src = builtins.fetchurl {
-        name = "VSCode_latest_linux-x64.tar.gz";
-        url = "https://vscode-update.azurewebsites.net/latest/linux-x64/insider";
-      };
-    }
-  );
-
-  vscode-with-extensions = super.vscode-with-extensions.override {
+  vscode-insiders-with-extensions = super.vscode-insiders-with-extensions.override {
     vscodeExtensions = with super.vscode-extensions; [
       ms-python.python
       ms-vscode.cpptools
