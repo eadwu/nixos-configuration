@@ -114,7 +114,7 @@
 
   nixpkgs.config.allowUnfree = true;
 
-  networking.hostName = "divus";
+  networking.hostName = "divinus";
 
   programs.zsh = {
     enable = true;
