@@ -23,15 +23,6 @@ in
       enableGlfw = true;
     };
 
-    i3lock-color = super.i3lock-color.overrideAttrs (
-      oldAttrs: {
-        postPatch = (oldAttrs.postPatch or "") + ''
-          # i3lock-color: drop unconditional asan
-          sed -i -e 's#default_sanitizers=address#default_sanitizers=#' configure.ac
-        '';
-      }
-    );
-
     knot-resolver = super.knot-resolver.override {
       extraFeatures = true;
     };
