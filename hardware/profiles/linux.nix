@@ -13,6 +13,8 @@
     ];
 
     kernel.sysctl = {
+      "vm.swappiness" = 10;
+
       # Upstream systemd defaults to only sync
       # https://github.com/NixOS/nixpkgs/issues/83694#issuecomment-605657381
       "kernel.sysrq" = 438;
@@ -35,6 +37,8 @@
     ];
 
     kernelParams = [
+      "threadirqs"
+
       # Increasing the virtual memory dirty writeback time helps to aggregate disk I/O together
       "vm.dirty_writeback_centisecs=6000"
 
@@ -45,14 +49,16 @@
 
     kernelPatches = lib.mkBefore [
       flakes.external.customKernelPatches.extra_config
+      flakes.external.customKernelPatches.rt
     ];
   };
 
   environment.memoryAllocator.provider = "libc";
 
-  security = {
-    # Multiple virtual cores per physical core
-    # NOTE: About 30% boost compared to a single physical core
-    allowSimultaneousMultithreading = lib.mkDefault false;
-  };
+  # Multiple virtual cores per physical core
+  # NOTE: About 30% boost compared to a single physical core
+  security.allowSimultaneousMultithreading = lib.mkDefault false;
+
+  # This service will ensure that a realtime process won't hang the machine.
+  services.das_watchdog.enable = lib.mkDefault true;
 }
