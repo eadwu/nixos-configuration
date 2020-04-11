@@ -1,4 +1,4 @@
-{ modulesPath, lib, ... }:
+{ modulesPath, flakes, lib, ... }:
 
 {
   imports =
@@ -47,8 +47,7 @@
     ];
 
     kernelPatches = lib.mkBefore [
-      (import ../../patches/kernel/disable-amateur-radio-support.nix)
-      (import ../../patches/kernel/lockdown.nix)
+      flakes.external.customKernelPatches.extra_config
     ];
   };
 

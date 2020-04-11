@@ -16,7 +16,7 @@
       "slub_debug=F"
     ];
 
-    kernelPatches = [ (import ../patches/kernel/bcachefs.nix) ];
+    kernelPatches = lib.singleton flakes.external.customKernelPatches.bcachefs;
 
     kernelModules = [ "chacha_generic" "poly1305_generic" ];
   };
