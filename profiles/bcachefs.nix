@@ -17,5 +17,7 @@
     ];
 
     kernelPatches = [ (import ../patches/kernel/bcachefs.nix) ];
+
+    kernelModules = [ "chacha_generic" "poly1305_generic" ];
   };
 }

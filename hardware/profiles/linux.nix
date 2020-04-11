@@ -19,6 +19,9 @@
 
       # Turn off kexec, even if it's built in.
       "kernel.kexec_load_disabled" = 1;
+
+      # https://github.com/NixOS/nixpkgs/pull/84522/commits/b7638115f6e8b73915809bf46acf08f114bbbbd5
+      "kernel.unprivileged_userns_clone" = true;
     };
 
     kernelModules = [
@@ -37,6 +40,10 @@
       # Disabling may cause decrease in power usage
       "snd_hda_intel.power_save=1"
       "vm.dirty_writeback_centisecs=6000"
+
+      # Wipe slab and page allocations (supersedes "slub_debug=P" and "page_poison=1" above, since v5.3)
+      "init_on_alloc=1"
+      "init_on_free=1"
     ];
 
     kernelPatches = lib.mkBefore [
@@ -48,9 +55,6 @@
   environment.memoryAllocator.provider = "libc";
 
   security = {
-    # Some hardened option bypasses because of convenience/performance
-    # Allow the use of sandboxes for Nix
-    allowUserNamespaces = true;
     # Multiple virtual cores per physical core
     # NOTE: About 30% boost compared to a single physical core
     allowSimultaneousMultithreading = lib.mkDefault false;
