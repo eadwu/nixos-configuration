@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
 with config.nixos; {
   imports =
@@ -111,8 +111,15 @@ with config.nixos; {
   };
 
   programs.zsh = {
-    interactiveShellInit = ''
-      nix-generate-iso () {
+    interactiveShellInit = let
+      commands = {
+        nix-generate-iso = "isoImage";
+        nix-generate-sd = "sdImage";
+        nix-cross-compile-sd = "crossSdImage";
+        nix-generate-vm = "ovaImage";
+      };
+    in lib.concatMapStringsSep "\n" (cmd: ''
+      ${cmd} () {
         local flakePath="${./..}"
 
         if [ ! -z "$1" ]; then
@@ -120,32 +127,9 @@ with config.nixos; {
           shift
         fi
 
-        nix build "$@" --recreate-lock-file "$flakePath#isoImage"
+        nix build "$@" --recreate-lock-file "$flakePath#${commands.${cmd}}"
       }
-
-      nix-generate-sd () {
-        nix build $@ \
-          -f "<nixpkgs/nixos>" \
-          --builders "ssh://builder" \
-          --arg system '"aarch64-linux"' \
-          -I nixos-config=${builtins.toString ./sd-image.nix} \
-          config.system.build.sdImage
-      }
-
-      nix-cross-compile-sd () {
-        nix build $@ \
-          -f "<nixpkgs/nixos>" \
-          -I nixos-config=${builtins.toString ./cross-sd-image.nix} \
-          config.system.build.sdImage
-      }
-
-      nix-generate-vm () {
-        nix build $@ \
-          -f "<nixpkgs/nixos>" \
-          -I nixos-config=${builtins.toString ./vm.nix} \
-          config.system.build.virtualBoxOVA
-      }
-    '';
+    '') (builtins.attrNames commands);
   };
 
   services.dbus.packages = [ pkgs.gnome3.dconf ];

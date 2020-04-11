@@ -10,10 +10,23 @@
 
   outputs = inputs@{ self, nixpkgs, home-manager, ... }: with nixpkgs.lib; {
 
-    isoImage = (nixosSystem rec {
+    isoImage = (nixosSystem {
       system = "x86_64-linux";
       modules = singleton (import ./profiles/iso.nix);
     }).config.system.build.isoImage;
+
+    sdImage = (nixosSystem {
+      system = "aarch64-linux";
+      modules = singleton (import ./profiles/sd-image.nix);
+    }).config.system.build.sdImage;
+
+    crossSdImage = (nixosSystem {
+      modules = singleton (import ./profiles/cross-sd-image.nix);
+    }).config.system.build.sdImage;
+
+    ovaImage = (nixosSystem {
+      modules = singleton (import ./profiles/vm.nix);
+    }).config.system.build.virtualBoxOVA;
 
     nixosConfigurations.terrenus = nixosSystem rec {
       system = "x86_64-linux";

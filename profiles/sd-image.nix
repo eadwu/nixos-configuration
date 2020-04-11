@@ -1,7 +1,7 @@
-{ pkgs, lib, ... }:
+{ modulesPath, pkgs, lib, ... }:
 
 with lib; {
-  imports = [ <nixpkgs/nixos/modules/installer/cd-dvd/sd-image-aarch64.nix> ];
+  imports = [ "${modulesPath}/modules/installer/cd-dvd/sd-image-aarch64.nix" ];
 
   # Reduce bloat
   boot.supportedFilesystems = mkForce [ "vfat" ];
