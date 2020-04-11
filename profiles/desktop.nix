@@ -31,12 +31,7 @@ with config.nixos; {
   boot = {
     cleanTmpDir = true;
     supportedFilesystems = [ "ntfs" ];
-    kernelPackages = let
-      isStableLatest = pkgs.linux_latest_hardened.meta.branch == pkgs.linux_testing_hardened.meta.branch;
-    in
-      if isStableLatest
-      then pkgs.linuxPackages_latest_hardened
-      else pkgs.linuxPackages_testing_hardened;
+    kernelPackages = pkgs.linuxPackages_latest_hardened;
   };
 
   environment = {
@@ -118,13 +113,13 @@ with config.nixos; {
   programs.zsh = {
     interactiveShellInit = ''
       nix-generate-iso () {
-        if [ $# -lt 1 ]; then
-          echo "Expected at least one argument, nix-generate-iso <flakePath>"
-          return 1
+        local flakePath="${./..}"
+
+        if [ ! -z "$1" ]; then
+          flakePath="$1"
+          shift
         fi
 
-        flakePath="$1"
-        shift
         nix build "$@" --recreate-lock-file "$flakePath#isoImage"
       }
 

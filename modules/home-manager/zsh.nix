@@ -25,10 +25,10 @@
         }
 
         nix-upload-system () {
-          flakePath="$1"
-          shift
+          local errno
+          local outLink
 
-          outLink=$(nix-build-system "$flakePath" "$@")
+          outLink=$(nix-build-system "$@")
           errno="$?"
 
           if [ "$errno" -ne "0" ]; then
@@ -36,7 +36,7 @@
             return "$errno"
           fi
 
-          cachix push sys $(nix-derive-output $outLink)
+          cachix push sys $(nix-derive-output "$outLink")
         }
       '';
     };

@@ -4,7 +4,9 @@
   programs = {
     zsh = {
       enable = true;
-      interactiveShellInit = ''
+      interactiveShellInit = let
+        system = "nixosConfigurations.${config.networking.hostName}";
+      in ''
         setopt histignorespace
 
         nix-clean () {
@@ -21,26 +23,43 @@
         }
 
         nix-build-system () {
-          if [ $# -lt 1 ]; then
-            echo "Expected at least one argument, nix-build-system <flakePath>"
-            return 1
-          fi
+          local flakePath="${./..}"
+          local tmpdir
+          local outLink
 
-          flakePath="$1"
           tmpdir="$(mktemp -d)"
           outLink="$tmpdir/system"
 
-          shift
+          if [ ! -z "$1" ]; then
+            flakePath="$1"
+            shift
+          fi
+
           nix build "$@" --out-link "$outLink" --keep-going --recreate-lock-file \
-            "$flakePath#nixosConfigurations.${config.networking.hostName}".config.system.build.toplevel
+            "$flakePath#${system}.config.system.build.toplevel"
 
           if [ $? -ne 0 ]; then
             echo "Unexpected error while building the configuration"
-            rm -rf "$tmpdir"
-            return 2
+            rm -r "$tmpdir"
+            return 1
           fi
 
-          printf "$outLink"
+          echo "$outLink"
+        }
+
+        nixos-option () {
+          local flakePath="${./..}"
+          local option
+
+          if [ ! -z "$2" ]; then
+            flakePath="$1"
+            shift
+          fi
+
+          option="$1"
+          shift
+
+          nix eval "$@" --recreate-lock-file "$flakePath#${system}.config.$option"
         }
       '';
 
