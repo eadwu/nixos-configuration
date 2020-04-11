@@ -1,10 +1,10 @@
-{ flakes, pkgs, lib, ... }:
+{ nixosModules, flakes, pkgs, lib, ... }:
 
 {
   imports =
     [
+      nixosModules.apropos
       ../options/settings.nix
-      flakes.external.nixosModules.apropos
 
       ../modules/nix.nix
     ];

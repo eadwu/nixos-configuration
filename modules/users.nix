@@ -1,9 +1,9 @@
-{ flakes, config, pkgs, ... }:
+{ nixosModules, flakes, config, pkgs, ... }:
 
 with config.nixos; {
   imports =
     [
-      flakes.home-manager.nixosModules.home-manager
+      nixosModules.home-manager
     ];
 
   home-manager = {

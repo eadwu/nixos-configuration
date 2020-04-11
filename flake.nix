@@ -31,16 +31,19 @@
     nixosConfigurations.terrenus = nixosSystem rec {
       system = "x86_64-linux";
       # TODO: Figure out why _module.args gives infinite recursion
-      specialArgs.flakes = genAttrs
-        (builtins.attrNames inputs)
-        (flake:
-          (if (inputs.${flake} ? packages && inputs.${flake}.packages ? ${system})
-            then inputs.${flake}.packages.${system}
-            else {})
-          // {
-            inherit (inputs.${flake}) nixosModules;
-            path = inputs.${flake};
-          });
+      specialArgs = rec {
+        flakes = genAttrs (builtins.attrNames inputs)
+          (flake:
+            (if (inputs.${flake} ? packages && inputs.${flake}.packages ? ${system})
+              then inputs.${flake}.packages.${system}
+              else {})
+            // {
+              path = inputs.${flake};
+              nixosModules = inputs.${flake}.nixosModules or {};
+            });
+
+        nixosModules = foldl recursiveUpdate {} (map (flake: flake.nixosModules or {}) (attrValues flakes));
+      };
 
       modules =
         singleton ({ ... }: {

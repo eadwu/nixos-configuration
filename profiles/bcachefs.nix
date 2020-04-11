@@ -1,9 +1,9 @@
-{ flakes, pkgs, lib, ... }:
+{ nixosModules, flakes, pkgs, lib, ... }:
 
 {
   imports =
     [
-      flakes.external.nixosModules.pam-keyring
+      nixosModules.pam-keyring
     ];
 
   boot = {
