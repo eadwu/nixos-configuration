@@ -1,8 +1,6 @@
 self: super:
 
-let
-  lib = super.stdenv.lib;
-in {
+{
   ccacheWrapper = super.ccacheWrapper.override {
     extraConfig = ''
       export CCACHE_COMPRESS=1

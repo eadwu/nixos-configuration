@@ -1,4 +1,4 @@
-{ modulesPath, pkgs, lib, ... }:
+{ modulesPath, pkgs, ... }:
 
 {
   imports =

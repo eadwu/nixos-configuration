@@ -8,7 +8,7 @@
   inputs.external.inputs.nixpkgs.follows = "/nixpkgs";
   inputs.home-manager.inputs.nixpkgs.follows = "/nixpkgs";
 
-  outputs = inputs@{ self, nixpkgs, home-manager, ... }: with nixpkgs.lib; {
+  outputs = { self, nixpkgs, ... }@inputs: with nixpkgs.lib; {
 
     isoImage = (nixosSystem {
       system = "x86_64-linux";

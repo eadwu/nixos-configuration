@@ -1,4 +1,4 @@
-{ nixosModules, flakes, pkgs, lib, ... }:
+{ nixosModules, pkgs, lib, ... }:
 
 {
   imports =
