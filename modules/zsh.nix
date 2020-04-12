@@ -4,6 +4,7 @@
   programs = {
     zsh = {
       enable = true;
+
       interactiveShellInit = let
         system = "nixosConfigurations.${config.networking.hostName}";
       in ''
@@ -62,12 +63,6 @@
           nix eval "$@" --recreate-lock-file "$flakePath#${system}.config.$option"
         }
       '';
-
-      ohMyZsh = {
-        enable = true;
-        customPkgs = with pkgs; [ spaceship-prompt ];
-        theme = "spaceship";
-      };
 
       shellAliases = {
         download-audio = "${pkgs.youtube-dl}/bin/youtube-dl --extract-audio --audio-format mp3";
