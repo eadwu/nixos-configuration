@@ -75,6 +75,7 @@ with config.nixos; {
       gnupg
       imagemagick7
       nix-diff
+      nix-linter
       rofi
       scrot
       st
