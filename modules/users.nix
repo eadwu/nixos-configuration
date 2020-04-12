@@ -10,7 +10,7 @@ with config.nixos; {
     useUserPackages = true;
     users."${settings.system.user}" = (
       { flakes, sysConfig }: { ... }: {
-        imports = [ ./home-manager ];
+        imports = [ ../home-manager ];
         _module.args = { inherit flakes sysConfig; };
       }
     ) { inherit flakes; sysConfig = config; };
