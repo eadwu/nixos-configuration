@@ -136,8 +136,8 @@ self: super:
       {
         name = "vscode-filesize";
         publisher = "mkxml";
-        version = "2.1.3";
-        sha256 = "019nq40al1grz0q6w9vsjry92rc7aq73mbhial4wv3bdmglnjg8s";
+        version = "2.1.4";
+        sha256 = "0hk397iijr84f71ipv5b5n0dw9xmnhnzpzm3a06hflbavjfv5z2y";
       }
 
       {
@@ -150,8 +150,8 @@ self: super:
       {
         name = "pyright";
         publisher = "ms-pyright";
-        version = "1.1.30";
-        sha256 = "1yd94cccrjij6skblkznyxkkf6rbfxk2lxbwhhp31x62lvyv05s3";
+        version = "1.1.31";
+        sha256 = "0yrdbfxh024s2mpjz273b17vi6zr7khjmwy9c93lajcmywbl4ja7";
       }
 
       {
@@ -171,8 +171,8 @@ self: super:
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.1891";
-        sha256 = "0ys2z72a9crc8sn8lipzqdsrjgccbr5zig0fy7mk0rhvsgraqa4j";
+        version = "1.0.1947";
+        sha256 = "1zjr4kglcxf4d8lfkh7m2z258f6d3vshfxkf09j382n242whi9qb";
       }
 
       {
@@ -255,8 +255,8 @@ self: super:
       {
         name = "vscode-java-pack";
         publisher = "vscjava";
-        version = "0.8.1";
-        sha256 = "1xa35bbx6xdxvz15fpjsa5j4f6aas5zxsmpd4dv6hkzlzizafrfr";
+        version = "0.9.0";
+        sha256 = "0yvbxlflz5gx2i16kjh4mg64z8138rh0ck8n986hf66gjr7vv89m";
       }
 
       {
