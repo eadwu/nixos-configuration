@@ -2,8 +2,6 @@
 
 {
   programs = {
-    command-not-found.enable = true;
-
     zsh = {
       enable = true;
       enableCompletion = false;
@@ -13,9 +11,13 @@
           src = pkgs.zsh-powerlevel10k;
           file = "share/zsh-powerlevel10k/powerlevel10k.zsh-theme"; }
 
-        { name = "history-substring-search";
-          src = pkgs.zsh-history-substring-search;
-          file = "share/zsh-history-substring-search/zsh-history-substring-search.zsh"; }
+        { name = "autosuggestions";
+          src = pkgs.zsh-autosuggestions;
+          file = "share/zsh-autosuggestions/zsh-autosuggestions.zsh"; }
+
+        { name = "fast-syntax-highlighting";
+          src = pkgs.zsh-fast-syntax-highlighting;
+          file = "share/zsh/site-functions/fast-syntax-highlighting.plugin.zsh"; }
 
         { name = "powerline10k-config";
           src = ./zsh;
@@ -23,10 +25,20 @@
       ];
 
       initExtra = ''
-        HISTORY_SUBSTRING_SEARCH_HIGHLIGHT_FOUND="bold"
-        HISTORY_SUBSTRING_SEARCH_HIGHLIGHT_NOT_FOUND="none"
-        bindkey "$terminfo[kcuu1]" history-substring-search-up
-        bindkey "$terminfo[kcud1]" history-substring-search-down
+        ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+
+        # Use emacs key bindings
+        bindkey -e
+
+        # [Up-Arrow] - fuzzy find history forward
+        autoload -U up-line-or-beginning-search
+        zle -N up-line-or-beginning-search
+        bindkey "$terminfo[kcuu1]" up-line-or-beginning-search
+
+        # [Down-Arrow] - fuzzy find history backward
+        autoload -U down-line-or-beginning-search
+        zle -N down-line-or-beginning-search
+        bindkey "$terminfo[kcud1]" down-line-or-beginning-search
 
         docker-build () {
           docker build -t "$1" -f "$1/Dockerfile" .
