@@ -25,10 +25,9 @@
       ];
 
       initExtra = ''
+        ZSH_AUTOSUGGEST_USE_ASYNC=1
         ZSH_AUTOSUGGEST_STRATEGY=(history completion)
-
-        # Use emacs key bindings
-        bindkey -e
+        POWERLEVEL9K_DISABLE_CONFIGURATION_WIZARD=true
 
         # [Up-Arrow] - fuzzy find history forward
         autoload -U up-line-or-beginning-search

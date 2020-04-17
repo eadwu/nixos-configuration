@@ -9,6 +9,8 @@
         system = "nixosConfigurations.${config.networking.hostName}";
       in ''
         setopt histignorespace
+        # Use emacs key bindings
+        bindkey -e
 
         nix-clean () {
           nix-env -p /nix/var/nix/profiles/system --delete-generations "$1"
