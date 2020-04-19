@@ -8,28 +8,9 @@
   inputs.external.inputs.nixpkgs.follows = "/nixpkgs";
   inputs.home-manager.inputs.nixpkgs.follows = "/nixpkgs";
 
-  outputs = { self, nixpkgs, ... }@inputs: with nixpkgs.lib; {
-
-    isoImage = (nixosSystem {
-      system = "x86_64-linux";
-      modules = singleton (import ./profiles/iso.nix);
-    }).config.system.build.isoImage;
-
-    sdImage = (nixosSystem {
-      system = "aarch64-linux";
-      modules = singleton (import ./profiles/sd-image.nix);
-    }).config.system.build.sdImage;
-
-    crossSdImage = (nixosSystem {
-      modules = singleton (import ./profiles/cross-sd-image.nix);
-    }).config.system.build.sdImage;
-
-    ovaImage = (nixosSystem {
-      modules = singleton (import ./profiles/vm.nix);
-    }).config.system.build.virtualBoxOVA;
-
-    nixosConfigurations.terrenus = nixosSystem rec {
-      system = "x86_64-linux";
+  outputs = { self, nixpkgs, ... }@inputs: with nixpkgs.lib; let
+    baseSystem = { system ? "x86_64-linux", modules ? [] }@config: nixosSystem rec {
+      inherit system;
       # TODO: Figure out why _module.args gives infinite recursion
       specialArgs = rec {
         flakes = genAttrs (builtins.attrNames inputs)
@@ -46,10 +27,32 @@
       };
 
       modules =
+        (singleton ({ nixpkgs.overlays = mkBefore (singleton (inputs.external.overlays system)); }))
+        ++ config.modules;
+    };
+  in {
+    isoImage = (baseSystem {
+      system = "x86_64-linux";
+      modules = singleton (import ./profiles/iso.nix);
+    }).config.system.build.isoImage;
+
+    sdImage = (baseSystem {
+      system = "aarch64-linux";
+      modules = singleton (import ./profiles/sd-image.nix);
+    }).config.system.build.sdImage;
+
+    crossSdImage = (baseSystem {
+      modules = singleton (import ./profiles/cross-sd-image.nix);
+    }).config.system.build.sdImage;
+
+    ovaImage = (baseSystem {
+      modules = singleton (import ./profiles/vm.nix);
+    }).config.system.build.virtualBoxOVA;
+
+    nixosConfigurations.terrenus = baseSystem rec {
+      modules =
         singleton ({ ... }: {
           imports = singleton ./machines/terrenus;
-
-          nixpkgs.overlays = mkBefore (singleton (inputs.external.overlays system));
 
           system.stateVersion = "19.03";
           system.configurationRevision = mkIf (self ? rev) self.rev;
