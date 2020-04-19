@@ -1,4 +1,4 @@
-{ modulesPath, flakes, lib, ... }:
+{ modulesPath, pkgs, lib, ... }:
 
 {
   imports =
@@ -48,8 +48,7 @@
     ];
 
     kernelPatches = lib.mkBefore [
-      flakes.external.customKernelPatches.extra_config
-      flakes.external.customKernelPatches.rt
+      pkgs.kernelPatches.extra_config
     ];
   };
 

@@ -1,4 +1,4 @@
-{ nixosModules, flakes, pkgs, lib, ... }:
+{ nixosModules, pkgs, lib, ... }:
 
 {
   imports =
@@ -8,7 +8,7 @@
 
   boot = {
     supportedFilesystems = [ "bcachefs" ];
-    kernelPackages = lib.mkOverride 65 pkgs.linuxPackages_latest_hardened;
+    kernelPackages = lib.mkOverride 65 pkgs.linuxPackages_latest_hardened_rt;
 
     kernelParams = [
       # Only perform slab/slub sanity checks
@@ -16,7 +16,7 @@
       "slub_debug=F"
     ];
 
-    kernelPatches = lib.singleton flakes.external.customKernelPatches.bcachefs;
+    kernelPatches = lib.singleton pkgs.kernelPatches.bcachefs;
 
     kernelModules = [ "chacha_generic" "poly1305_generic" ];
   };
