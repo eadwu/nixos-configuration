@@ -52,9 +52,7 @@
           nixpkgs.overlays = mkBefore (singleton (inputs.external.overlays system));
 
           system.stateVersion = "19.03";
-          system.configurationRevision = if (self ? rev)
-            then self.rev
-            else "-git_dirty";
+          system.configurationRevision = mkIf (self ? rev) self.rev;
         });
     };
 
