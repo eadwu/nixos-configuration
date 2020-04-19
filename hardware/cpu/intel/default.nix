@@ -1,4 +1,4 @@
-{ pkgs, lib, ... }:
+{ config, pkgs, lib, ... }:
 
 {
   imports =
@@ -11,7 +11,12 @@
       "services/hardware/undervolt.nix"
     ];
 
-  environment.systemPackages = with pkgs; [ pcm ];
+  boot.kernelParams = [
+    "intel_iommu=on"
+    "iommu=pt"
+  ];
+
+  environment.systemPackages = with pkgs; [ pcm config.boot.kernelPackages.intel-speed-select ];
 
   hardware.cpu.intel.updateMicrocode = true;
   hardware.opengl.extraPackages = with pkgs; [ intel-ocl ];
