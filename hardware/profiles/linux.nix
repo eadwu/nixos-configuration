@@ -53,8 +53,6 @@
     ];
   };
 
-  environment.memoryAllocator.provider = "libc";
-
   # Multiple virtual cores per physical core
   # NOTE: About 30% boost compared to a single physical core
   security.allowSimultaneousMultithreading = lib.mkDefault false;
