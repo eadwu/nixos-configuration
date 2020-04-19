@@ -1,4 +1,4 @@
-{ modulesPath, pkgs, ... }:
+{ modulesPath, flakes, pkgs, ... }:
 
 {
   imports =
@@ -33,7 +33,7 @@
 
     contents = [
       {
-        source = <nixpkgs>;
+        source = flakes.nixpkgs.path;
         target = "nixpkgs";
       }
       {
