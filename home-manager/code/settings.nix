@@ -103,6 +103,7 @@ in
   "git.autofetch" = true;
   "git.allowForcePush" = true;
   "git.confirmSync" = false;
+  "git.detectSubmodules" = false;
   "git.enableCommitSigning" = true;
   "git.enableSmartCommit" = true;
   "git.showPushSuccessNotification" = true;
@@ -121,7 +122,6 @@ in
     "javascript"
     "javascriptreact"
   ];
-  "filesize.use24HourFormat" = false;
   "gitlens.advanced.messages" = {
     "suppressCommitHasNoPreviousCommitWarning" = false;
     "suppressCommitNotFoundWarning" = false;
@@ -139,7 +139,6 @@ in
     "containers"
     "blocks"
   ];
-  "gitlens.keymap" = "alternate";
   "java.home" = JAVA_HOME;
   "java.implementationsCodeLens.enabled" = true;
   "java.referencesCodeLens.enabled" = true;

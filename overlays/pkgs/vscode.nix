@@ -66,8 +66,8 @@ self: super:
       {
         name = "vscode-eslint";
         publisher = "dbaeumer";
-        version = "2.1.2";
-        sha256 = "0dzkl40i6611m39sxrnyn111vpi32hlpjq9ifbl7iyxqdnipwlaj";
+        version = "2.1.3";
+        sha256 = "0mv4hwj18fqmm0ri59a9wd556qla12zw2ivbbqszbzaifa1fi0ak";
       }
 
       {
@@ -150,8 +150,8 @@ self: super:
       {
         name = "pyright";
         publisher = "ms-pyright";
-        version = "1.1.31";
-        sha256 = "0yrdbfxh024s2mpjz273b17vi6zr7khjmwy9c93lajcmywbl4ja7";
+        version = "1.1.32";
+        sha256 = "1c24k35gga73ba6vay6z834h0mnxis7nx2a6nzicy4gnyfs9kans";
       }
 
       {
@@ -171,8 +171,8 @@ self: super:
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.1947";
-        sha256 = "1zjr4kglcxf4d8lfkh7m2z258f6d3vshfxkf09j382n242whi9qb";
+        version = "1.0.2000";
+        sha256 = "1g5k94hizfdfcb1ipqr1wj07x41ynavy3ivbpr8c5vml9dkfzn48";
       }
 
       {
@@ -199,15 +199,15 @@ self: super:
       {
         name = "java";
         publisher = "redhat";
-        version = "0.59.1";
-        sha256 = "1rfzciilr7qyms5k4m8npqzi4pg2h739hzvmgz8adc52kis5fiyc";
+        version = "0.60.0";
+        sha256 = "0ayaqh9q40yc8nnahr9r50cxwr3vk7gjbpx0lc4sysmsa3dhl8py";
       }
 
       {
         name = "rust";
         publisher = "rust-lang";
-        version = "0.7.0";
-        sha256 = "16n787agjjfa68r6xv0lyqvx25nfwqw7bqbxf8x8mbb61qhbkws0";
+        version = "0.7.2";
+        sha256 = "1aafh5f0qx96c575jk7xfb3jr97nrczn8n7i1h2p500rgxsg8vr4";
       }
 
       {
