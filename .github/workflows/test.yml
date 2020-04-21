@@ -1,0 +1,31 @@
+name: "nixos-configuration"
+on:
+  push:
+  pull_request:
+jobs:
+  isoImage:
+    runs-on: ubuntu-latest
+    steps:
+    # WARNING: Needed due to GitHub Actions disk space regression on Linux runners
+    - name: init
+      run: |
+        sudo swapoff -a
+        sudo rm -f /swapfile
+        sudo apt clean
+        docker rmi $(docker image ls -aq)
+        df -h
+    - name: setup
+      run: |
+        mkdir -p ~/.config/nix
+        echo "experimental-features = flakes nix-command" >> ~/.config/nix/nix.conf
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - uses: cachix/install-nix-action@v8
+    - name: build
+      run: |
+        nix-shell -I nixpkgs=https://github.com/NixOS/nixpkgs/archive/master.tar.gz -p nixFlakes --run \
+          'nix build --print-build-logs --recreate-lock-file --out-link "$(pwd)/iso" "$(pwd)#isoImage"'
+    - uses: actions/upload-artifact@v2-preview
+      with:
+        path: iso/**/*.iso
