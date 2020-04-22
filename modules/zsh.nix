@@ -12,6 +12,17 @@
         # Use emacs key bindings
         bindkey -e
 
+        rebuild () {
+          local cmd="--help"
+
+          if [ ! -z "$1" ]; then
+            cmd="$1"
+            shift
+          fi
+
+          nix run "$@" -vv "$flakePath#${system}.config.system.build.toplevel" -c switch-to-configuration "$cmd"
+        }
+
         nix-clean () {
           nix-env -p /nix/var/nix/profiles/system --delete-generations "$1"
           nix-store --gc
