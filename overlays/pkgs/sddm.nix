@@ -4,7 +4,7 @@ with self.pkgs; {
   sddm = libsForQt5.callPackage
     (
       { callPackage, qtbase }:
-        (callPackage <nixpkgs/pkgs/applications/display-managers/sddm> {}).overrideAttrs (
+        (callPackage (self.pkgs.path + "/pkgs/applications/display-managers/sddm") {}).overrideAttrs (
           oldAttrs: {
             buildInputs = (oldAttrs.buildInputs or []) ++ (
               with gst_all_1; [
