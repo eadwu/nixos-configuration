@@ -73,21 +73,24 @@ assert builtins.pathExists ./xmonad/xmonad.hs;
         font-6 = "LiterationSans Nerd Font Mono:size=18;12";
       } // (with sysConfig.fonts.fontconfig; lib.optionalAttrs (dpi != 0) { inherit dpi; });
 
-      "bar/workspace" = {
+      "bar/workspace" = let
+        temperature = "temperature0 temperature1 temperature2 temperature3 temperature4 temperature5";
+      in {
         "inherit" = "section/universal";
         bottom = true;
 
         modules-left = "ewmh right-bottom";
         modules-right =
-          "left-bottom temperature0 temperature1 temperature2 temperature3 temperature4 temperature5 cpu right-top left-bottom memory";
+          "left-bottom ${temperature} cpu right-top left-bottom memory";
       };
 
       "bar/stat" = let
         sep = "right-bottom left-top";
+        network = "network0 network1";
       in {
         "inherit" = "section/universal";
 
-        modules-right = "left-top filesystem ${sep} network0 network1 network2 network3 battery ${sep} backlight volume ${sep} date";
+        modules-right = "left-top filesystem ${sep} ${network} battery ${sep} backlight volume ${sep} date";
       };
 
       "section/powerline" = {
@@ -287,16 +290,6 @@ assert builtins.pathExists ./xmonad/xmonad.hs;
       };
 
       "module/network1" = {
-        "inherit" = "section/network";
-        interface = "wlp2s0";
-      };
-
-      "module/network2" = {
-        "inherit" = "section/network";
-        interface = "wlp59s0";
-      };
-
-      "module/network3" = {
         "inherit" = "section/network";
         interface = "enp0";
       };
