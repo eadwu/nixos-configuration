@@ -10,15 +10,15 @@ self: super:
       {
         name = "vsc-material-theme";
         publisher = "Equinusocio";
-        version = "32.5.0";
-        sha256 = "0vgzny41zlwin4gbjvbbhpv5gpjr4j6sjkym8dqk1pw20svnnhvb";
+        version = "32.6.0";
+        sha256 = "0x45rfdha16jvz7xw88zw4gjh6p658nrcjw6ix81r9gh180prsq6";
       }
 
       {
         name = "latex-workshop";
         publisher = "James-Yu";
-        version = "8.8.0";
-        sha256 = "1nj12w0bxmqd18k2rqpxq7aibjhyzlw844zspghg5qmlwa44rzdm";
+        version = "8.9.0";
+        sha256 = "0dg7pf2kj65kfapvdpvzmgqqcwd37kiww23xcn1jib2r1gwy6ffr";
       }
 
       {
@@ -66,15 +66,15 @@ self: super:
       {
         name = "vscode-eslint";
         publisher = "dbaeumer";
-        version = "2.1.3";
-        sha256 = "0mv4hwj18fqmm0ri59a9wd556qla12zw2ivbbqszbzaifa1fi0ak";
+        version = "2.1.5";
+        sha256 = "1fr8n736pfjnxz7kgi6m86d2w6z1bwxa23xpfcd8sik9nnrnsz59";
       }
 
       {
         name = "githistory";
         publisher = "donjayamanne";
-        version = "0.6.3";
-        sha256 = "0h989yl1mmi5kfmskcdi1xcjmgv9kpzkx5znjaby8wzdwjlprm1p";
+        version = "0.6.4";
+        sha256 = "0mmjlhbm69yfwf2mq5vv3x8klr44pk16s8bv1j38zh0ivsqlv4xr";
       }
 
       {
@@ -101,15 +101,15 @@ self: super:
       {
         name = "auto-rename-tag";
         publisher = "formulahendry";
-        version = "0.1.1";
-        sha256 = "0r2bavgbkkly2l98sbrna0i2l0lh2axgqij1acv33kk1wr3lfxfx";
+        version = "0.1.2";
+        sha256 = "12ckxffcl0m366mb7jzss0abcxizrajq5s2cjy91j7mmqhxqz58j";
       }
 
       {
         name = "language-haskell";
         publisher = "justusadam";
-        version = "2.7.0";
-        sha256 = "1z6nxbg1a0yvbdicib3kxl04hrxwxi3p1hmc0qfahqkf6xwcmlc5";
+        version = "3.0.3";
+        sha256 = "1sg4g8h1gww4y67zix5f33v2gf121k2fcm6l1m7lygpkn40a8dsj";
       }
 
       {
@@ -143,15 +143,15 @@ self: super:
       {
         name = "vscode-docker";
         publisher = "ms-azuretools";
-        version = "1.0.0";
-        sha256 = "1zljdgym3kz4plb2a3z0yxvpqf4lnf215rajjs5sr7dxx3dwrxdg";
+        version = "1.1.0";
+        sha256 = "0pnhgmp7v086mg7bb0hv3fnbs58kr73218a139va7qq10yxjf4ra";
       }
 
       {
         name = "pyright";
         publisher = "ms-pyright";
-        version = "1.1.32";
-        sha256 = "1c24k35gga73ba6vay6z834h0mnxis7nx2a6nzicy4gnyfs9kans";
+        version = "1.1.34";
+        sha256 = "1as3ggm5w7ihjx2c4fwmypa7naji7dsx9llmbg6ad4b7hzf6rqw1";
       }
 
       {
@@ -171,8 +171,8 @@ self: super:
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.2000";
-        sha256 = "1g5k94hizfdfcb1ipqr1wj07x41ynavy3ivbpr8c5vml9dkfzn48";
+        version = "1.0.2048";
+        sha256 = "1hah0jjbqbhpjfdng1wvjvc7smhd90a77f5vmbhwssmnd2cgx368";
       }
 
       {
@@ -206,8 +206,8 @@ self: super:
       {
         name = "rust";
         publisher = "rust-lang";
-        version = "0.7.2";
-        sha256 = "1aafh5f0qx96c575jk7xfb3jr97nrczn8n7i1h2p500rgxsg8vr4";
+        version = "0.7.4";
+        sha256 = "0y7q5h1jgxx3zac1wc2rn9ziqhkr3fhwkvkgq7h73z4n3bb7fgz4";
       }
 
       {
