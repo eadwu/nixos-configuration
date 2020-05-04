@@ -1,6 +1,4 @@
 {
-  edition = 201909;
-
   inputs.nixpkgs = { type = "github"; owner = "eadwu"; repo = "nixpkgs"; ref = "develop"; };
   inputs.external = { type = "github"; owner = "eadwu"; repo = "flakes"; };
   inputs.home-manager = { type = "github"; owner = "eadwu"; repo = "home-manager"; };
