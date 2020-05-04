@@ -44,7 +44,7 @@
     rstudioWrapper
     typora
     vivaldi-snapshot
-    winusb
+    woeusb
     xfce.mousepad
     ## Console
     bfg-repo-cleaner
