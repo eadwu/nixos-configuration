@@ -4,7 +4,6 @@ with config.nixos; {
   imports =
     [
       ./default.nix
-      ./bcachefs.nix
 
       ../modules/backlight
       ../modules/ccache.nix
