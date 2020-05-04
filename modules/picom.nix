@@ -6,17 +6,11 @@
 
     fade = true;
     fadeDelta = 5;
-    fadeSteps = [
-      "0.03"
-      "0.03"
-    ];
+    fadeSteps = [ 0.03 0.03 ];
     fadeExclude = [];
     shadow = true;
-    shadowOffsets = [
-      (-15)
-      (-15)
-    ];
-    shadowOpacity = "0.5";
+    shadowOffsets = [ (-15) (-15) ];
+    shadowOpacity = 0.5;
     shadowExclude = [
       "! name~=''"
       "name *= 'picom'"
@@ -24,13 +18,13 @@
       "class_g = 'Polybar'"
       "_GTK_FRAME_EXTENTS@:c"
     ];
-    activeOpacity = "0.95";
-    inactiveOpacity = "0.85";
+    activeOpacity = 0.95;
+    inactiveOpacity = 0.85;
     wintypes = {
       tooltip = {
         fade = true;
         shadow = true;
-        opacity = "0.85";
+        opacity = 0.85;
         focus = true;
         full-shadow = false;
       };
@@ -44,11 +38,11 @@
       };
 
       popup_menu = {
-        opacity = "0.95";
+        opacity = 0.95;
       };
 
       dropdown_menu = {
-        opacity = "0.95";
+        opacity = 0.95;
       };
     };
     opacityRules = [
