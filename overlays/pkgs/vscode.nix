@@ -73,8 +73,8 @@ self: super:
       {
         name = "githistory";
         publisher = "donjayamanne";
-        version = "0.6.4";
-        sha256 = "0mmjlhbm69yfwf2mq5vv3x8klr44pk16s8bv1j38zh0ivsqlv4xr";
+        version = "0.6.5";
+        sha256 = "0v6f8mkdwm6c0ypjhra22iv5fmmjpdc8fnja70zjkvbgxb48cd2s";
       }
 
       {
@@ -120,6 +120,13 @@ self: super:
       }
 
       {
+        name = "rust-analyzer";
+        publisher = "matklad";
+        version = "0.2.151";
+        sha256 = "07qrfrls80x09jl0sfpacpd29ls2zlm13nwc314f9hr5ppdli1kj";
+      }
+
+      {
         name = "vscode-language-babel";
         publisher = "mgmcdermott";
         version = "0.0.27";
@@ -150,8 +157,8 @@ self: super:
       {
         name = "pyright";
         publisher = "ms-pyright";
-        version = "1.1.34";
-        sha256 = "1as3ggm5w7ihjx2c4fwmypa7naji7dsx9llmbg6ad4b7hzf6rqw1";
+        version = "1.1.35";
+        sha256 = "0zz1rgngxbx7z2a45sjsv8frck6dxsds5kfnzzw14k0fvbrpgxhj";
       }
 
       {
@@ -171,8 +178,8 @@ self: super:
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.2048";
-        sha256 = "1hah0jjbqbhpjfdng1wvjvc7smhd90a77f5vmbhwssmnd2cgx368";
+        version = "1.0.2104";
+        sha256 = "1vfiwwiycgf2yyblx4fzk2b9v4wnwrn9i7ymwfac50b4d0n5mz7q";
       }
 
       {
@@ -199,15 +206,8 @@ self: super:
       {
         name = "java";
         publisher = "redhat";
-        version = "0.60.0";
-        sha256 = "0ayaqh9q40yc8nnahr9r50cxwr3vk7gjbpx0lc4sysmsa3dhl8py";
-      }
-
-      {
-        name = "rust";
-        publisher = "rust-lang";
-        version = "0.7.4";
-        sha256 = "0y7q5h1jgxx3zac1wc2rn9ziqhkr3fhwkvkgq7h73z4n3bb7fgz4";
+        version = "0.61.0";
+        sha256 = "1mnqzlzscy6wnzh6h8yjhz190z6wvhkp4g8db151haz4jvxrfhnn";
       }
 
       {

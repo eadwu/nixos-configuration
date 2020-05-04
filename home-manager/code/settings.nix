@@ -214,6 +214,7 @@ in
   "maven.terminal.useJavaHome" = true;
   "metals.javaHome" = JAVA_HOME;
   "rust.rustfmt_path" = "${rustPlatform.rust}/bin/rustfmt";
+  "rust-analyzer.serverPath" = "${rust-analyzer}/bin/rust-analyzer";
   "rust-client.channel" = "nightly";
   "rust-client.disableRustup" = true;
   "rust-client.rlsPath" = "${rustPlatform.rust}/bin/rls";
