@@ -36,6 +36,7 @@
       vim
       wget
       zip
+      zstd
       # Version Control
       git
 
