@@ -1,4 +1,4 @@
-{ config, lib, ... }:
+{ pkgs, config, lib, ... }:
 
 with lib;
 
@@ -73,7 +73,7 @@ in
     xserver = {
       background = mkOption {
         type = types.path;
-        default = "${nixos-icons}/share/icons/hicolor/128x128/apps/nix-snowflake.png";
+        default = "${pkgs.nixos-icons}/share/icons/hicolor/128x128/apps/nix-snowflake.png";
         description = ''
           The wallpaper to use in X.Org
         '';
