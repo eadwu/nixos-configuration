@@ -6,7 +6,7 @@ let
   gitignore = stdenv.mkDerivation {
     name = "gitignore";
 
-    outputHash = "1ib0rs7w5rm04fnd143j9cm4bahhsng5n125xn60js19chirknrzlb755pqfzchdwzabxvagphcfx1x3m09sbr6ik43fpcnid4nz0g3";
+    outputHash = "sha512-j/3WGfXt6yeUul2rJ+jn6KEB5yO20ZHofrbcbdAlWBswjfiSZKYdYYiv4MmQGqfv8immCH42fOE/b1+zvU5T8g==";
     outputHashAlgo = "sha512";
     outputHashMode = "flat";
 
@@ -35,7 +35,7 @@ in
     userEmail = "fangkazuto@gmail.com";
 
     signing = {
-      key = "8AB0E99F622EC03E";
+      key = "F44F23D596B4F71D";
       signByDefault = true;
     };
 
