@@ -66,7 +66,7 @@
             return "$errno"
           fi
 
-          cachix push sys $(nix-derive-output "$outLink")
+          nix-derive-output "$outLink" | cachix push sys
         }
       '';
     };
