@@ -74,7 +74,7 @@ assert builtins.pathExists ./xmonad/xmonad.hs;
       } // (with sysConfig.fonts.fontconfig; lib.optionalAttrs (dpi != 0) { inherit dpi; });
 
       "bar/workspace" = let
-        temperature = "temperature0 temperature1 temperature2 temperature3 temperature4 temperature5";
+        temperature = "temperature0 temperature1 temperature2 temperature3 temperature4 temperature5 temperature6";
       in {
         "inherit" = "section/universal";
         bottom = true;
@@ -202,6 +202,11 @@ assert builtins.pathExists ./xmonad/xmonad.hs;
       "module/temperature5" = {
         "inherit" = "section/temperature";
         hwmon-path = "/sys/devices/platform/coretemp.0/hwmon/hwmon5/temp1_input";
+      };
+
+      "module/temperature6" = {
+        "inherit" = "section/temperature";
+        hwmon-path = "/sys/devices/platform/coretemp.0/hwmon/hwmon6/temp1_input";
       };
 
       "module/cpu" = {
