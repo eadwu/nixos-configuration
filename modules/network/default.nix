@@ -8,7 +8,7 @@ with config.nixos; {
     ];
 
   environment.etc."iwd/main.conf".text = lib.generators.toINI {} {
-    # https://www.phoronix.com/scan.php?page=news_item&px=IWD-MAC-Override-Randomize
+    # https://git.kernel.org/pub/scm/network/wireless/iwd.git/commit/?id=e10c6ada1203abe144830830f2314d1c9d870126
     General.AddressRandomization = "network";
   };
 
