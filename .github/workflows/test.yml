@@ -14,10 +14,6 @@ jobs:
         sudo apt clean
         docker rmi $(docker image ls -aq)
         df -h
-    - name: setup
-      run: |
-        mkdir -p ~/.config/nix
-        echo "experimental-features = flakes nix-command" >> ~/.config/nix/nix.conf
     - uses: actions/checkout@v2
       with:
         fetch-depth: 0
@@ -25,7 +21,7 @@ jobs:
     - name: build
       run: |
         nix-shell -I nixpkgs=https://github.com/eadwu/nixpkgs/archive/develop.tar.gz -p nixFlakes --run \
-          'nix build --print-build-logs --recreate-lock-file --out-link "$(pwd)/iso" "$(pwd)#isoImage"'
+          'nix --experimental-features "flakes nix-command" build --print-build-logs --recreate-lock-file "$(pwd)#isoImage"'
     - uses: actions/upload-artifact@v2-preview
       with:
         path: iso/**/*.iso
