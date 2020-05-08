@@ -10,8 +10,9 @@ with self.pkgs; rec {
     }
   ).overrideDerivation (
     oldAttrs: {
-      src = builtins.fetchTarball {
+      src = fetchurl {
         url = "https://github.com/raspberrypi/linux/archive/6d8bf28fa4b1ca0a35c0cd1dcb267fb216daf720.tar.gz";
+        sha256 = "0gc7vqy1ajwyh65xh569hsh23k82gh1zh5gpr0vhcid92vyh5ayc";
       };
 
       nativeBuildInputs = (oldAttrs.nativeBuildInputs or []) ++ [
@@ -30,8 +31,9 @@ with self.pkgs; rec {
 
   raspberrypifw = super.raspberrypifw.overrideAttrs (
     _: {
-      src = builtins.fetchTarball {
+      src = fetchurl {
         url = "https://github.com/raspberrypi/firmware/archive/f5c626c64874d6e1482edf4a76aa22e5e54be63d.tar.gz";
+        sha256 = "1dhks6d4agy278akg8b6fq70mrzsnnf4xibpyzdzraf9lj2dg39q";
       };
     }
   );
