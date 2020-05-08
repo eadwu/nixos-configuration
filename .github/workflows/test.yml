@@ -26,6 +26,10 @@ jobs:
       run: |
         nix-shell -I nixpkgs=https://github.com/eadwu/nixpkgs/archive/develop.tar.gz -p nixFlakes --run \
           'nix --experimental-features "flakes nix-command" build --print-build-logs --recreate-lock-file "$(pwd)#isoImage"'
+    - name: remove unnecessary build deps
+      run: |
+        nix-store --gc
+        nix-collect-garbage -d
     - uses: actions/upload-artifact@v2
       with:
         path: iso/**/*.iso
