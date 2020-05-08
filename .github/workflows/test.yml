@@ -1,7 +1,11 @@
-name: "nixos-configuration"
+name: nixos-configuration
+
 on:
   push:
   pull_request:
+  schedule:
+    - cron: '0 0 * * *'
+
 jobs:
   isoImage:
     runs-on: ubuntu-latest
