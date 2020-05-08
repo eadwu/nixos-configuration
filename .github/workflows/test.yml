@@ -9,6 +9,11 @@ on:
 jobs:
   isoImage:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        attr: [isoImage]
+
     steps:
     # WARNING: Needed due to GitHub Actions disk space regression on Linux runners
     - name: init
@@ -25,7 +30,7 @@ jobs:
     - name: build
       run: |
         nix-shell -I nixpkgs=https://github.com/eadwu/nixpkgs/archive/develop.tar.gz -p nixFlakes --run \
-          'nix --experimental-features "flakes nix-command" build --print-build-logs --recreate-lock-file "$(pwd)#isoImage"'
+          'nix --experimental-features "flakes nix-command" build --print-build-logs --recreate-lock-file "$(pwd)#${{ matrix.attr }}"'
     - name: remove unnecessary build deps
       run: |
         nix-store --gc
@@ -33,4 +38,5 @@ jobs:
     - uses: actions/upload-artifact@v2
       continue-on-error: true
       with:
+        name: ${{ matrix.attr }}
         path: result/iso/*.iso
