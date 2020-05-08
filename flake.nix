@@ -11,6 +11,8 @@
       inherit system;
       # TODO: Figure out why _module.args gives infinite recursion
       specialArgs = rec {
+        inherit system;
+
         flakes = genAttrs (builtins.attrNames inputs)
           (flake:
             (if (inputs.${flake} ? packages && inputs.${flake}.packages ? ${system})

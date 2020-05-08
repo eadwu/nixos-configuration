@@ -1,7 +1,7 @@
-{ modulesPath, pkgs, lib, ... }:
+{ modulesPath, system, pkgs, lib, ... }:
 
 with lib; {
-  imports = [ "${modulesPath}/modules/installer/cd-dvd/sd-image-aarch64.nix" ];
+  imports = [ (modulesPath + "/installer/cd-dvd/sd-image-aarch64.nix") ];
 
   # Reduce bloat
   boot.supportedFilesystems = mkForce [ "vfat" ];
@@ -48,6 +48,6 @@ with lib; {
   # Pin system in the event of a cross compilation
   nixpkgs = {
     config = {};
-    localSystem = { system = builtins.currentSystem; };
+    localSystem = { inherit system; };
   };
 }
