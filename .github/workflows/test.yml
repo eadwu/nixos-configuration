@@ -31,5 +31,6 @@ jobs:
         nix-store --gc
         nix-collect-garbage -d
     - uses: actions/upload-artifact@v2
+      continue-on-error: true
       with:
-        path: iso/**/*.iso
+        path: result/iso/*.iso
