@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: remove old artifacts
+    - name: Remove old artifacts
       uses: c-hive/gha-remove-artifacts@v1.2.0
       with:
         age: '1 day'
@@ -32,7 +32,7 @@ jobs:
 
     steps:
     # WARNING: Needed due to GitHub Actions disk space regression on Linux runners
-    - name: init
+    - name: Obtain maximum storage
       run: |
         sudo swapoff -a
         sudo rm -f /swapfile
@@ -43,11 +43,11 @@ jobs:
       with:
         fetch-depth: 0
     - uses: cachix/install-nix-action@v8
-    - name: build
+    - name: Nix build
       run: |
         nix-shell -I nixpkgs=https://github.com/eadwu/nixpkgs/archive/develop.tar.gz -p nixFlakes --run \
           'nix --experimental-features "flakes nix-command" build --print-build-logs --recreate-lock-file "$(pwd)#${{ matrix.attr }}"'
-    - name: remove unnecessary build deps
+    - name: Remove unnecessary build deps
       run: |
         nix-store --gc
         nix-collect-garbage -d
