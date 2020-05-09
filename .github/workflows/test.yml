@@ -7,6 +7,17 @@ on:
     - cron: '0 0 * * *'
 
 jobs:
+  remove-old-artifacts:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: remove old artifacts
+      uses: c-hive/gha-remove-artifacts@v1.2.0
+      with:
+        age: '1 day'
+        skip-recent: 4
+        GITHUB_TOKEN: ${{ github.token }}
+
   images:
     runs-on: ubuntu-latest
     timeout-minutes: 720
