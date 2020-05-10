@@ -25,11 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - attr: isoImage
-            outLink: result/iso/*.iso
-          - attr: crossSdImage
-            outLink: result/sd-image/*.img
+        attr: [isoImage]
 
     steps:
     # WARNING: Needed due to GitHub Actions disk space regression on Linux runners
@@ -56,4 +52,4 @@ jobs:
       continue-on-error: true
       with:
         name: ${{ matrix.attr }}
-        path: ${{ matrix.outLink }}
+        path: result/iso/*.iso
