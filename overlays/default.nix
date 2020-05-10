@@ -33,14 +33,6 @@ in
       visualizerSupport = true;
     };
 
-    nixopsUnstable = (
-      import (
-        "${builtins.fetchTarball {
-          url = "https://git.sr.ht/~eadwu/nixops/archive/master.tar.gz";
-        }}/release.nix"
-      ) { p = p: with p; [ vbox libvirtd ]; }
-    ).build.${stdenv.hostPlatform.system};
-
     polybar = super.polybar.override {
       githubSupport = true;
       mpdSupport = true;
