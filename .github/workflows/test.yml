@@ -19,6 +19,7 @@ jobs:
         GITHUB_TOKEN: ${{ github.token }}
 
   images:
+    needs: remove-old-artifacts
     runs-on: ubuntu-latest
     timeout-minutes: 720
     strategy:
