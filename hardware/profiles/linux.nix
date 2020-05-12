@@ -46,10 +46,6 @@
       "init_on_alloc=1"
       "init_on_free=1"
     ];
-
-    kernelPatches = lib.mkBefore [
-      pkgs.kernelPatches.extra_config
-    ];
   };
 
   # Multiple virtual cores per physical core
