@@ -42,6 +42,7 @@
     jetbrains.idea-ultimate
     riot-desktop
     rstudioWrapper
+    thunderbird
     typora
     vivaldi-snapshot
     woeusb
