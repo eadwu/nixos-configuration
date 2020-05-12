@@ -14,13 +14,11 @@ with config.nixos; {
     binaryCaches = [
       "https://sys.cachix.org/"
       "https://rpi.cachix.org/"
-      "https://all-hies.cachix.org/"
     ];
 
     binaryCachePublicKeys = [
-      "sys.cachix.org-1:+pkmJFQq2g1Oq/u3bDlcyL4EwYWwlvmFWZpUwMDN3M4="
+      "sys.cachix.org-1:KrERagTDZBL9DkZrQb/+loTtpKBats1MxJ/Q+zmCKrg="
       "rpi.cachix.org-1:Rfb3+jN/+LcMvuTkGFkB9uTkRcNUq97AGSFxF1wMPDU="
-      "all-hies.cachix.org-1:JjrzAOEUsD9ZMt8fdFbzo3jNAyEWlPAwdVuHw4RD43k="
     ];
 
     buildMachines = [
