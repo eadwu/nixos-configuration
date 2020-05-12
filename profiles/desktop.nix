@@ -30,7 +30,7 @@ with config.nixos; {
   boot = {
     cleanTmpDir = true;
     supportedFilesystems = [ "ntfs" ];
-    kernelPackages = pkgs.linuxPackages_latest_hardened_rt;
+    kernelPackages = pkgs.linuxPackages_custom;
   };
 
   environment = {
