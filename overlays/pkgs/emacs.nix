@@ -14,11 +14,11 @@ let
     oldAttrs: rec {
       name = "${pname}-${version}";
       pname = stdenv.lib.removeSuffix "-${oldAttrs.version}" oldAttrs.name;
-      version = "27.0.90";
+      version = "27.0.91";
 
       src = fetchurl {
         url = "https://git.savannah.gnu.org/cgit/emacs.git/snapshot/${name}.tar.gz";
-        sha256 = "sha256-Rynqv8zfGA/9n/OZXb2ww5Xa0uRb+OQy+ChThvjVv4I=";
+        sha256 = "1gff03byk74ysvzdllw9smkp93p2gs12xa2d0ff3pypxgn972yxc";
       };
 
       patches = [
