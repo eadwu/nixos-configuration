@@ -15,7 +15,6 @@ with config.nixos; {
       ../modules/libvirt.nix
       ../modules/logind
       ../modules/lorri.nix
-      ../modules/mpd
       ../modules/netdata.nix
       ../modules/network
       ../modules/pulseaudio.nix

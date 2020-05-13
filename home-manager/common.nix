@@ -12,6 +12,7 @@
       ./glava.nix
       ./git.nix
       ./gtk.nix
+      ./mpd.nix
       ./mpv.nix
       ./ncmpcpp.nix
       ./rofi.nix
