@@ -18,7 +18,7 @@ with config.nixos; {
       ../modules/mpd
       ../modules/netdata.nix
       ../modules/network
-      ../modules/pulseaudio
+      ../modules/pulseaudio.nix
       ../modules/tlp.nix
       ../modules/users.nix
       ../modules/virtualisation.nix
