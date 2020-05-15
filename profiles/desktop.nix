@@ -46,8 +46,8 @@ with config.nixos; {
       gcc
       gdb
       llvmPackages.clang-unwrapped
-      # mongodb
-      mysql57
+      mongodb
+      mysql
       nasm
       nodejs
       openjdk
@@ -68,6 +68,7 @@ with config.nixos; {
       cmake
       gnumake
       # Misc
+      archiver
       cachix
       epubcheck
       ffmpeg
