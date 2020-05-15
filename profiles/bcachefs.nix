@@ -8,7 +8,7 @@
 
   boot = {
     supportedFilesystems = [ "bcachefs" ];
-    kernelPackages = lib.mkOverride 65 pkgs.linuxPackages_latest_hardened_rt;
+    kernelPackages = lib.mkOverride 65 pkgs.linuxPackages_custom;
 
     kernelParams = [
       # Only perform slab/slub sanity checks
