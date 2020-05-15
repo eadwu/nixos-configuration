@@ -108,7 +108,7 @@ with config.nixos; {
 
   programs.gnupg.agent = {
     enable = true;
-    pinentryFlavor = "gtk2";
+    pinentryFlavor = "gnome3";
   };
 
   programs.zsh = {
