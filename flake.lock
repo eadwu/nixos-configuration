@@ -1,0 +1,245 @@
+{
+  "nodes": {
+    "boxpub": {
+      "flake": false,
+      "info": {
+        "lastModified": 1588725561,
+        "narHash": "sha256-hFNrtDlj7+ueFT8mCHeqe2m7FLNsyooWU9rzwqY8NVc="
+      },
+      "locked": {
+        "owner": "eadwu",
+        "repo": "boxpub",
+        "rev": "2794126472cd5fbf10ca67bcfeb9a9bf0a7a7d5a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "eadwu",
+        "ref": "boxpub/2.x",
+        "repo": "boxpub",
+        "type": "github"
+      }
+    },
+    "cachix": {
+      "flake": false,
+      "info": {
+        "lastModified": 1586710030,
+        "narHash": "sha256-cqaMWQsz7GYr6k82ccVaZ0gxd1EnOQWHU1ShnjFl0FY="
+      },
+      "locked": {
+        "owner": "eadwu",
+        "repo": "cachix",
+        "rev": "30febae6056980adc470d2ccc834c689eea5f6bf",
+        "type": "github"
+      },
+      "original": {
+        "owner": "eadwu",
+        "repo": "cachix",
+        "type": "github"
+      }
+    },
+    "custom": {
+      "info": {
+        "lastModified": 1589310760,
+        "narHash": "sha256-g9YmCrIiv20m7qukQM8nenMPYFf6nQAz94kmQQmNZfo="
+      },
+      "inputs": {
+        "boxpub": "boxpub",
+        "cachix": "cachix",
+        "nix-linter": "nix-linter",
+        "nixops": "nixops",
+        "nixpkgs": "nixpkgs",
+        "plymouth-themes": "plymouth-themes"
+      },
+      "locked": {
+        "owner": "eadwu",
+        "repo": "flakes",
+        "rev": "5b5c19ad6e62955b896f9035fab2ab5fc5e746f4",
+        "type": "github"
+      },
+      "original": {
+        "owner": "eadwu",
+        "ref": "custom",
+        "repo": "flakes",
+        "type": "github"
+      }
+    },
+    "external": {
+      "info": {
+        "lastModified": 1589156497,
+        "narHash": "sha256-Ag34YRk8z2DsUzEZXJSWWzQrKz1mfpZzre4EAyuxtcM="
+      },
+      "inputs": {
+        "custom": "custom",
+        "nixpkgs": "nixpkgs_2",
+        "rolling": "rolling"
+      },
+      "locked": {
+        "owner": "eadwu",
+        "repo": "flakes",
+        "rev": "005f42c45b14fdcae106f45411009f21aa7de6bb",
+        "type": "github"
+      },
+      "original": {
+        "owner": "eadwu",
+        "repo": "flakes",
+        "type": "github"
+      }
+    },
+    "home-manager": {
+      "info": {
+        "lastModified": 1588630295,
+        "narHash": "sha256-J9O4lRgqGt8UhoGNs9ViIotB33IKN0SFdXU6lqYIcHY="
+      },
+      "inputs": {
+        "nixpkgs": "nixpkgs_2"
+      },
+      "locked": {
+        "owner": "eadwu",
+        "repo": "home-manager",
+        "rev": "dc7744b8f5f67e9d45cbf22cf0cd88c79b4bed2a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "eadwu",
+        "repo": "home-manager",
+        "type": "github"
+      }
+    },
+    "nix-linter": {
+      "flake": false,
+      "info": {
+        "lastModified": 1586709851,
+        "narHash": "sha256-idOz72Ac45ZoBuHmT8wScgp5I50VpYbUfbnVgYGr31c="
+      },
+      "locked": {
+        "owner": "eadwu",
+        "repo": "nix-linter",
+        "rev": "d20e56a71350d24293bed5c35828c093cd437119",
+        "type": "github"
+      },
+      "original": {
+        "owner": "eadwu",
+        "repo": "nix-linter",
+        "type": "github"
+      }
+    },
+    "nixops": {
+      "flake": false,
+      "info": {
+        "lastModified": 1589594291,
+        "narHash": "sha256-Xz5SmPHGr7T0VuQSefu5l2TFB/QfR8SM7YBLzsX+BIU="
+      },
+      "locked": {
+        "owner": "NixOS",
+        "repo": "nixops",
+        "rev": "a03faec4fd38384edaf7e2a154fb36eab87490d8",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "repo": "nixops",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "info": {
+        "lastModified": 1589766301,
+        "narHash": "sha256-AXXcot+sd1dlT1G5Ddjadv2GMZtizKIY+v5q01x3pmg="
+      },
+      "locked": {
+        "owner": "eadwu",
+        "repo": "nixpkgs",
+        "rev": "cf08443635eaddd181846f311e8d62f58fa63650",
+        "type": "github"
+      },
+      "original": {
+        "owner": "eadwu",
+        "ref": "develop",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs_2": {
+      "info": {
+        "lastModified": 1589766301,
+        "narHash": "sha256-AXXcot+sd1dlT1G5Ddjadv2GMZtizKIY+v5q01x3pmg="
+      },
+      "locked": {
+        "owner": "eadwu",
+        "repo": "nixpkgs",
+        "rev": "cf08443635eaddd181846f311e8d62f58fa63650",
+        "type": "github"
+      },
+      "original": {
+        "owner": "eadwu",
+        "ref": "develop",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs_3": {
+      "info": {
+        "lastModified": 1589764573,
+        "narHash": "sha256-GWfsBkPtPAVCt/9D5l60aci16Xy0ALrZtQyNtTB6DWg="
+      },
+      "locked": {
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "f648016c0bc3173c26620de8c4271f6e435f0e34",
+        "type": "github"
+      },
+      "original": {
+        "id": "nixpkgs",
+        "type": "indirect"
+      }
+    },
+    "plymouth-themes": {
+      "flake": false,
+      "info": {
+        "lastModified": 1587689763,
+        "narHash": "sha256-q3rG4VTzGeWMQIfGRBtoqLnbsrwnhhPpJDvwjwdFlw4="
+      },
+      "locked": {
+        "owner": "eadwu",
+        "repo": "plymouth-themes",
+        "rev": "79a4e889b2f21ed2a2a2f774c3a1ae1152f1a7e2",
+        "type": "github"
+      },
+      "original": {
+        "owner": "eadwu",
+        "repo": "plymouth-themes",
+        "type": "github"
+      }
+    },
+    "rolling": {
+      "info": {
+        "lastModified": 1589764094,
+        "narHash": "sha256-CovLcJ5Gp1PG4PS8IKqjNo1HBe87nW19Yp6eerknlYc="
+      },
+      "inputs": {
+        "nixpkgs": "nixpkgs_3"
+      },
+      "locked": {
+        "owner": "eadwu",
+        "repo": "flakes",
+        "rev": "9bd5db3da1dc9c08b363b9b89febe62b0ee0f30b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "eadwu",
+        "ref": "rolling",
+        "repo": "flakes",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "external": "external",
+        "home-manager": "home-manager",
+        "nixpkgs": "nixpkgs_2"
+      }
+    }
+  },
+  "root": "root",
+  "version": 5
+}
