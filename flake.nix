@@ -1,7 +1,7 @@
 {
   inputs.nixpkgs = { type = "github"; owner = "eadwu"; repo = "nixpkgs"; ref = "develop"; };
   inputs.external = { type = "github"; owner = "eadwu"; repo = "flakes"; };
-  inputs.home-manager = { type = "github"; owner = "eadwu"; repo = "home-manager"; };
+  inputs.home-manager = { type = "github"; owner = "rycee"; repo = "home-manager"; ref = "bqv-flakes"; };
 
   inputs.external.inputs.nixpkgs.follows = "/nixpkgs";
   inputs.home-manager.inputs.nixpkgs.follows = "/nixpkgs";
@@ -54,6 +54,7 @@
         singleton ({ ... }: {
           imports = singleton ./machines/terrenus;
 
+          # nix.nixPath = singleton "nixos-config=${self}/machines/terrenus";
           system.stateVersion = "19.03";
           system.configurationRevision = mkIf (self ? rev) self.rev;
         });
