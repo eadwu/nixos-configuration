@@ -27,7 +27,7 @@
       };
 
       modules =
-        (singleton ({ nixpkgs.overlays = mkBefore (singleton (inputs.external.overlays system)); }))
+        (singleton ({ nixpkgs.overlays = mkBefore (singleton inputs.external.overlay); }))
         ++ config.modules;
     };
   in {
