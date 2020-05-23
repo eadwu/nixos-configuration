@@ -1,11 +1,11 @@
-self: super:
+final: prev:
 
 let
-  inherit (self) pkgs;
+  inherit (final) pkgs;
   inherit (pkgs) epkgs stdenv fetchurl emacsPackagesNgGen;
 
   emacs27 = (
-    super.emacs.override {
+    prev.emacs.override {
       srcRepo = true;
       withGTK2 = false;
       withGTK3 = true;
@@ -22,7 +22,7 @@ let
       };
 
       patches = [
-        (self.pkgs.path + "/pkgs/applications/editors/emacs/tramp-detect-wrapped-gvfsd.patch")
+        (final.pkgs.path + "/pkgs/applications/editors/emacs/tramp-detect-wrapped-gvfsd.patch")
         ../../patches/emacs/clean-env.patch
       ];
 

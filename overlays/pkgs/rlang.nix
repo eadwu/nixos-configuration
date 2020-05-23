@@ -1,7 +1,7 @@
-self: super:
+final: prev:
 
 let
-  rPackages = with super.rPackages; [
+  rPackages = with prev.rPackages; [
     ggplot2
     showtext
     rmarkdown
@@ -9,11 +9,11 @@ let
   ];
 in
 {
-  rWrapper = super.rWrapper.override {
+  rWrapper = prev.rWrapper.override {
     packages = rPackages;
   };
 
-  rstudioWrapper = super.rstudioWrapper.override {
+  rstudioWrapper = prev.rstudioWrapper.override {
     packages = rPackages;
   };
 }

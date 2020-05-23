@@ -1,6 +1,6 @@
-self: super: let
+final: prev: let
   subOverlays = let
-    lib = super.stdenv.lib;
+    lib = prev.stdenv.lib;
   in
     builtins.listToAttrs (
       lib.flatten (
@@ -8,46 +8,46 @@ self: super: let
           (
             filename: lib.mapAttrsToList
               (n: v: lib.nameValuePair n v)
-              (import (./. + "/pkgs/${filename}") self super)
+              (import (./. + "/pkgs/${filename}") final prev)
           )
           (builtins.attrNames (lib.filterAttrs (_: v: v == "regular") (builtins.readDir ./pkgs)))
       )
     );
 in
-  with self.pkgs; subOverlays // {
-    ark = super.ark.override {
+  with final.pkgs; subOverlays // {
+    ark = prev.ark.override {
       unfreeEnableUnrar = true;
     };
 
-    glava = super.glava.override {
+    glava = prev.glava.override {
       enableGlfw = true;
     };
 
-    knot-resolver = super.knot-resolver.override {
+    knot-resolver = prev.knot-resolver.override {
       extraFeatures = true;
     };
 
-    ncmpcpp = super.ncmpcpp.override {
+    ncmpcpp = prev.ncmpcpp.override {
       clockSupport = true;
       outputsSupport = true;
       visualizerSupport = true;
     };
 
-    polybar = super.polybar.override {
+    polybar = prev.polybar.override {
       githubSupport = true;
       mpdSupport = true;
       pulseSupport = true;
     };
 
-    typora = super.typora.override {
+    typora = prev.typora.override {
       withPandoc = true;
     };
 
-    vaapiIntel = super.vaapiIntel.override {
+    vaapiIntel = prev.vaapiIntel.override {
       enableHybridCodec = true;
     };
 
-    vim_configurable = super.vim_configurable.override {
+    vim_configurable = prev.vim_configurable.override {
       ftNixSupport = true;
     };
   }

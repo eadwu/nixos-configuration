@@ -1,10 +1,10 @@
-self: super:
+final: prev:
 
-with self.pkgs; {
+with final.pkgs; {
   sddm = libsForQt5.callPackage
     (
       { callPackage, qtbase }:
-        (callPackage (self.pkgs.path + "/pkgs/applications/display-managers/sddm") {}).overrideAttrs (
+        (callPackage (final.pkgs.path + "/pkgs/applications/display-managers/sddm") {}).overrideAttrs (
           oldAttrs: {
             buildInputs = (oldAttrs.buildInputs or []) ++ (
               with gst_all_1; [

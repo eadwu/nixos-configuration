@@ -1,12 +1,12 @@
-self: super:
+final: prev:
 
-{
-  vscode-insiders-with-extensions = super.vscode-insiders-with-extensions.override {
-    vscodeExtensions = with super.vscode-extensions; [
+with final.pkgs; {
+  vscode-insiders-with-extensions = prev.vscode-insiders-with-extensions.override {
+    vscodeExtensions = with vscode-extensions; [
       ms-python.python
       ms-vscode.cpptools
       WakaTime.vscode-wakatime
-    ] ++ super.vscode-utils.extensionsFromVscodeMarketplace [
+    ] ++ vscode-utils.extensionsFromVscodeMarketplace [
       {
         name = "vsc-material-theme";
         publisher = "Equinusocio";

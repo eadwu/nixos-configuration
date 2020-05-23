@@ -1,7 +1,7 @@
-self: super:
+final: prev:
 
 {
-  ccacheWrapper = super.ccacheWrapper.override {
+  ccacheWrapper = prev.ccacheWrapper.override {
     extraConfig = ''
       export CCACHE_COMPRESS=1
       export CCACHE_DIR=/var/cache/ccache

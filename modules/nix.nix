@@ -58,8 +58,8 @@ with config.nixos; {
   nixpkgs = {
     overlays = [
       (
-        self: super: {
-          tlp = super.tlp.override {
+        final: prev: {
+          tlp = prev.tlp.override {
             inherit (config.boot.kernelPackages) x86_energy_perf_policy;
           };
         }
