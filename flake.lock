@@ -39,8 +39,8 @@
     },
     "custom": {
       "info": {
-        "lastModified": 1590079788,
-        "narHash": "sha256-Z759le39KGnGDuls7O1uMbtRV0u3wZ+GQ2FqvXX6H0w="
+        "lastModified": 1590203122,
+        "narHash": "sha256-ySv6srYN9ckPieXtO+cccS7WeEqM7f8TuaIYquQo1VU="
       },
       "inputs": {
         "boxpub": "boxpub",
@@ -53,7 +53,7 @@
       "locked": {
         "owner": "eadwu",
         "repo": "flakes",
-        "rev": "72c4d279887be5dbbd5d0ae628221d00b04a3123",
+        "rev": "692612bebad136c697b4bd6ac77bf4301ab1e1a2",
         "type": "github"
       },
       "original": {
@@ -65,8 +65,8 @@
     },
     "external": {
       "info": {
-        "lastModified": 1589156497,
-        "narHash": "sha256-Ag34YRk8z2DsUzEZXJSWWzQrKz1mfpZzre4EAyuxtcM="
+        "lastModified": 1590200285,
+        "narHash": "sha256-nCXkcqhOSn5NilkiKB21HVSdUcMY+T4IN80SrK15sG8="
       },
       "inputs": {
         "custom": "custom",
@@ -76,7 +76,7 @@
       "locked": {
         "owner": "eadwu",
         "repo": "flakes",
-        "rev": "005f42c45b14fdcae106f45411009f21aa7de6bb",
+        "rev": "1112fb0628f3418916ec45c42c57fe3fb493f3eb",
         "type": "github"
       },
       "original": {
@@ -144,13 +144,13 @@
     },
     "nixpkgs": {
       "info": {
-        "lastModified": 1590111351,
-        "narHash": "sha256-OU1QfEkKIrICPKbLDUJUuXyCEzdxZUd+iWyNAiM7m6w="
+        "lastModified": 1590204595,
+        "narHash": "sha256-XlEc010YMjHe6PqCbRPzFe1TPLF2OrgK2c8orUwKOeg="
       },
       "locked": {
         "owner": "eadwu",
         "repo": "nixpkgs",
-        "rev": "455d87c3d32cc51fc7ea607e01b704d7089878e0",
+        "rev": "3fa45e2c72b94bd96ee76b580aff28ce474b73f1",
         "type": "github"
       },
       "original": {
@@ -162,13 +162,13 @@
     },
     "nixpkgs_2": {
       "info": {
-        "lastModified": 1590111351,
-        "narHash": "sha256-OU1QfEkKIrICPKbLDUJUuXyCEzdxZUd+iWyNAiM7m6w="
+        "lastModified": 1590204595,
+        "narHash": "sha256-XlEc010YMjHe6PqCbRPzFe1TPLF2OrgK2c8orUwKOeg="
       },
       "locked": {
         "owner": "eadwu",
         "repo": "nixpkgs",
-        "rev": "455d87c3d32cc51fc7ea607e01b704d7089878e0",
+        "rev": "3fa45e2c72b94bd96ee76b580aff28ce474b73f1",
         "type": "github"
       },
       "original": {
@@ -180,13 +180,13 @@
     },
     "nixpkgs_3": {
       "info": {
-        "lastModified": 1590109848,
-        "narHash": "sha256-EApr81qPylum924Dy/BTNOwnfw18WVgtP++NagLoxqA="
+        "lastModified": 1590203196,
+        "narHash": "sha256-K08Zp1wQIjhaoIImDJLAOJHiWdG+/x1TGlRxD9Kuo2s="
       },
       "locked": {
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "46b72a23dd12c8e415d9e4e9076f21db597a2c4f",
+        "rev": "1a40943822ad3dedc2f489cc31b599be4d8e2f18",
         "type": "github"
       },
       "original": {
@@ -214,8 +214,8 @@
     },
     "rolling": {
       "info": {
-        "lastModified": 1590109713,
-        "narHash": "sha256-S/bbnWxvwPYSbMBZLXZYEoEeZm5tF8yVnprqsmxwjuQ="
+        "lastModified": 1590204122,
+        "narHash": "sha256-UOpsnSzieGqs+COBC5coA43c/qF15SiF3EHR+/wT90o="
       },
       "inputs": {
         "nixpkgs": "nixpkgs_3"
@@ -223,7 +223,7 @@
       "locked": {
         "owner": "eadwu",
         "repo": "flakes",
-        "rev": "fad943b4ce9d879d28e4d6a2fc684e28d0af5f0e",
+        "rev": "d69f95226afead72eb6454d22426bab3aa323a00",
         "type": "github"
       },
       "original": {
