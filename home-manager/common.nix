@@ -28,7 +28,6 @@
     xfceUnstable.thunar
     xfceUnstable.thunar-volman
     xfceUnstable.xfce4-screenshooter
-    xfceUnstable.xfce4-taskmanager
     ## Theme
     gtk-engine-murrine
 
@@ -39,6 +38,7 @@
     evince
     gimp
     gnome3.gnome-disk-utility
+    gnome3.gnome-system-monitor
     google-musicmanager
     jetbrains.idea-ultimate
     riot-desktop
@@ -47,7 +47,6 @@
     typora
     vivaldi-snapshot
     woeusb
-    xfce.mousepad
     ## Console
     bfg-repo-cleaner
     file
