@@ -41,6 +41,7 @@
     gnome3.gnome-system-monitor
     google-musicmanager
     jetbrains.idea-ultimate
+    radian
     riot-desktop
     rstudioWrapper
     thunderbird
