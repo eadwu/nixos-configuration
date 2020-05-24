@@ -33,4 +33,5 @@
 
   services.fwupd.enable = true;
   services.fstrim.enable = false;
+  services.undervolt.enable = false;
 }
