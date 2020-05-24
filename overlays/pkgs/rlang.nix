@@ -5,6 +5,7 @@ let
     ggplot2
     showtext
     rmarkdown
+    languageserver
     RDocumentation
   ];
 in
