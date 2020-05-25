@@ -15,10 +15,24 @@ with final.pkgs; {
       }
 
       {
+        name = "r";
+        publisher = "Ikuyadeu";
+        version = "1.3.0";
+        sha256 = "19hsj48y7i0m7lplik0qsa7fnxgqymdhsyjif2c8a6y9dichr670";
+      }
+
+      {
         name = "latex-workshop";
         publisher = "James-Yu";
         version = "8.9.0";
         sha256 = "0dg7pf2kj65kfapvdpvzmgqqcwd37kiww23xcn1jib2r1gwy6ffr";
+      }
+
+      {
+        name = "r-lsp";
+        publisher = "REditorSupport";
+        version = "0.1.6";
+        sha256 = "005ff28d5b6ih7hxfjb7qd1qj4x3x2ndrv82bzj4naf421rxaz4b";
       }
 
       {
@@ -115,15 +129,15 @@ with final.pkgs; {
       {
         name = "noctis";
         publisher = "liviuschera";
-        version = "10.29.1";
-        sha256 = "0i65b3irajj3ssvd834f6c684jz4sj0b3cx3ilp0krlc1642cqn7";
+        version = "10.32.0";
+        sha256 = "16hqlvbgzr4ica3m42g8g45f1fma1pg2lbcqy6hzbpxk5a6cwvi8";
       }
 
       {
         name = "rust-analyzer";
         publisher = "matklad";
-        version = "0.2.166";
-        sha256 = "18aki59syj2rkkw2c7ra932nqyinbg3l13fhvg3qmfaynhv3d3lw";
+        version = "0.2.174";
+        sha256 = "0ml2fdvspcwk6abdx97i8qjvc4r0bwnsfy7a2w14b98n9hg20j6z";
       }
 
       {
@@ -157,8 +171,8 @@ with final.pkgs; {
       {
         name = "pyright";
         publisher = "ms-pyright";
-        version = "1.1.37";
-        sha256 = "0xiq3saf818y6n2rlglz7qqw6skdvcw3lzsjfp5h6scgxbcvsdbx";
+        version = "1.1.39";
+        sha256 = "05i56882yf0yp2fdy5cib2fqqjalv7v7wwgbk2rfxk8mici44821";
       }
 
       {
@@ -178,15 +192,15 @@ with final.pkgs; {
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.2169";
-        sha256 = "05j6z2knpzj52fcxzjhakszpm3a5ivjlnp9x7g9vjpmzk2w6zj15";
+        version = "1.0.2236";
+        sha256 = "19wxkayf503ingxqnhmy6lb7smwjd2ysd2vg7vayfpd5g3kc0bq8";
       }
 
       {
         name = "debugger-for-chrome";
         publisher = "msjsdiag";
-        version = "4.12.7";
-        sha256 = "1am4axgzz4cs1hrywvdvq9f4vc8w014sxwc5pr8kak7jp36xxczr";
+        version = "4.12.8";
+        sha256 = "14dkyj7wl8iagradjs8vi0qv42clkjwkknfyqlng0w30q9gk133a";
       }
 
       {
@@ -206,8 +220,8 @@ with final.pkgs; {
       {
         name = "java";
         publisher = "redhat";
-        version = "0.61.0";
-        sha256 = "1mnqzlzscy6wnzh6h8yjhz190z6wvhkp4g8db151haz4jvxrfhnn";
+        version = "0.62.0";
+        sha256 = "1qgnv558cmyy5mjhj1m7bzn78r6qqrh28rd28c6yici7mz883n0x";
       }
 
       {
