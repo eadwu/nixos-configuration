@@ -14,8 +14,8 @@
     "mem_sleep_default=deep"
     "psmouse.synaptics_intertouch=0"
 
-    # Zfs, restrict usage to 8 GB
-    "zfs.zfs_arc_max=8589934592"
+    # Zfs, restrict usage to 4 GB
+    "zfs.zfs_arc_max=4294967296"
   ];
 
   environment.sessionVariables = {
