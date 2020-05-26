@@ -31,4 +31,6 @@
     clight.enable = false;
     undervolt.enable = false;
   };
+
+  virtualisation.kvmgt.enable = false;
 }

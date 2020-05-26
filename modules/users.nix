@@ -30,6 +30,7 @@ with config.nixos; {
 
         group = "users";
         extraGroups = [
+          "kvm"
           "wheel"
           "docker"
           "libvirtd"
