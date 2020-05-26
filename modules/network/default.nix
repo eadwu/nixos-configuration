@@ -7,6 +7,15 @@ with config.nixos; {
       # ./openvpn.nix
     ];
 
+  boot.kernelModules = [
+    # iwd crypto modules
+    "algif_skcipher"
+    "ecb"
+    "cbc"
+    "des_generic"
+    "arc4"
+  ];
+
   environment.etc."iwd/main.conf".text = lib.generators.toINI {} {
     # https://git.kernel.org/pub/scm/network/wireless/iwd.git/commit/?id=e10c6ada1203abe144830830f2314d1c9d870126
     General.AddressRandomization = "network";
