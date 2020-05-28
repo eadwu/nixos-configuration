@@ -49,6 +49,7 @@
       "99:name *?= 'EVE'"
       "99:class_g = 'Vivaldi-stable'"
       "99:class_g = 'Vivaldi-snapshot'"
+      "99:class_g = 'looking-glass-client'"
       "85:class_g = 'Code'"
       "85:class_g = 'Code - Insiders'"
       "85:class_g = 'Emacs'"
