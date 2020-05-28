@@ -11,6 +11,10 @@
       "services/hardware/undervolt.nix"
     ];
 
+  boot.kernelModules = [
+    "kvm_intel"
+  ];
+
   boot.kernelParams = [
     "intel_iommu=on"
     "iommu=pt"
