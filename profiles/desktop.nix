@@ -12,7 +12,6 @@ with config.nixos; {
       ../modules/cups.nix
       ../modules/emacs.nix
       ../modules/i3color.nix
-      ../modules/libvirt.nix
       ../modules/logind
       ../modules/lorri.nix
       ../modules/netdata.nix
