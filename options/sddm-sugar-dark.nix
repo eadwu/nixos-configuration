@@ -122,7 +122,7 @@ let
 
       forcePasswordFocus = mkOption {
         type = types.bool;
-        default = true;
+        default = false;
       };
 
       forceHideCompletePassword = mkOption {
