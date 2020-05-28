@@ -1,8 +1,14 @@
 { pkgs, ... }:
 
 {
-  virtualisation.libvirtd.enable = true;
   networking.firewall.checkReversePath = false;
+
+  virtualisation.libvirtd = {
+    enable = true;
+    qemuOvmf = true;
+    onBoot = "ignore";
+    onShutdown = "shutdown";
+  };
 
   systemd.services.qemu-libvirtd-init = {
     after = [ "libvirtd.service" ];
