@@ -39,6 +39,10 @@ in
       pulseSupport = true;
     };
 
+    scream-receivers = prev.scream-receivers.override {
+      pulseSupport = true;
+    };
+
     typora = prev.typora.override {
       withPandoc = true;
     };
