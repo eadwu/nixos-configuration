@@ -1,6 +1,10 @@
 { ... }:
 
 {
+  boot.kernelParams = [
+    "vfio-pci.ids=10de:1c8c"
+  ];
+
   boot.blacklistedKernelModules = [
     "nouveau"
     "nvidiafb"
