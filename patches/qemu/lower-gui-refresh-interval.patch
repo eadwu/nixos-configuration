@@ -1,0 +1,28 @@
+From c9ba98c0f4a969a4643c1521004ec8698d4e129f Mon Sep 17 00:00:00 2001
+From: Edmund Wu <fangkazuto@gmail.com>
+Date: Fri, 29 May 2020 12:37:35 -0400
+Subject: [PATCH] console: lower GUI_REFRESH_INTERVAL_DEFAULT
+
+Should improve FPS for Intel GVT-g DMA-BUF
+https://github.com/intel/gvt-linux/issues/35#issuecomment-470797382
+https://github.com/intel/gvt-linux/issues/144
+---
+ include/ui/console.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/include/ui/console.h b/include/ui/console.h
+index f35b4fc082..fb5485d38b 100644
+--- a/include/ui/console.h
++++ b/include/ui/console.h
+@@ -26,7 +26,7 @@
+ #define QEMU_CAPS_LOCK_LED   (1 << 2)
+ 
+ /* in ms */
+-#define GUI_REFRESH_INTERVAL_DEFAULT    30
++#define GUI_REFRESH_INTERVAL_DEFAULT    16
+ #define GUI_REFRESH_INTERVAL_IDLE     3000
+ 
+ /* Color number is match to standard vga palette */
+-- 
+2.26.2
+
