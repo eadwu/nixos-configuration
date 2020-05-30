@@ -62,6 +62,18 @@ with config.nixos; {
           tlp = prev.tlp.override {
             inherit (config.boot.kernelPackages) x86_energy_perf_policy;
           };
+
+          nix-index = prev.nix-index.override {
+            nix = config.nix.package;
+          };
+
+          nix-prefetch-scripts = prev.nix-prefetch-scripts.override {
+            nix = config.nix.package;
+          };
+
+          nixos-option = prev.nixos-option.override {
+            nix = config.nix.package;
+          };
         }
       )
     ] ++ map
