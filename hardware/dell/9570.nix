@@ -24,6 +24,7 @@
 
   environment.systemPackages = with pkgs; [
     libsmbios
+    nvme-cli
   ];
 
   hardware.nvidia.prime = {
