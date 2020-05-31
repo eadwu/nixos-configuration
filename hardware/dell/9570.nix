@@ -36,7 +36,10 @@
   services.fstrim.enable = false;
   services.undervolt.enable = false;
 
-  virtualisation.kvmgt.vgpus."i915-GVTg_V5_4" = {
-    uuid = "fc9fca8a-9ee7-11ea-aab9-733b28dbb12d";
+  virtualisation.kvmgt = {
+    device = "0000:00:02.0";
+    vgpus = {
+      "i915-GVTg_V5_4".uuid = [ "89e480b2-a293-11ea-9571-cbf5b0862006" ];
+    };
   };
 }
