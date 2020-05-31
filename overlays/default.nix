@@ -39,6 +39,28 @@ in
       pulseSupport = true;
     };
 
+    pulseaudioFull = prev.pulseaudioFull.overrideAttrs (oldAttrs: {
+      configureFlags = (oldAttrs.configureFlags or []) ++ [
+        # Directory for zsh completion scripts
+        "--with-zsh-completion-dir=${placeholder "out"}/share/zsh/site-functions"
+        # Speex support (resampling, AEC) [Default]
+        "--with-speex"
+        # SoXR support (resampling)
+        "--with-soxr"
+        # WebRTC-based echo canceller
+        "--enable-webrtc-audio-processing"
+        # oFono backend
+        "--enable-bluez5-ofono-headset"
+        # Native backend
+        "--enable-bluez5-native-headset"
+      ];
+
+      buildInputs = with final.pkgs; (oldAttrs.buildInputs or []) ++ [
+        soxr
+        ofono
+      ];
+    });
+
     scream-receivers = prev.scream-receivers.override {
       pulseSupport = true;
     };
