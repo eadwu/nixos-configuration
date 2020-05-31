@@ -42,4 +42,13 @@
       "i915-GVTg_V5_4".uuid = [ "89e480b2-a293-11ea-9571-cbf5b0862006" ];
     };
   };
+
+  services.udev.extraRules = ''
+    # Enable rootless passthrough for Goodix Fingerprint Device
+    SUBSYSTEM=="usb", ATTR{idVendor}=="27c6", ATTR{idProduct}=="5395", OWNER="root", GROUP="kvm"
+  '';
+  services.tlp.extraConfig = ''
+    # Enable autosuspend for Goodix Fingerprint Device
+    USB_WHITELIST="27c6:5395"
+  '';
 }

@@ -49,11 +49,6 @@ with config.nixos; {
   security.allowSimultaneousMultithreading = true;
 
   services = {
-    tlp.extraConfig = ''
-      # Autosuspend for USB device Goodix Fingerprint Device
-      USB_WHITELIST="27c6:5395"
-    '';
-
     undervolt.options = rec {
       core = (-100);
       gpu = (-75);
