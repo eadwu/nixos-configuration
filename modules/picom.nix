@@ -16,6 +16,10 @@
       "name *= 'picom'"
       "name = 'Notification'"
       "class_g = 'Polybar'"
+      "class_g = 'qemu'"
+      "class_g = 'qemu-system-x86_64'"
+      "class_g = 'Qemu-system-x86_64'"
+      "class_g = 'looking-class-client'"
       "_GTK_FRAME_EXTENTS@:c"
     ];
     activeOpacity = 0.95;
@@ -49,7 +53,10 @@
       "99:name *?= 'EVE'"
       "99:class_g = 'Vivaldi-stable'"
       "99:class_g = 'Vivaldi-snapshot'"
-      "99:class_g = 'looking-glass-client'"
+      "99:class_g = 'qemu'"
+      "99:class_g = 'qemu-system-x86_64'"
+      "99:class_g = 'Qemu-system-x86_64'"
+      "99:class_g = 'looking-class-client'"
       "85:class_g = 'Code'"
       "85:class_g = 'Code - Insiders'"
       "85:class_g = 'Emacs'"
@@ -75,6 +82,10 @@
       blur-background-exclude = [
         "window_type = 'dock'"
         "window_type = 'desktop'"
+        "class_g = 'qemu'"
+        "class_g = 'qemu-system-x86_64'"
+        "class_g = 'Qemu-system-x86_64'"
+        "class_g = 'looking-class-client'"
       ];
 
       blur = {
