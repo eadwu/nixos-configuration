@@ -17,8 +17,8 @@ with final.pkgs; {
       {
         name = "r";
         publisher = "Ikuyadeu";
-        version = "1.3.0";
-        sha256 = "19hsj48y7i0m7lplik0qsa7fnxgqymdhsyjif2c8a6y9dichr670";
+        version = "1.4.0";
+        sha256 = "08jsvm2y2ihd330p3mb52vqsp87c01b1dwq8k17hjvvdjp65spiv";
       }
 
       {
@@ -129,15 +129,15 @@ with final.pkgs; {
       {
         name = "noctis";
         publisher = "liviuschera";
-        version = "10.32.0";
-        sha256 = "16hqlvbgzr4ica3m42g8g45f1fma1pg2lbcqy6hzbpxk5a6cwvi8";
+        version = "10.34.0";
+        sha256 = "1hs5cq3122z93wisx5ilcgazgzn8s9iwy0kc20k7wp8x034r8ai8";
       }
 
       {
         name = "rust-analyzer";
         publisher = "matklad";
-        version = "0.2.174";
-        sha256 = "0ml2fdvspcwk6abdx97i8qjvc4r0bwnsfy7a2w14b98n9hg20j6z";
+        version = "0.2.182";
+        sha256 = "1jph9igrlrpsigc63zphsd06d9ajk20af105b8fk1bml5qnncsiz";
       }
 
       {
@@ -164,15 +164,15 @@ with final.pkgs; {
       {
         name = "vscode-docker";
         publisher = "ms-azuretools";
-        version = "1.2.0";
-        sha256 = "1wjr8ff3m45m9s5321xypdm11xfpy4svdi8alrjd42i035424ziw";
+        version = "1.2.1";
+        sha256 = "16mpagr6p6xgjkygy0jcm045szbgb778zbzwjfjskbw11vrrbn83";
       }
 
       {
         name = "pyright";
         publisher = "ms-pyright";
-        version = "1.1.39";
-        sha256 = "05i56882yf0yp2fdy5cib2fqqjalv7v7wwgbk2rfxk8mici44821";
+        version = "1.1.40";
+        sha256 = "1qgmi0pzimglvpky8bvskcxdgbgha2l9srilzsaqj0dlvavp0969";
       }
 
       {
