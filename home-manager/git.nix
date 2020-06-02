@@ -49,6 +49,12 @@ in
         fsmonitor = queryWatchman.outPath;
       };
 
+      format = {
+        signOff = true;
+        coverLetter = true;
+        coverFromDescription = "auto";
+      };
+
       lfs.pruneverifyremotealways = true;
 
       protocol.version = 2;
