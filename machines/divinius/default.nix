@@ -12,7 +12,7 @@
   boot.cleanTmpDir = true;
   boot.kernelPackages = pkgs.linuxPackages_latest;
   boot.kernelParams = [
-    "cma=32M"
+    "cma=256M"
     "console=tty0"
     "console=ttyS0,115200n8"
 
@@ -26,7 +26,7 @@
     firmwareConfig = ''
       # boot_delay=1
       # force_turbo=1
-      gpu_mem=64
+      gpu_mem=256
     '';
   };
   boot.loader.raspberryPi.uboot = {
