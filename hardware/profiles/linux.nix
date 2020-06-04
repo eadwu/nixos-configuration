@@ -24,6 +24,9 @@
 
       # https://github.com/NixOS/nixpkgs/pull/84522/commits/b7638115f6e8b73915809bf46acf08f114bbbbd5
       "kernel.unprivileged_userns_clone" = true;
+
+      # CAKE Network Queue Management
+      "net.core.default_qdisc" = "cake";
     };
 
     kernelModules = [
