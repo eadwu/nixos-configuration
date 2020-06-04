@@ -45,6 +45,9 @@
       # Wipe slab and page allocations (supersedes "slub_debug=P" and "page_poison=1" above, since v5.3)
       "init_on_alloc=1"
       "init_on_free=1"
+
+      # Use TEO as CPUIdle Governor
+      "cpuidle.governor=teo"
     ];
   };
 
