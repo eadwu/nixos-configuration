@@ -1,8 +1,9 @@
-{ modulesPath, pkgs, lib, ... }:
+{ nixosModules, modulesPath, pkgs, lib, ... }:
 
 {
   imports =
     [
+      nixosModules.custom
       "${modulesPath}/profiles/hardened.nix"
     ];
 

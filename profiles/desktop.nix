@@ -28,7 +28,6 @@ with config.nixos; {
   boot = {
     cleanTmpDir = true;
     supportedFilesystems = [ "ntfs" ];
-    kernelPackages = pkgs.linuxPackages_custom;
   };
 
   environment = {
