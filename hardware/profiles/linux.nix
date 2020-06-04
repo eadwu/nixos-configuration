@@ -37,6 +37,8 @@
     ];
 
     kernelParams = [
+      "lockdown=confidentiality"
+
       # Increasing the virtual memory dirty writeback time helps to aggregate disk I/O together
       "vm.dirty_writeback_centisecs=6000"
 
