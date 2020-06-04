@@ -5,6 +5,7 @@ with config.nixos; {
     [
       ./default.nix
 
+      ../modules/audio.nix
       ../modules/backlight
       ../modules/ccache.nix
       ../modules/clight.nix
@@ -16,7 +17,6 @@ with config.nixos; {
       ../modules/lorri.nix
       ../modules/netdata.nix
       ../modules/network
-      ../modules/pulseaudio.nix
       ../modules/tlp.nix
       ../modules/users.nix
       ../modules/virtualisation.nix
