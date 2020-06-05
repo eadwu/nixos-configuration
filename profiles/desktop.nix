@@ -32,7 +32,6 @@ with config.nixos; {
 
   environment = {
     systemPackages = with pkgs; [
-      buku
       feh
       nnn
       pywal

@@ -50,6 +50,7 @@
     woeusb
     ## Console
     bfg-repo-cleaner
+    buku
     file
     ldns
     lm_sensors
