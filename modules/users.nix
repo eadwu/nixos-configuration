@@ -31,10 +31,12 @@ with config.nixos; {
         group = "users";
         extraGroups = [
           "kvm"
+          "audio"
           "wheel"
           "docker"
           "libvirtd"
           "networkmanager"
+          "systemd-journal"
         ];
       };
     };
