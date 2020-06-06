@@ -34,7 +34,6 @@
 
   services.fwupd.enable = true;
   services.fstrim.enable = false;
-  services.undervolt.enable = false;
 
   virtualisation.kvmgt = {
     device = "0000:00:02.0";
