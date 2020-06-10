@@ -17,15 +17,15 @@ with final.pkgs; {
       {
         name = "r";
         publisher = "Ikuyadeu";
-        version = "1.4.0";
-        sha256 = "08jsvm2y2ihd330p3mb52vqsp87c01b1dwq8k17hjvvdjp65spiv";
+        version = "1.4.1";
+        sha256 = "12x7vylz42ri6vbhb7hyiz46a6q983912yb02xl7bh6nma72myla";
       }
 
       {
         name = "latex-workshop";
         publisher = "James-Yu";
-        version = "8.9.0";
-        sha256 = "0dg7pf2kj65kfapvdpvzmgqqcwd37kiww23xcn1jib2r1gwy6ffr";
+        version = "8.10.0";
+        sha256 = "0kcrxykvv21ra1xwws6s2clxfnjngpais1ddlimmmcia0y426dxg";
       }
 
       {
@@ -73,8 +73,8 @@ with final.pkgs; {
       {
         name = "path-intellisense";
         publisher = "christian-kohler";
-        version = "1.4.2";
-        sha256 = "0i2b896cnlk1d23w3jgy8wdqsww2lz201iym5c1rqbjzg1g3v3r4";
+        version = "2.2.0";
+        sha256 = "05nf4vvvmypjlcpki37llsmawjaj65gv0jdwx3cbjq9nxx5whmcf";
       }
 
       {
@@ -136,8 +136,8 @@ with final.pkgs; {
       {
         name = "rust-analyzer";
         publisher = "matklad";
-        version = "0.2.182";
-        sha256 = "1jph9igrlrpsigc63zphsd06d9ajk20af105b8fk1bml5qnncsiz";
+        version = "0.2.199";
+        sha256 = "07h7w2npp9nwqcrx7jghirncqwvnms5fd4k1b7di28sk7mdwbjzq";
       }
 
       {
@@ -171,8 +171,8 @@ with final.pkgs; {
       {
         name = "pyright";
         publisher = "ms-pyright";
-        version = "1.1.40";
-        sha256 = "1qgmi0pzimglvpky8bvskcxdgbgha2l9srilzsaqj0dlvavp0969";
+        version = "1.1.41";
+        sha256 = "1fa6vcrf17lv0lv8qydhshbra0pg45rp3xw05xcqbg26lklv2myx";
       }
 
       {
@@ -192,8 +192,8 @@ with final.pkgs; {
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.2236";
-        sha256 = "19wxkayf503ingxqnhmy6lb7smwjd2ysd2vg7vayfpd5g3kc0bq8";
+        version = "1.0.2274";
+        sha256 = "18mi7jgra7c69117b1c4s7zsi27kdv32y98cc46ikhvq70cjx30a";
       }
 
       {
@@ -276,8 +276,8 @@ with final.pkgs; {
       {
         name = "vscode-java-test";
         publisher = "vscjava";
-        version = "0.22.4";
-        sha256 = "048m3y43j25wjrcsb9ll1p3zprvpb8s62jgrqlqziipr8k1q1hdj";
+        version = "0.23.0";
+        sha256 = "0j74hl7zcr77vhz4nik4idh2j4p556rfdinrxpji2hai7kk47zrm";
       }
 
       {
