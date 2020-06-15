@@ -23,6 +23,4 @@ in
     (device: { yubikey = yubikey-config "/crypt-storage/${device}"; });
 
   environment.systemPackages = with pkgs; [ pam_u2f yubikey-personalization ];
-
-  hardware.u2f.enable = true;
 }
