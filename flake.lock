@@ -165,13 +165,13 @@
     },
     "nixpkgs_2": {
       "info": {
-        "lastModified": 1592536665,
-        "narHash": "sha256-3v7XOqyLk/lqI9PZBz3k6MhP9+IX2Vh3q1vEoto3ySU="
+        "lastModified": 1592620109,
+        "narHash": "sha256-FL5q7ODivRDDYw3l3Qk4FHl72qBcJAu301/tfH7g2AQ="
       },
       "locked": {
         "owner": "eadwu",
         "repo": "nixpkgs",
-        "rev": "4003df4d4ee9c44ca83480b837b8e051cb70c280",
+        "rev": "a0e493c074b0023dd878f41751a7b43be039dd37",
         "type": "github"
       },
       "original": {
@@ -183,13 +183,13 @@
     },
     "nixpkgs_3": {
       "info": {
-        "lastModified": 1592536665,
-        "narHash": "sha256-3v7XOqyLk/lqI9PZBz3k6MhP9+IX2Vh3q1vEoto3ySU=",
-        "revCount": 230478
+        "lastModified": 1592620109,
+        "narHash": "sha256-FL5q7ODivRDDYw3l3Qk4FHl72qBcJAu301/tfH7g2AQ=",
+        "revCount": 231260
       },
       "locked": {
         "ref": "develop",
-        "rev": "4003df4d4ee9c44ca83480b837b8e051cb70c280",
+        "rev": "a0e493c074b0023dd878f41751a7b43be039dd37",
         "type": "git",
         "url": "file:///persist/home/Projects/nixpkgs"
       },
@@ -201,13 +201,13 @@
     },
     "nixpkgs_4": {
       "info": {
-        "lastModified": 1592526205,
-        "narHash": "sha256-P9bv8abVtQT+7oNMRt2kibJ2DPp5HQX/hcb4iBI7QBI="
+        "lastModified": 1592610324,
+        "narHash": "sha256-6O+M+r+rKAG4VItqsD1Wg5BImLVyuFp4dkgbhwQxRPQ="
       },
       "locked": {
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "a84cbb60f0296210be03c08d243670dd18a3f6eb",
+        "rev": "be707e4cc5c8911ddd8dda582d3fb88ec8559866",
         "type": "github"
       },
       "original": {
@@ -235,8 +235,8 @@
     },
     "rolling": {
       "info": {
-        "lastModified": 1592528857,
-        "narHash": "sha256-dPBZ0iTU7q+KUUbRLKM3x5cIBpSYDj5UDHfq32vfZ8Q="
+        "lastModified": 1592615360,
+        "narHash": "sha256-G6AeAX5gttX+IIzCJzh2X8anKodGpIYTNcrSm6A4HYc="
       },
       "inputs": {
         "nixpkgs": "nixpkgs_4"
@@ -244,7 +244,7 @@
       "locked": {
         "owner": "eadwu",
         "repo": "flakes",
-        "rev": "b6a06eb16137e168246a80988f833f6673e15896",
+        "rev": "7913478e9d3029fcb830de76d1846091fdefa496",
         "type": "github"
       },
       "original": {
