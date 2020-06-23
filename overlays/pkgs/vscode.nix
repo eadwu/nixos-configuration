@@ -17,8 +17,8 @@ with final.pkgs; {
       {
         name = "r";
         publisher = "Ikuyadeu";
-        version = "1.4.1";
-        sha256 = "12x7vylz42ri6vbhb7hyiz46a6q983912yb02xl7bh6nma72myla";
+        version = "1.4.2";
+        sha256 = "1d5gf61kz7s0my24g5vicm56h4crl4ayc4wxj2w8npnv4lsq8dgd";
       }
 
       {
@@ -136,15 +136,15 @@ with final.pkgs; {
       {
         name = "rust-analyzer";
         publisher = "matklad";
-        version = "0.2.207";
-        sha256 = "1x2i8b7qmwrz1dhmpkhf36ibvhw1ysf98ps07d7g2zjdm65a22m0";
+        version = "0.2.216";
+        sha256 = "10bgwnzrx461c5qz8ks2qjg353i532hkfib0d479d77ccqz0rzbr";
       }
 
       {
         name = "vscode-language-babel";
         publisher = "mgmcdermott";
-        version = "0.0.27";
-        sha256 = "0a2wywb696fxkbkarpyjkfx50xr4kn5j5z8gb2cj71w165kngw51";
+        version = "0.0.29";
+        sha256 = "1kwxhn5i227kb782l1i68jy169qq2ygfdnnjmcp4dgk4zzwyzzjv";
       }
 
       {
@@ -164,15 +164,15 @@ with final.pkgs; {
       {
         name = "vscode-docker";
         publisher = "ms-azuretools";
-        version = "1.3.0";
-        sha256 = "16r8qdjxsd63cxzn0hz3s56j1cxmbx5vbnl049capid1nvvnfcx8";
+        version = "1.3.1";
+        sha256 = "17q4727ah129hxdvrw1x0fcki7hidphmlnznxx7xvylcw937h6ch";
       }
 
       {
         name = "pyright";
         publisher = "ms-pyright";
-        version = "1.1.42";
-        sha256 = "098zv5229zmghah7cn90j4jipmfbnlxfyys1m5jypwq8z9pwiyks";
+        version = "1.1.44";
+        sha256 = "1ymj1i2mqghcn63b37kzwx1kq68lsmqyx3nckklb5j5r2sv9zvm7";
       }
 
       {
@@ -192,8 +192,8 @@ with final.pkgs; {
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.2302";
-        sha256 = "14rd593n37g26883x5g23brl7lgnsc8qjxl09vs5fwy9k3h4bjc1";
+        version = "1.0.2354";
+        sha256 = "09m4ggvxh08lhx013vicfb7qrjvzv36xrsqmqxprd3a6kql3s516";
       }
 
       {
@@ -220,8 +220,8 @@ with final.pkgs; {
       {
         name = "java";
         publisher = "redhat";
-        version = "0.62.0";
-        sha256 = "1qgnv558cmyy5mjhj1m7bzn78r6qqrh28rd28c6yici7mz883n0x";
+        version = "0.63.0";
+        sha256 = "0zwgfriahjriifv4jkrnn4p9zxamkvid97yvrckp495rh31j4nnq";
       }
 
       {
