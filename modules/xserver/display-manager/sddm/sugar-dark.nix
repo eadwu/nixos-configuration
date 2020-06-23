@@ -9,8 +9,8 @@
   services.xserver.displayManager.sddm.greeters.sugar-dark = {
     background = (
       pkgs.requireFile rec {
-        name = "2008331319.mp4";
-        sha256 = "0idmb03dqrry04224mgmkjndai0696iihrgfdpr7ackvpzcwlzzf";
+        name = "lumi.webm";
+        sha256 = "034cvcxbk93j4zlzdxykdj8clnq5rj803klyi0mqf4dn3hzb8vmy";
         message = "${name} is missing from NIX_STORE.";
       }
     ).overrideAttrs (_: { allowSubstitutes = true; });
