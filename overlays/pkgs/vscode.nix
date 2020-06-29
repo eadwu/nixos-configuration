@@ -10,8 +10,8 @@ with final.pkgs; {
       {
         name = "vsc-material-theme";
         publisher = "Equinusocio";
-        version = "32.6.0";
-        sha256 = "0x45rfdha16jvz7xw88zw4gjh6p658nrcjw6ix81r9gh180prsq6";
+        version = "32.8.0";
+        sha256 = "0w6mng7j5vx9lfiacaqxnbl80nia7vzz09lp1cmsvnxgd0nhpvsy";
       }
 
       {
@@ -24,8 +24,8 @@ with final.pkgs; {
       {
         name = "latex-workshop";
         publisher = "James-Yu";
-        version = "8.10.0";
-        sha256 = "0kcrxykvv21ra1xwws6s2clxfnjngpais1ddlimmmcia0y426dxg";
+        version = "8.11.0";
+        sha256 = "10csxl7q3fkldiv8f97p0nm18w0gjg02j26d39pllglm1jb7nh9z";
       }
 
       {
@@ -122,8 +122,8 @@ with final.pkgs; {
       {
         name = "language-haskell";
         publisher = "justusadam";
-        version = "3.2.1";
-        sha256 = "0lxp8xz17ciy93nj4lzxqvz71vw1zdyamrnh2n792yair8890rr6";
+        version = "3.3.0";
+        sha256 = "1285bs89d7hqn8h8jyxww7712070zw2ccrgy6aswd39arscniffs";
       }
 
       {
@@ -171,8 +171,8 @@ with final.pkgs; {
       {
         name = "pyright";
         publisher = "ms-pyright";
-        version = "1.1.44";
-        sha256 = "1ymj1i2mqghcn63b37kzwx1kq68lsmqyx3nckklb5j5r2sv9zvm7";
+        version = "1.1.47";
+        sha256 = "0iq5xbxfmzk63lk0w1f7b49pjgl7gbm2sglm7m0yzb0vqk90qlj5";
       }
 
       {
@@ -192,8 +192,8 @@ with final.pkgs; {
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.2354";
-        sha256 = "09m4ggvxh08lhx013vicfb7qrjvzv36xrsqmqxprd3a6kql3s516";
+        version = "1.0.2377";
+        sha256 = "14ljk1mdlfkzzq2mkxc6ah79c4bynhi3vifcsgaxpfkr97kchna0";
       }
 
       {
