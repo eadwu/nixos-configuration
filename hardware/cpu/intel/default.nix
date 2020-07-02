@@ -24,6 +24,8 @@
     # https://www.linux-kvm.org/images/e/e9/Kvm-forum-2013-nested-virtualization-shadow-turtles.pdf
     "kvm_intel.enlightened_vmcs=1"
     "kvm_intel.enable_shadow_vmcs=1"
+
+    "snd-hda-intel.enable_msi=1"
   ];
 
   environment.systemPackages = with pkgs; [ pcm config.boot.kernelPackages.intel-speed-select ];
