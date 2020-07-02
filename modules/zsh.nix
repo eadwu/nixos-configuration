@@ -27,12 +27,10 @@
         }
 
         nix-clean () {
-          nix-env -p /nix/var/nix/profiles/system --delete-generations "$1"
+          nix-env -p /nix/var/nix/profiles/system --delete-generations old
           nix-store --gc
-          nix-channel --update
-          nix-env -u --always
           for link in /nix/var/nix/gcroots/auto/*; do rm $(readlink "$link"); done
-          nix-collect-garbage --delete-older-than "$1"
+          nix-collect-garbage --delete-old
         }
 
         nix-derive-output () {
