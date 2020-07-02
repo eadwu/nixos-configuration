@@ -13,6 +13,7 @@
     vdpauinfo
   ];
 
+  hardware.nvidia.nvidiaPersistenced = true;
   hardware.nvidia.powerManagement.enable = true;
   hardware.opengl.extraPackages = with pkgs; [
     vaapiVdpau
@@ -23,7 +24,7 @@
   services.xserver.videoDrivers = [ "nvidiaBeta" ];
 
   # PCI-Express Runtime D3 (RTD3) Power Management
-  # https://download.nvidia.com/XFree86/Linux-x86_64/440.26/README/dynamicpowermanagement.html
+  # https://download.nvidia.com/XFree86/Linux-x86_64/450.51/README/dynamicpowermanagement.html
   boot.kernelParams = [
     "nvidia.NVreg_DynamicPowerManagement=0x02"
   ];
