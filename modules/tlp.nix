@@ -5,8 +5,8 @@
     enable = lib.mkDefault true;
     extraConfig = ''
       # Set CPU governors
-      CPU_SCALING_GOVERNOR_ON_AC=performance
-      CPU_SCALING_GOVERNOR_ON_BAT=powersave
+      CPU_SCALING_GOVERNOR_ON_AC=schedutil
+      CPU_SCALING_GOVERNOR_ON_BAT=schedutil
 
       # Disable Turbo [Boost|Core] on battery
       CPU_BOOST_ON_AC=1
