@@ -117,27 +117,6 @@ in
         '';
       };
     };
-
-    machines.rpi = {
-      hostName = mkOption {
-        type = types.str;
-        visible = false;
-        readOnly = true;
-        default = "8.22.110.73";
-        description = ''
-          Private IP of my raspberry pi 3 b+
-        '';
-      };
-
-      identityFile = mkOption {
-        type = types.path;
-        default = "${cfg.system.home}/.ssh/nix_builder";
-        description = ''
-          Path to the private key to be used for SSH connections to the builder
-        '';
-      };
-    };
-
     wireguard = {
       client = {
         addresses = mkOption {

@@ -21,15 +21,6 @@ with config.nixos; {
       "rpi.cachix.org-1:Rfb3+jN/+LcMvuTkGFkB9uTkRcNUq97AGSFxF1wMPDU="
     ];
 
-    buildMachines = [
-      {
-        hostName = "builder";
-        system = "aarch64-linux";
-        maxJobs = 2;
-        supportedFeatures = [ "benchmark" "big-parallel" "kvm" "nixos-test" ];
-      }
-    ];
-
     extraOptions = ''
       show-trace = true
       experimental-features = flakes nix-command
@@ -84,15 +75,4 @@ with config.nixos; {
       allowUnfree = true;
     };
   };
-
-  programs.ssh.extraConfig = ''
-    Host builder
-      User root
-      HostName ${settings.machines.rpi.hostName}
-
-      IdentitiesOnly yes
-      IdentityFile ${settings.machines.rpi.identityFile}
-
-      ServerAliveInterval 4
-  '';
 }
