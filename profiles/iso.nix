@@ -30,6 +30,7 @@
   hardware.enableRedistributableFirmware = true;
 
   isoImage = {
+    compressImage = true;
     includeSystemBuildDependencies = true;
 
     contents = [
