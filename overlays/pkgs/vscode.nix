@@ -24,8 +24,8 @@ with final.pkgs; {
       {
         name = "latex-workshop";
         publisher = "James-Yu";
-        version = "8.11.0";
-        sha256 = "10csxl7q3fkldiv8f97p0nm18w0gjg02j26d39pllglm1jb7nh9z";
+        version = "8.11.1";
+        sha256 = "09bxymx77jnp49bbcj8ydgi5mhgwcfda1qpxarwy1017rdyihs6z";
       }
 
       {
@@ -115,8 +115,8 @@ with final.pkgs; {
       {
         name = "auto-rename-tag";
         publisher = "formulahendry";
-        version = "0.1.3";
-        sha256 = "0jrp1rsgmi0js0lfzyv1bmpnql2ry9h5k4cvif5r35ifnw72ard0";
+        version = "0.1.4";
+        sha256 = "0lww2xx5h16kxx3awax1gg4v46zbx9gwkjlnrgwncmvqfn3jb6w9";
       }
 
       {
@@ -136,8 +136,8 @@ with final.pkgs; {
       {
         name = "rust-analyzer";
         publisher = "matklad";
-        version = "0.2.216";
-        sha256 = "10bgwnzrx461c5qz8ks2qjg353i532hkfib0d479d77ccqz0rzbr";
+        version = "0.2.224";
+        sha256 = "076kyhpj67vv12r3rn9vf1hm8xg222ch30xd4hvg29r1nlqhr3qm";
       }
 
       {
@@ -171,8 +171,8 @@ with final.pkgs; {
       {
         name = "pyright";
         publisher = "ms-pyright";
-        version = "1.1.47";
-        sha256 = "0iq5xbxfmzk63lk0w1f7b49pjgl7gbm2sglm7m0yzb0vqk90qlj5";
+        version = "1.1.49";
+        sha256 = "1dkrvc6clra8m0b0nn5wr98aybxqb0p1ivyc5g23cqdi3f8vxsrm";
       }
 
       {
@@ -192,15 +192,15 @@ with final.pkgs; {
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.2377";
-        sha256 = "14ljk1mdlfkzzq2mkxc6ah79c4bynhi3vifcsgaxpfkr97kchna0";
+        version = "1.0.2427";
+        sha256 = "0nin085zw3f5swwd9bznvxg4i7gkbpgv6pjbhsf5iy2k5plc0bk9";
       }
 
       {
         name = "debugger-for-chrome";
         publisher = "msjsdiag";
-        version = "4.12.8";
-        sha256 = "14dkyj7wl8iagradjs8vi0qv42clkjwkknfyqlng0w30q9gk133a";
+        version = "4.12.9";
+        sha256 = "1banhpg90cp0rciq5m6l6f70h65qfhca0snn8409s56fmq8f2bj2";
       }
 
       {
@@ -234,8 +234,8 @@ with final.pkgs; {
       {
         name = "scala";
         publisher = "scala-lang";
-        version = "0.3.9";
-        sha256 = "0l6zrpp2klqdym977zygmbzf0478lbqmivcxa2xmqyi34c9vwli7";
+        version = "0.4.0";
+        sha256 = "1fnrzj3jv2jwqc642zsd3jg8nb8j9189792dhwbdby1dfkyznss3";
       }
 
       {
