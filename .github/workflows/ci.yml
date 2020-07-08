@@ -56,4 +56,4 @@ jobs:
         continue-on-error: true
         with:
           name: ${{ matrix.attr }}
-          path: result/iso/*.iso
+          path: result/iso/*.iso*
