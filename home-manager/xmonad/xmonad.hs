@@ -158,12 +158,11 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((0                 , xF86XK_PowerOff), spawn "pkill -KILL -u $USER")
 
     -- Volume
-    , ((0                 , xF86XK_AudioMute), spawn "amixer -q set Master toggle")
-    , ((0                 , xF86XK_AudioLowerVolume), spawn "amixer -q set Master 2- unmute")
-    , ((0                 , xF86XK_AudioRaiseVolume), spawn "amixer -q set Master 2+ unmute")
-    , ((0 .|. shiftMask   , xF86XK_AudioLowerVolume), spawn "amixer -q set Master 1- unmute")
-    , ((0 .|. shiftMask   , xF86XK_AudioRaiseVolume), spawn "amixer -q set Master 1+ unmute")
-    , ((0                 , xF86XK_AudioMicMute), spawn "amixer -q set Capture toggle")
+    , ((0                 , xF86XK_AudioMute), spawn "pactl set-sink-mute @DEFAULT_SINK@ toggle")
+    , ((0                 , xF86XK_AudioLowerVolume), spawn "pactl set-sink-volume @DEFAULT_SINK@ -2%")
+    , ((0                 , xF86XK_AudioRaiseVolume), spawn "pactl set-sink-volume @DEFAULT_SINK@ +2%")
+    , ((0 .|. shiftMask   , xF86XK_AudioLowerVolume), spawn "pactl set-sink-volume @DEFAULT_SINK@ -1%")
+    , ((0 .|. shiftMask   , xF86XK_AudioRaiseVolume), spawn "pactl set-sink-volume @DEFAULT_SINK@ +1%")
 
     -- Monitor backlight
     , ((0                 , xF86XK_MonBrightnessDown), spawn "sudo mon_backlight -")
