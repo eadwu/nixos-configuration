@@ -8,6 +8,7 @@ in
 {
   imports =
     [
+      ./cpu.nix
       ./machine.nix
       ./protonvpn.nix
       ./wireguard.nix

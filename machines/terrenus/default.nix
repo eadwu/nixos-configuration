@@ -36,6 +36,18 @@ with config.nixos; {
     machine.hostname = "terrenus";
     machine.screen.width = 3840;
     machine.screen.height = 2160;
+
+    machine.cpu.tdp = {
+      nominal = 35;
+      up = 45;
+    };
+
+    machine.cpu.undervolt = rec {
+      core = (-100);
+      gpu = (-75);
+      uncore = core;
+      analogio = core;
+    };
   };
 
   programs.zsh.interactiveShellInit = ''
@@ -49,14 +61,6 @@ with config.nixos; {
   security.allowSimultaneousMultithreading = true;
 
   services = {
-    undervolt.options = rec {
-      core = (-100);
-      gpu = (-75);
-      cache = core;
-      uncore = core;
-      analogio = core;
-    };
-
     xserver = {
       extraConfig = ''
         Section "InputClass"
