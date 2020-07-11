@@ -4,7 +4,7 @@
   imports =
     [
       nixosModules.apropos
-      ../options/settings.nix
+      ../options/settings
 
       ../modules/nix.nix
     ];

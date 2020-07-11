@@ -8,10 +8,10 @@ in
 {
   imports =
     [
-      ./settings/machine.nix
-      ./settings/protonvpn.nix
-      ./settings/wireguard.nix
-      ./settings/xserver.nix
+      ./machine.nix
+      ./protonvpn.nix
+      ./wireguard.nix
+      ./xserver.nix
     ];
 
   options.nixos.settings = {
