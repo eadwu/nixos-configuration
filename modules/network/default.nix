@@ -23,7 +23,7 @@ with config.nixos; {
 
   networking = {
     hostName = settings.machine.hostname;
-    enableIPv6 = false;
+    enableIPv6 = true;
     dhcpcd.enable = lib.mkDefault false;
     wireless.iwd.enable = lib.mkDefault true;
   };
