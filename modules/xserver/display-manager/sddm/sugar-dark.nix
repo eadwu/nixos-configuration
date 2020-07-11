@@ -1,9 +1,9 @@
-{ pkgs, ... }:
+{ nixosModules, pkgs, ... }:
 
 {
   imports =
     [
-      ../../../../options/sddm-sugar-dark.nix
+      nixosModules.sddm-sugar-dark
     ];
 
   services.xserver.displayManager.sddm.greeters.sugar-dark = {

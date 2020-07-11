@@ -31,6 +31,12 @@
         ++ config.modules;
     };
   in {
+
+    nixosModules = {
+      settings = import ./options/settings;
+      sddm-sugar-dark = import ./options/sddm-sugar-dark.nix;
+    };
+
     isoImage = (baseSystem {
       system = "x86_64-linux";
       modules = singleton (import ./profiles/iso.nix);
