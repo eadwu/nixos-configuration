@@ -1,24 +1,25 @@
 { pkgs, ... }:
 
 {
-  networking.nameservers = [ "127.0.0.1" ];
+  networking.nameservers = [ "::1" "127.0.0.1" ];
 
   services.kresd = {
     enable = true;
+    listenPlain = [ "[::1]:53" "127.0.0.1:53" ];
+    listenTLS = [ "[::1]:853" "127.0.0.1:853" ];
     extraConfig = ''
       modules = {
-        'hints',
-        'stats', -- identify usage patterns and preemptively refresh expired queries
         'policy', -- manipulate request handling
-        'predict', -- works together with stats
+        'stats', 'predict', -- identify usage patterns and preemptively refresh expired queries
+        'hints > iterate',
         'serve_stale < cache', -- allows expired entries to be served from the cache
         'workarounds < iterate' -- contains a set of hotfixes to ensure compatibility
       }
 
-      -- Respect /etc/hosts
-      hints.add_hosts()
       -- Cache size
       cache.size = 1024 * MB
+      -- Respect /etc/hosts
+      hints.add_hosts()
       -- Enable DNSSEC validation
       trust_anchors.add_file('${pkgs.dns-root-data}/root.key', true)
       -- Prefetch learning (20-minute blocks over 24 hours)
