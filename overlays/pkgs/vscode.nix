@@ -80,8 +80,8 @@ with final.pkgs; {
       {
         name = "vscode-eslint";
         publisher = "dbaeumer";
-        version = "2.1.5";
-        sha256 = "1fr8n736pfjnxz7kgi6m86d2w6z1bwxa23xpfcd8sik9nnrnsz59";
+        version = "2.1.6";
+        sha256 = "0xllvrpmxgpmn5f1w8b3gapfyv84r5c3mqy76w5mwcv0snm0981w";
       }
 
       {
@@ -136,8 +136,8 @@ with final.pkgs; {
       {
         name = "rust-analyzer";
         publisher = "matklad";
-        version = "0.2.224";
-        sha256 = "076kyhpj67vv12r3rn9vf1hm8xg222ch30xd4hvg29r1nlqhr3qm";
+        version = "0.2.232";
+        sha256 = "1dkkidzavvjsbw4fqv96dfp9jj31hq9rpsm62hcmyv0bcxh3zifc";
       }
 
       {
@@ -171,15 +171,15 @@ with final.pkgs; {
       {
         name = "pyright";
         publisher = "ms-pyright";
-        version = "1.1.49";
-        sha256 = "1dkrvc6clra8m0b0nn5wr98aybxqb0p1ivyc5g23cqdi3f8vxsrm";
+        version = "1.1.51";
+        sha256 = "0zylsj12gayk9d80dwsl3g63557bc6fgvy3yfn5j8mpd9wxhfiy5";
       }
 
       {
         name = "azure-account";
         publisher = "ms-vscode";
-        version = "0.8.11";
-        sha256 = "05zz91wn5miikaw35yajps4901lv3wyvqyz72dqvic3mmcm5gcyy";
+        version = "0.9.0";
+        sha256 = "0s55d2nsvwdgmi6z2arrk969b7l5zf1fm5xybf6bpx6alki6v1vv";
       }
 
       {
@@ -220,8 +220,8 @@ with final.pkgs; {
       {
         name = "java";
         publisher = "redhat";
-        version = "0.63.0";
-        sha256 = "0zwgfriahjriifv4jkrnn4p9zxamkvid97yvrckp495rh31j4nnq";
+        version = "0.64.1";
+        sha256 = "00z81j8rk2zbnwkl227wvfz7a4df7443zjlqbi9vh6ik71z9nwf1";
       }
 
       {
@@ -234,8 +234,8 @@ with final.pkgs; {
       {
         name = "scala";
         publisher = "scala-lang";
-        version = "0.4.0";
-        sha256 = "1fnrzj3jv2jwqc642zsd3jg8nb8j9189792dhwbdby1dfkyznss3";
+        version = "0.4.1";
+        sha256 = "0wqc2m3psi2v853pfhd71y6wxv89b9hgy2v7j5hwrs0v901j0gi1";
       }
 
       {
