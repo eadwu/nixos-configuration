@@ -28,9 +28,14 @@ with config.nixos; {
     wireless.iwd.enable = lib.mkDefault true;
   };
 
-  services.resolved.extraConfig = ''
-    MulticastDNS=false
-  '';
+  services.resolved = {
+    llmnr = "resolve";
+    dnssec = "false";
+    extraConfig = ''
+      DNSOverTLS=opportunistic
+      MulticastDNS=resolve
+    '';
+  };
 
   systemd.network = {
     enable = true;
@@ -44,33 +49,34 @@ with config.nixos; {
       };
     };
 
-    networks.default = {
+    networks.default = rec {
       DHCP = "yes";
       dns = config.networking.nameservers
-      # backup dns nameservers
-      ++ [ "1.1.1.1" "9.9.9.9" ];
+        ++ [ "2620:fe::fe" "9.9.9.9" ]
+        ++ [ "2606:4700:4700::1111" "1.1.1.1" ]
+        ;
 
       matchConfig.Name = "!docker0* virbr0*";
 
-      dhcpConfig = {
+      dhcpV4Config = {
         Anonymize = true;
         UseDNS = false;
       };
 
-      networkConfig = {
-        DNSSEC = "no";
+      dhcpV6Config = {
+        inherit (dhcpV4Config) UseDNS;
       };
     };
 
     networks = {
       eth = {
         matchConfig.Name = "eth* ens*";
-        dhcpConfig.RouteMetric = 10;
+        dhcpV4Config.RouteMetric = 10;
       };
 
       wlan = {
         matchConfig.Type = "wlan";
-        dhcpConfig.RouteMetric = 20;
+        dhcpV4Config.RouteMetric = 20;
       };
 
       tun = {
