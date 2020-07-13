@@ -10,6 +10,7 @@
     extraConfig = ''
       modules = {
         'policy', -- manipulate request handling
+        'prefill', -- provides ability to prefill the DNS cache
         'stats', 'predict', -- identify usage patterns and preemptively refresh expired queries
         'hints > iterate',
         'serve_stale < cache', -- allows expired entries to be served from the cache
@@ -24,6 +25,15 @@
       trust_anchors.add_file('${pkgs.dns-root-data}/root.key', true)
       -- Prefetch learning (20-minute blocks over 24 hours)
       predict.config({ window = 20, period = 18 * (60 / 15) })
+
+      -- Prefill root zone data
+      prefill.config({
+        ['.'] = {
+          url = 'https://www.internic.net/domain/root.zone',
+          interval = 86400, -- 1 day is roughly 86400 seconds
+          ca_file = '/etc/ssl/certs/ca-certificates.crt'
+        }
+      })
 
       -- Forward queries through Cloudflare and Quad9
       policy.add(policy.slice(
