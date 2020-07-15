@@ -7,7 +7,6 @@ let
     keyLength = 64;
     iterationStep = 0;
     gracePeriod = 10;
-    algo.digest = "blake2b512";
 
     storage = {
       device = config.fileSystems."/boot".device;
