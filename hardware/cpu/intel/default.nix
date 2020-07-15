@@ -3,6 +3,11 @@
 {
   boot.kernelModules = [
     "kvm_intel"
+
+    "isst_if_mmio"
+    "isst_if_common"
+    "isst_if_mbox_msr"
+    "isst_if_mbox_pci"
   ];
 
   boot.kernelParams = [
