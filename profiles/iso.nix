@@ -29,6 +29,16 @@
 
   hardware.enableRedistributableFirmware = true;
 
+  nix = {
+    registry =
+      {
+        nixpkgs = {
+          from = { type = "indirect"; id = "nixpkgs"; };
+          to = { type = "github"; owner = "eadwu"; repo = "nixpkgs"; ref = "develop"; };
+        };
+      };
+  };
+
   isoImage = {
     compressImage = true;
     includeSystemBuildDependencies = true;
