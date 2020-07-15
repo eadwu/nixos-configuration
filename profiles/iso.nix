@@ -35,10 +35,6 @@
 
     contents = [
       {
-        source = flakes.nixpkgs.path;
-        target = "nixpkgs";
-      }
-      {
         source = ./..;
         target = "nixos-configuration";
       }
