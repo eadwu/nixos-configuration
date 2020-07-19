@@ -1,9 +1,9 @@
-{ config, lib, ... }:
+{ modulesPath, config, lib, ... }:
 
 with config.nixos; {
   imports =
     [
-      <nixpkgs/nixos/modules/virtualisation/virtualbox-image.nix>
+      (modulesPath + "/virtualisation/virtualbox-image.nix")
 
       ../hardware/devices
       ../hardware/profiles/intel.nix
