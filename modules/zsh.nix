@@ -50,8 +50,7 @@
             shift
           fi
 
-          nix build "$@" --out-link "$outLink" --keep-going --recreate-lock-file \
-            "$flakePath#${system}.config.system.build.toplevel"
+          nix build "$@" --out-link "$outLink" "$flakePath#${system}.config.system.build.toplevel"
 
           if [ $? -ne 0 ]; then
             echo "Unexpected error while building the configuration"
@@ -74,7 +73,7 @@
           option="$1"
           shift
 
-          nix eval "$@" --recreate-lock-file "$flakePath#${system}.config.$option"
+          nix eval "$@" "$flakePath#${system}.config.$option"
         }
       '';
 

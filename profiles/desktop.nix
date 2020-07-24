@@ -125,7 +125,7 @@ with config.nixos; {
           shift
         fi
 
-        nix build "$@" --recreate-lock-file "$flakePath#${commands.${cmd}}"
+        nix build "$@" "$flakePath#${commands.${cmd}}"
       }
     '') (builtins.attrNames commands);
   };
