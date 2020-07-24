@@ -35,6 +35,7 @@
     ## Applications
     ark
     discord-canary
+    element-desktop
     evince
     gimp
     gnome3.gnome-disk-utility
@@ -42,7 +43,6 @@
     google-musicmanager
     jetbrains.idea-ultimate
     radian
-    riot-desktop
     rstudioWrapper
     thunderbird
     typora
