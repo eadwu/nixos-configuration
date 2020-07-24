@@ -13,9 +13,6 @@
     "acpi_rev_override=5"
     "mem_sleep_default=deep"
     "psmouse.synaptics_intertouch=0"
-
-    # Zfs, restrict usage to 4 GB
-    "zfs.zfs_arc_max=4294967296"
   ];
 
   environment.sessionVariables = {
