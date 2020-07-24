@@ -60,7 +60,6 @@
         singleton ({ ... }: {
           imports = singleton ./machines/terrenus;
 
-          # nix.nixPath = singleton "nixos-config=${self}/machines/terrenus";
           system.stateVersion = "19.03";
           system.configurationRevision = mkIf (self ? rev) self.rev;
         });
