@@ -5,7 +5,7 @@ with config.nixos; {
     autoOptimiseStore = true;
     buildCores = 0;
     distributedBuilds = true;
-    package = pkgs.nixFlakes;
+    package = pkgs.nixUnstable;
     requireSignedBinaryCaches = true;
     useSandbox = true;
     trustedUsers = [ "root" settings.system.user ];
