@@ -80,7 +80,6 @@ in
   "search.smartCase" = true;
   "terminal.external.linuxExec" = "st";
   "terminal.integrated.rendererType" = "experimentalWebgl";
-  "scm.alwaysShowProviders" = true;
   "scm.defaultViewMode" = "tree";
   "update.mode" = "none";
   "html.format.contentUnformatted" = "pre,code,style,textarea";
@@ -111,7 +110,6 @@ in
   "C_Cpp.clang_format_fallbackStyle" = "LLVM";
   "C_Cpp.formatting" = "Disabled";
   "cmake.cmakePath" = "${cmake}/bin/cmake";
-  "docker.attachShellCommand.linuxContainer" = "${zsh}/bin/zsh";
   "emmet.includeLanguages" = {
     "jinja-html" = "html";
   };
@@ -144,8 +142,7 @@ in
   "java.referencesCodeLens.enabled" = true;
   "java.saveActions.organizeImports" = true;
   "languageServerHaskell.formattingProvider" = "none";
-  "languageServerHaskell.useCustomHieWrapper" = true;
-  "languageServerHaskell.useCustomHieWrapperPath" = "\${workspaceFolder}/hie-wrapper.sh";
+  "languageServerHaskell.hieExecutablePath" = "\${workspaceFolder}/hie-wrapper.sh";
   "latex-workshop.chktex.enabled" = true;
   "latex-workshop.chktex.path" = "${texlive.combined.scheme-full}/bin/chktex";
   "latex-workshop.latex.autoClean.run" = "onBuilt";
@@ -196,7 +193,7 @@ in
   "python.autoUpdateLanguageServer" = false;
   "python.formatting.provider" = "yapf";
   "python.formatting.yapfPath" = "${python3Packages.yapf}/bin/yapf";
-  "python.jediEnabled" = false;
+  "python.languageServer" = "Microsoft";
   "python.linting.flake8Enabled" = true;
   "python.linting.flake8Path" = "${python3Packages.flake8}/bin/flake8";
   "python.linting.mypyEnabled" = true;
@@ -212,12 +209,8 @@ in
   "python.testing.unittestEnabled" = true;
   "maven.executable.path" = "${maven}/bin/mvn";
   "maven.terminal.useJavaHome" = true;
-  "metals.javaHome" = JAVA_HOME;
-  "rust.rustfmt_path" = "${rustPlatform.rust}/bin/rustfmt";
   "rust-analyzer.serverPath" = "${rust-analyzer}/bin/rust-analyzer";
-  "rust-client.channel" = "nightly";
-  "rust-client.disableRustup" = true;
-  "rust-client.rlsPath" = "${rustPlatform.rust}/bin/rls";
+  "rust-analyzer.updates.channel" = "nightly";
   "sqlite.sqlite3" = "${sqlite}/bin/sqlite3";
   "tslint.packageManager" = "yarn";
   "tslint.validateWithDefaultConfig" = true;
