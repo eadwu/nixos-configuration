@@ -3,7 +3,6 @@
 {
   imports =
     [
-      nixosModules.apropos
       nixosModules.settings
 
       ../modules/nix.nix
@@ -12,6 +11,7 @@
   console.earlySetup = true;
 
   documentation.dev.enable = true;
+  documentation.man.generateCaches = true;
 
   environment = {
     shells = [
