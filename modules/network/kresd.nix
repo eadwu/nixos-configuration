@@ -12,7 +12,7 @@
         'policy', -- manipulate request handling
         'prefill', -- provides ability to prefill the DNS cache
         'stats', 'predict', -- identify usage patterns and preemptively refresh expired queries
-        'hints > iterate',
+        'hints > iterate', -- allow custom root hints
         'serve_stale < cache', -- allows expired entries to be served from the cache
         'workarounds < iterate' -- contains a set of hotfixes to ensure compatibility
       }
@@ -26,6 +26,8 @@
       -- Prefetch learning (20-minute blocks over 24 hours)
       predict.config({ window = 20, period = 18 * (60 / 15) })
 
+      -- Don't cache local tld
+      policy.add(policy.suffix(policy.FLAGS('NO_CACHE'), { todname('local') }))
       -- Prefill root zone data
       prefill.config({
         ['.'] = {
