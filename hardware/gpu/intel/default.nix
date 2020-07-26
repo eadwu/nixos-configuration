@@ -22,11 +22,14 @@
   hardware.opengl = {
     # Override mesa derivation with iris driver
     # Priority is less than mkDefault (1000) but greater than default (0) to resolve conflicts
-    package = lib.mkOverride 999 (
-      pkgs.mesa.override {
-        galliumDrivers = [ "iris" "r300" "r600" "radeonsi" "nouveau" "virgl" "svga" "swrast" ];
-      }
-    ).drivers;
+    package = lib.mkOverride 999
+      (
+        (pkgs.mesa.override {
+          galliumDrivers = [ "iris" "r300" "r600" "radeonsi" "nouveau" "virgl" "svga" "swrast" ];
+        }).overrideAttrs (oldAttrs: {
+          nativeBuildInputs = (oldAttrs.nativeBuildInputs or [ ]) ++ [ pkgs.patchelf_0_9 ];
+        })
+      ).drivers;
     extraPackages = with pkgs; [ vaapiIntel intel-media-driver intel-compute-runtime ];
   };
 
