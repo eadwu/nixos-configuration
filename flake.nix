@@ -7,7 +7,7 @@
   inputs.home-manager.inputs.nixpkgs.follows = "/nixpkgs";
 
   outputs = { self, nixpkgs, ... }@inputs: with nixpkgs.lib; let
-    baseSystem = { system ? "x86_64-linux", modules ? [] }@config: nixosSystem rec {
+    baseSystem = { system ? "x86_64-linux", modules ? [], includeExternalOverlay ? true }@config: nixosSystem rec {
       inherit system;
       # TODO: Figure out why _module.args gives infinite recursion
       specialArgs = rec {
@@ -27,7 +27,7 @@
       };
 
       modules =
-        (singleton ({ nixpkgs.overlays = mkBefore (singleton inputs.external.overlay); }))
+        (optional includeExternalOverlay { nixpkgs.overlays = mkBefore (singleton inputs.external.overlay); })
         ++ config.modules;
     };
   in {
@@ -48,6 +48,7 @@
     }).config.system.build.sdImage;
 
     crossSdImage = (baseSystem {
+      includeExternalOverlay = false;
       modules = singleton (import ./profiles/cross-sd-image.nix);
     }).config.system.build.sdImage;
 
