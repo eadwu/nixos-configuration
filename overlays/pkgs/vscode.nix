@@ -31,8 +31,8 @@ with final.pkgs; {
       {
         name = "r-lsp";
         publisher = "REditorSupport";
-        version = "0.1.6";
-        sha256 = "005ff28d5b6ih7hxfjb7qd1qj4x3x2ndrv82bzj4naf421rxaz4b";
+        version = "0.1.10";
+        sha256 = "0iqvsix96zszim0dhqb819m08pawm4hn732b0gnl59p336gywfky";
       }
 
       {
@@ -45,8 +45,8 @@ with final.pkgs; {
       {
         name = "vscode-hie-server";
         publisher = "alanz";
-        version = "0.1.1";
-        sha256 = "1q3lgsndv1mk1qwwf1v7n41a8wymwwjdkq3iwln56bdxn6sbwpvk";
+        version = "0.2.1";
+        sha256 = "1ql3ynar7fm1dhsf6kb44bw5d9pi1d8p9fmjv5p96iz8x7n3w47x";
       }
 
       {
@@ -87,8 +87,8 @@ with final.pkgs; {
       {
         name = "githistory";
         publisher = "donjayamanne";
-        version = "0.6.8";
-        sha256 = "0wc0wsnqwyg0pz0jrmw0038k6g1p564krqscrx3h8wpyfymcd68l";
+        version = "0.6.9";
+        sha256 = "0r9s7vzjp2s8hi9njl4mjnrccalw7r14v37acvch0ybwz2g0ll5s";
       }
 
       {
@@ -136,8 +136,8 @@ with final.pkgs; {
       {
         name = "rust-analyzer";
         publisher = "matklad";
-        version = "0.2.248";
-        sha256 = "1s20xq8fzf21cq95g5xzsnd8whc33iai90h5h6h3akwfpg14wk14";
+        version = "0.2.266";
+        sha256 = "0a9i4qb262221i8alnag6v4srmzp4blpi69viqjh906360zdnp9v";
       }
 
       {
@@ -171,8 +171,8 @@ with final.pkgs; {
       {
         name = "pyright";
         publisher = "ms-pyright";
-        version = "1.1.57";
-        sha256 = "15qfqi1xb9xdjpmxdbgrdiykj0ra83yjxkq32vs8jzr7mg17hjvy";
+        version = "1.1.61";
+        sha256 = "0p2hpa97g5hddflgyswifh6zz9yr53njjid2h81r169v3sd91s3w";
       }
 
       {
