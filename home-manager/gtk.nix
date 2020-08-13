@@ -4,11 +4,6 @@
   gtk = {
     enable = true;
 
-    font = {
-      name = "IBM Plex Mono";
-      package = pkgs.ibm-plex;
-    };
-
     iconTheme = {
       name = "Paper";
       package = pkgs.paper-icon-theme;
