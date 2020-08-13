@@ -61,6 +61,8 @@ with config.nixos; {
   security.allowSimultaneousMultithreading = true;
 
   services = {
+    kresd.instances = 6;
+
     xserver = {
       extraConfig = ''
         Section "InputClass"
