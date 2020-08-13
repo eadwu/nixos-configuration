@@ -4,7 +4,7 @@ let
   cfg = config.services.sourcehut;
 in
 {
-  services.sourcehut.services = lib.singleton "meta";
+  services.sourcehut.services = [ "meta" ];
   services.nginx.virtualHosts.metasrht = {
     addSSL = true;
     enableACME = true;

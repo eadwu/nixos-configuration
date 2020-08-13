@@ -16,7 +16,7 @@
       "slub_debug=F"
     ];
 
-    kernelPatches = lib.singleton pkgs.kernelPatches.bcachefs;
+    kernelPatches = [ pkgs.kernelPatches.bcachefs ];
 
     kernelModules = [ "chacha_generic" "poly1305_generic" ];
   };

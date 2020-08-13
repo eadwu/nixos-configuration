@@ -4,7 +4,7 @@ let
   cfg = config.services.sourcehut;
 in
 {
-  services.sourcehut.services = lib.singleton "todo";
+  services.sourcehut.services = [ "todo" ];
   services.nginx.virtualHosts.todosrht = {
     addSSL = true;
     enableACME = true;

@@ -27,7 +27,7 @@
       };
 
       modules =
-        (optional includeExternalOverlay { nixpkgs.overlays = mkBefore (singleton inputs.external.overlay); })
+        (optional includeExternalOverlay { nixpkgs.overlays = mkBefore [ inputs.external.overlay ]; })
         ++ config.modules;
     };
   in {
@@ -39,31 +39,31 @@
 
     isoImage = (baseSystem {
       system = "x86_64-linux";
-      modules = singleton (import ./profiles/iso.nix);
+      modules = [ (import ./profiles/iso.nix) ];
     }).config.system.build.isoImage;
 
     sdImage = (baseSystem {
       system = "aarch64-linux";
-      modules = singleton (import ./profiles/sd-image.nix);
+      modules = [ (import ./profiles/sd-image.nix) ];
     }).config.system.build.sdImage;
 
     crossSdImage = (baseSystem {
       includeExternalOverlay = false;
-      modules = singleton (import ./profiles/cross-sd-image.nix);
+      modules = [ (import ./profiles/cross-sd-image.nix) ];
     }).config.system.build.sdImage;
 
     ovaImage = (baseSystem {
-      modules = singleton (import ./profiles/vm.nix);
+      modules = [ (import ./profiles/vm.nix) ];
     }).config.system.build.virtualBoxOVA;
 
     nixosConfigurations.terrenus = baseSystem rec {
       modules =
-        singleton ({ ... }: {
-          imports = singleton ./machines/terrenus;
+        [ ({ ... }: {
+          imports = [ ./machines/terrenus ];
 
           system.stateVersion = "20.03";
           system.configurationRevision = mkIf (self ? rev) self.rev;
-        });
+        }) ];
     };
 
   };

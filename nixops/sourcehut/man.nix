@@ -4,7 +4,7 @@ let
   cfg = config.services.sourcehut;
 in
 {
-  services.sourcehut.services = lib.singleton "man";
+  services.sourcehut.services = [ "man" ];
   services.nginx.virtualHosts.mansrht = {
     addSSL = true;
     enableACME = true;

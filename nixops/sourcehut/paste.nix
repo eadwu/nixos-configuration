@@ -4,7 +4,7 @@ let
   cfg = config.services.sourcehut;
 in
 {
-  services.sourcehut.services = lib.singleton "paste";
+  services.sourcehut.services = [ "paste" ];
   services.nginx.virtualHosts.pastesrht = {
     addSSL = true;
     enableACME = true;
