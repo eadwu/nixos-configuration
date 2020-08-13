@@ -80,9 +80,9 @@ in
 
           BATTERY = {
             Update_Rate_s = 30;
-            PL1_Tdp_W = cfg.tdp.nominal - 10;
+            PL1_Tdp_W = cfg.tdp.nominal - 5;
             PL1_Duration_s = 30;
-            PL2_Tdp_W = cfg.tdp.nominal;
+            PL2_Tdp_W = cfg.tdp.nominal + 5;
             PL2_Duration_S = 0.005;
             Trip_Temp_C = 80;
             cTDP = 0;
@@ -91,9 +91,9 @@ in
 
           AC = {
             Update_Rate_s = 5;
-            PL1_Tdp_W = cfg.tdp.up - 10;
+            PL1_Tdp_W = cfg.tdp.up - 5;
             PL1_Duration_s = 45;
-            PL2_Tdp_W = cfg.tdp.up;
+            PL2_Tdp_W = cfg.tdp.up + 5;
             PL2_Duration_S = 0.007;
             Trip_Temp_C = 95;
             HWP_Mode = true;
