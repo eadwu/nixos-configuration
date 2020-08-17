@@ -56,7 +56,7 @@ with config.nixos; {
         ++ [ "2606:4700:4700::1111" "1.1.1.1" ]
         ;
 
-      matchConfig.Name = "!docker0* virbr0*";
+      matchConfig.Name = "!docker* virbr* tun*";
 
       dhcpV4Config = {
         Anonymize = true;
