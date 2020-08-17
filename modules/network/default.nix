@@ -66,6 +66,16 @@ with config.nixos; {
       dhcpV6Config = {
         inherit (dhcpV4Config) UseDNS;
       };
+
+      networkConfig = {
+        IPv6AcceptRA = true;
+        IPv6PrivacyExtensions = "yes";
+      };
+
+      extraConfig = ''
+        [IPv6AcceptRA]
+        UseDNS=false
+      '';
     };
 
     networks = {
