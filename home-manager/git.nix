@@ -6,7 +6,7 @@ let
   gitignore = stdenv.mkDerivation {
     name = "gitignore";
 
-    outputHash = "sha512-j/3WGfXt6yeUul2rJ+jn6KEB5yO20ZHofrbcbdAlWBswjfiSZKYdYYiv4MmQGqfv8immCH42fOE/b1+zvU5T8g==";
+    outputHash = "08plwjy1s4w3hz976x93997j4cavr2ym7fhfxiwkj7l3rm6g53y0mwl8d8wjjxnc2vf6brd4lmi3s65jjl9hazyl1mzbbsn0v2nz4nm";
     outputHashAlgo = "sha512";
     outputHashMode = "flat";
 
