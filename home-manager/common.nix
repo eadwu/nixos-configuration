@@ -38,9 +38,7 @@
     element-desktop
     evince
     gimp
-    gnome3.gnome-disk-utility
     gnome3.gnome-system-monitor
-    google-musicmanager
     jetbrains.idea-ultimate
     radian
     rstudioWrapper
