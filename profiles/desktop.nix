@@ -61,6 +61,7 @@ with config.nixos; {
       ## Rust
       rustPlatform.rust
       rust-analyzer
+      rustfmt
       # Build Tools
       cmake
       gnumake
