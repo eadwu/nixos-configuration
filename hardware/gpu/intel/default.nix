@@ -30,7 +30,7 @@
           nativeBuildInputs = (oldAttrs.nativeBuildInputs or [ ]) ++ [ pkgs.patchelf_0_9 ];
         })
       ).drivers;
-    extraPackages = with pkgs; [ vaapiIntel intel-media-driver intel-compute-runtime ];
+    extraPackages = with pkgs; [ vaapiIntel intel-ocl intel-media-driver intel-compute-runtime ];
   };
 
   services.xserver = {
