@@ -2,6 +2,35 @@
 
 {
   services.netdata.enable = true;
+  services.netdata.config.backend = {
+    enabled = "yes";
+    type = "opentsdb";
+    destination = "127.0.0.1:4242";
+  };
+
+  systemd.services.netdata.serviceConfig.after = [ "influxdb.service" ];
+  services.influxdb = {
+    enable = true;
+    extraConfig.opentsdb = [{
+      enabled = true;
+      bind-address = ":4242";
+      database = "opentsdb";
+    }];
+  };
+
+  # Grafana Integration
+  systemd.services.grafana.after = [ "influxdb.service" ];
+  services.grafana.provision.datasources = [
+    ({
+      name = "netdata";
+      type = "influxdb";
+      url = "http://localhost:8086";
+      isDefault = true;
+
+      database = "opentsdb";
+      user = "influxdb";
+    })
+  ];
 
   # Prometheus Integration
   services.prometheus.scrapeConfigs = [
