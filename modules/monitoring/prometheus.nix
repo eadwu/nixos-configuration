@@ -54,4 +54,13 @@
       "textfile"
     ];
   };
+
+  # Grafana Integration
+  services.grafana.provision.datasources = [
+    ({
+      name = "prometheus";
+      type = "prometheus";
+      url = "http://${config.services.prometheus.listenAddress}";
+    })
+  ];
 }
