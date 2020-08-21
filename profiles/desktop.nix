@@ -31,6 +31,11 @@ with config.nixos; {
   };
 
   environment = {
+    pathsToLink = [
+      "share/hunspell"
+      "share/myspell/dicts"
+    ];
+
     systemPackages = with pkgs; [
       feh
       nnn
@@ -71,6 +76,9 @@ with config.nixos; {
       epubcheck
       ffmpeg
       gnupg
+      hunspell
+      hunspellDicts.en_US
+      hunspellDicts.en_US-large
       imagemagick7
       nix-diff
       nix-linter
