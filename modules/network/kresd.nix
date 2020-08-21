@@ -8,7 +8,10 @@
     listenPlain = [ "[::1]:53" "127.0.0.1:53" ];
     listenTLS = [ "[::1]:853" "127.0.0.1:853" ];
     extraConfig = ''
+      net.listen({'::1', '127.0.0.1'}, 8453, { kind = 'webmgmt', freebind = true })
+
       modules = {
+        'http', -- HTTP module with defaults (self-signed TLS cert)
         'policy', -- manipulate request handling
         'prefill', -- provides ability to prefill the DNS cache
         'stats', 'predict', -- identify usage patterns and preemptively refresh expired queries
@@ -57,4 +60,12 @@
       ))
     '';
   };
+
+  services.prometheus.scrapeConfigs = [
+    ({
+      job_name = "kresd";
+      honor_labels = true;
+      static_configs = [ { targets = [ "localhost:8453" ]; } ];
+    })
+  ];
 }
