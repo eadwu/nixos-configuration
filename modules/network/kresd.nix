@@ -21,8 +21,6 @@
       cache.size = 1024 * MB
       -- Respect /etc/hosts
       hints.add_hosts()
-      -- Enable DNSSEC validation
-      trust_anchors.add_file('${pkgs.dns-root-data}/root.key', true)
       -- Prefetch learning (20-minute blocks over 24 hours)
       predict.config({ window = 20, period = 18 * (60 / 15) })
 
