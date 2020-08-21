@@ -15,7 +15,7 @@ with config.nixos; {
       ../modules/i3color.nix
       ../modules/logind
       ../modules/lorri.nix
-      ../modules/netdata.nix
+      ../modules/monitoring
       ../modules/network
       ../modules/tlp.nix
       ../modules/users.nix
