@@ -10,6 +10,7 @@
     avahi = {
       enable = lib.mkDefault true;
       nssmdns = true;
+      openFirewall = false;
     };
 
     printing = {
