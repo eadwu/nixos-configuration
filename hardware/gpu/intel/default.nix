@@ -27,7 +27,19 @@
         (pkgs.mesa.override {
           galliumDrivers = [ "iris" "r300" "r600" "radeonsi" "nouveau" "virgl" "svga" "swrast" ];
         }).overrideAttrs (oldAttrs: {
-          nativeBuildInputs = (oldAttrs.nativeBuildInputs or [ ]) ++ [ pkgs.patchelf_0_9 ];
+          # Fix to Iris as per https://github.com/NixOS/nixpkgs/issues/91145
+          nativeBuildInputs = (oldAttrs.nativeBuildInputs or [ ]) ++ [
+            (with pkgs;
+            patchelfUnstable.overrideAttrs (_: {
+              version = "2020-08-17";
+              src = fetchFromGitHub {
+                owner = "NixOS";
+                repo = "patchelf";
+                rev = "7aa6b90851eba4eeb59bc75cbf40866fbce7b386";
+                sha256 = "0xmrxb9ff392h04mq7ch8bg2lhlix3zvk23r130fg5mnbqcq6nxk";
+              };
+            }))
+          ];
         })
       ).drivers;
     extraPackages = with pkgs; [ vaapiIntel intel-ocl intel-media-driver intel-compute-runtime ];
