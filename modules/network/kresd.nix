@@ -3,6 +3,28 @@
 {
   networking.nameservers = [ "::1" "127.0.0.1" ];
 
+  services.influxdb = {
+    enable = true;
+    extraConfig.graphite = [{
+      enabled = true;
+      protocol = "tcp";
+      database = "graphite";
+      bind-address = ":2003";
+      templates = [ "host.measurement*" ];
+    }];
+  };
+
+  services.grafana.provision.datasources = [{
+    name = "knot-resolver";
+    type = "influxdb";
+    url = "http://localhost:8086";
+
+    database = "graphite";
+    user = "influxdb";
+  }];
+
+  systemd.services."kresd@".after = [ "influxdb.service" ];
+
   services.kresd = {
     enable = true;
     listenPlain = [ "[::1]:53" "127.0.0.1:53" ];
@@ -17,7 +39,19 @@
         'stats', 'predict', -- identify usage patterns and preemptively refresh expired queries
         'hints > iterate', -- allow custom root hints
         'serve_stale < cache', -- allows expired entries to be served from the cache
-        'workarounds < iterate' -- contains a set of hotfixes to ensure compatibility
+        'workarounds < iterate', -- contains a set of hotfixes to ensure compatibility
+
+        -- stats collection using Graphite over InfluxDB
+        graphite = {
+          host = { '::1', '127.0.0.1' },
+          port = 2003,
+          -- send over TCP
+          tcp = true,
+          -- optional metric prefix
+          prefix = hostname(),
+          -- publish interval
+          interval = 1 * sec,
+        },
       }
 
       -- Cache size
