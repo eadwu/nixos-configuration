@@ -1,9 +1,13 @@
 { config, ... }:
 
+let
+  prometheusAddress = with config.services.prometheus; "${listenAddress}:${toString port}";
+in
 {
   services.prometheus = {
     enable = true;
-    listenAddress = "127.0.0.1:9090";
+    listenAddress = "127.0.0.1";
+    port = 9090;
 
     globalConfig = {
       scrape_interval = "1s";
@@ -13,7 +17,7 @@
     scrapeConfigs = [
       ({
         job_name = "prometheus";
-        static_configs = [ { targets = [ config.services.prometheus.listenAddress ]; } ];
+        static_configs = [ { targets = [ prometheusAddress ]; } ];
       })
 
       ({
@@ -60,7 +64,7 @@
     ({
       name = "prometheus";
       type = "prometheus";
-      url = "http://${config.services.prometheus.listenAddress}";
+      url = prometheusAddress;
     })
   ];
 }
