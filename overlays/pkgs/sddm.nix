@@ -1,7 +1,7 @@
 final: prev:
 
 with final.pkgs; {
-  sddm = libsForQt5.callPackage
+  sddm = final._channels.nixos-unstable.libsForQt5.callPackage
     (
       { callPackage, qtbase }:
         (callPackage (final.pkgs.path + "/pkgs/applications/display-managers/sddm") {}).overrideAttrs (
@@ -31,7 +31,7 @@ with final.pkgs; {
         )
     ) {};
 
-  sddm-sugar-dark = libsForQt5.callPackage
+  sddm-sugar-dark = final._channels.nixos-unstable.libsForQt5.callPackage
     (
       { lib
       , stdenv

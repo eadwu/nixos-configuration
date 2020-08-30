@@ -23,6 +23,10 @@ in
       enableGlfw = true;
     };
 
+    hplip = prev.hplip.override {
+      withQt5 = false;
+    };
+
     knot-resolver = prev.knot-resolver.override {
       extraFeatures = true;
     };

@@ -1,5 +1,7 @@
 {
   inputs.nixpkgs = { type = "github"; owner = "eadwu"; repo = "nixpkgs"; ref = "develop"; };
+  inputs.nixos-unstable = { type = "github"; owner = "NixOS"; repo = "nixpkgs-channels"; ref = "nixos-unstable"; };
+  inputs.nixpkgs-unstable = { type = "github"; owner = "NixOS"; repo = "nixpkgs-channels"; ref = "nixpkgs-unstable"; };
   inputs.external = { type = "github"; owner = "eadwu"; repo = "flakes"; };
   inputs.home-manager = { type = "github"; owner = "eadwu"; repo = "home-manager"; ref = "bqv-flakes"; };
 
@@ -28,6 +30,21 @@
 
       modules =
         (optional includeExternalOverlay { nixpkgs.overlays = mkBefore [ inputs.external.overlay ]; })
+        ++ [{
+          nixpkgs.overlays = mkBefore [
+            (final: prev: {
+              inherit (final._channels.nixos-unstable)
+                ark rstudio buku pinentry;
+
+              inherit (final._channels.nixpkgs-unstable)
+                rust-analyzer;
+
+              _channels = genAttrs
+                [ "nixos-unstable" "nixpkgs-unstable" ]
+                (channel: import inputs.${channel} { inherit system; config.allowUnfree = true; });
+            })
+          ];
+        }]
         ++ config.modules;
     };
   in {
