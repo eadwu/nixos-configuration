@@ -8,13 +8,13 @@
     destination = "127.0.0.1:4242";
   };
 
-  systemd.services.netdata.serviceConfig.after = [ "influxdb.service" ];
+  systemd.services.netdata.after = [ "influxdb.service" ];
   services.influxdb = {
     enable = true;
     extraConfig.opentsdb = [{
       enabled = true;
-      bind-address = ":4242";
       database = "opentsdb";
+      bind-address = ":4242";
     }];
   };
 
