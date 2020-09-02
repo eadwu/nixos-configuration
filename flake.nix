@@ -3,7 +3,7 @@
   inputs.nixos-unstable = { type = "github"; owner = "NixOS"; repo = "nixpkgs-channels"; ref = "nixos-unstable"; };
   inputs.nixpkgs-unstable = { type = "github"; owner = "NixOS"; repo = "nixpkgs-channels"; ref = "nixpkgs-unstable"; };
   inputs.external = { type = "github"; owner = "eadwu"; repo = "flakes"; };
-  inputs.home-manager = { type = "github"; owner = "eadwu"; repo = "home-manager"; ref = "bqv-flakes"; };
+  inputs.home-manager = { type = "github"; owner = "rycee"; repo = "home-manager"; };
 
   inputs.external.inputs.nixpkgs.follows = "/nixpkgs";
   inputs.home-manager.inputs.nixpkgs.follows = "/nixpkgs";
