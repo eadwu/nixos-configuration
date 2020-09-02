@@ -1,9 +1,18 @@
 { config, ... }:
 
 {
+  services.grafana.provision.enable = true;
+  services.grafana.provision.dashboards = [
+    ({
+      name = "General";
+      type = "file";
+      disableDeletion = true;
+      options.path = ./dashboards;
+    })
+  ];
+
   services.grafana = {
     enable = true;
-    provision.enable = true;
 
     database.type = "postgres";
     database.host = "/run/postgresql";
