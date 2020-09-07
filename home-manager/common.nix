@@ -37,11 +37,13 @@
     discord-canary
     element-desktop
     evince
+    ghidra-bin
     gimp
     gnome3.gnome-system-monitor
     jetbrains.idea-ultimate
     radian
     rstudioWrapper
+    slack
     thunderbird
     typora
     vivaldi-snapshot
