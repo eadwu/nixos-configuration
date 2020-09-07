@@ -37,7 +37,7 @@
                 ark rstudio buku pinentry;
 
               inherit (final._channels.nixpkgs-unstable)
-                rust-analyzer;
+                blender thunderbird rust-analyzer;
 
               _channels = genAttrs
                 [ "nixos-unstable" "nixpkgs-unstable" ]
