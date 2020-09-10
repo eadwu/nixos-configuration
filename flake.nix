@@ -10,12 +10,10 @@
   inputs.home-manager.inputs.nixpkgs.follows = "/nixpkgs";
 
   outputs = { self, nixpkgs, ... }@inputs: with nixpkgs.lib; let
-    baseSystem = { system ? "x86_64-linux", modules ? [], includeExternalOverlay ? true }@config: nixosSystem rec {
+    baseSystem = { system ? "x86_64-linux", modules ? [], includeExternalOverlay ? true }@config: nixosSystem {
       inherit system;
       # TODO: Figure out why _module.args gives infinite recursion
       specialArgs = rec {
-        inherit system;
-
         flakes = genAttrs (builtins.attrNames inputs)
           (flake:
             (if (inputs.${flake} ? packages && inputs.${flake}.packages ? ${system})
@@ -31,21 +29,28 @@
 
       modules =
         (optional includeExternalOverlay { nixpkgs.overlays = mkBefore [ inputs.external.overlay ]; })
-        ++ [{
-          nixpkgs.overlays = mkBefore [
-            (final: prev: {
-              inherit (final._channels.nixos-unstable)
-                ark rstudio buku pinentry;
+        ++
+          [
+            {
+              _module.args.system = system;
+            }
 
-              inherit (final._channels.nixpkgs-unstable)
-                blender thunderbird rust-analyzer;
+            {
+              nixpkgs.overlays = mkBefore [
+                (final: prev: {
+                  inherit (final._channels.nixos-unstable)
+                    ark rstudio buku pinentry;
 
-              _channels = genAttrs
-                [ "nixos-unstable" "nixpkgs-unstable" ]
-                (channel: import inputs.${channel} { inherit system; config.allowUnfree = true; });
-            })
-          ];
-        }]
+                  inherit (final._channels.nixpkgs-unstable)
+                    blender thunderbird rust-analyzer;
+
+                  _channels = genAttrs
+                    [ "nixos-unstable" "nixpkgs-unstable" ]
+                    (channel: import inputs.${channel} { inherit system; config.allowUnfree = true; });
+                })
+              ];
+            }
+          ]
         ++ config.modules;
     };
   in {
