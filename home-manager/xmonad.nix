@@ -377,7 +377,7 @@ assert builtins.pathExists ./xmonad/xmonad.hs;
       };
 
       "module/volume" = {
-        type = "internal/alsa";
+        type = "internal/pulseaudio";
 
         label-muted = "%{F#e57373}%{F-} muted";
         label-volume = "%percentage%%";
