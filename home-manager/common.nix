@@ -41,6 +41,7 @@
     gimp
     gnome3.gnome-system-monitor
     jetbrains.idea-ultimate
+    libreoffice-fresh
     radian
     rstudioWrapper
     slack
