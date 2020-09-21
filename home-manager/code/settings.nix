@@ -141,8 +141,8 @@ in
   "java.implementationsCodeLens.enabled" = true;
   "java.referencesCodeLens.enabled" = true;
   "java.saveActions.organizeImports" = true;
-  "languageServerHaskell.formattingProvider" = "none";
-  "languageServerHaskell.hieExecutablePath" = "\${workspaceFolder}/hie-wrapper.sh";
+  "haskell.formattingProvider" = "none";
+  "haskell.serverExecutablePath" = "\${workspaceFolder}/hie-wrapper.sh";
   "latex-workshop.chktex.enabled" = true;
   "latex-workshop.chktex.path" = "${texlive.combined.scheme-full}/bin/chktex";
   "latex-workshop.latex.autoClean.run" = "onBuilt";
@@ -191,6 +191,10 @@ in
   "path-intellisense.showHiddenFiles" = true;
   "python.autoComplete.addBrackets" = true;
   "python.autoUpdateLanguageServer" = false;
+  "python.dataScience.disableJupyterAutoStart" = true;
+  "python.dataScience.searchForJupyter" = false;
+  "python.dataScience.useNotebookEditor" = false;
+  "python.defaultInterpreterPath" = "${python3Packages.python}/bin/python3";
   "python.formatting.provider" = "yapf";
   "python.formatting.yapfPath" = "${python3Packages.yapf}/bin/yapf";
   "python.languageServer" = "Microsoft";
@@ -205,12 +209,16 @@ in
   "python.linting.pylamaEnabled" = true;
   "python.linting.pylamaPath" = "${python3Packages.pylama}/bin/pylama";
   "python.linting.pylintPath" = "${python3Packages.pylint}/bin/pylint";
-  "python.pythonPath" = "${python3Packages.python}/bin/python3";
   "python.testing.unittestEnabled" = true;
+  "notebook.kernelProviderAssociations" = [
+    {
+      viewType = "jupyter-notebook";
+      kernelProvider = "ms-python.python";
+    }
+  ];
   "maven.executable.path" = "${maven}/bin/mvn";
   "maven.terminal.useJavaHome" = true;
   "rust-analyzer.serverPath" = "${rust-analyzer}/bin/rust-analyzer";
-  "rust-analyzer.updates.channel" = "nightly";
   "sqlite.sqlite3" = "${sqlite}/bin/sqlite3";
   "tslint.packageManager" = "yarn";
   "tslint.validateWithDefaultConfig" = true;
