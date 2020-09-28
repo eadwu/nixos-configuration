@@ -101,8 +101,8 @@ with final.pkgs; {
       {
         name = "githistory";
         publisher = "donjayamanne";
-        version = "0.6.9";
-        sha256 = "0r9s7vzjp2s8hi9njl4mjnrccalw7r14v37acvch0ybwz2g0ll5s";
+        version = "0.6.10";
+        sha256 = "14ph05wz9cdxwmyprh6wjcbwrbsyjlirdjlq2lcr8hqmscjac73v";
       }
 
       {
@@ -157,8 +157,8 @@ with final.pkgs; {
       {
         name = "rust-analyzer";
         publisher = "matklad";
-        version = "0.2.313";
-        sha256 = "031xy1d005kskrhdqmkv5i6026z1r78d9w20wh5qvy7yw0f3b7sw";
+        version = "0.2.320";
+        sha256 = "1pdldxd3w44kb4rk74r47k0pfsp9nc7rlm7s0wz33d26dyq0mn7s";
       }
 
       {
@@ -199,8 +199,8 @@ with final.pkgs; {
       {
         name = "pyright";
         publisher = "ms-pyright";
-        version = "1.1.73";
-        sha256 = "1cv870rbhm5pzd5x8bbgh4jzvnp24x6g15ziv07gqak6nsc7m174";
+        version = "1.1.74";
+        sha256 = "12ghdvkkn62hg5jwb084wjdgl93na8709f9wck1pna9xizk89zkc";
       }
 
       {
@@ -234,8 +234,8 @@ with final.pkgs; {
       {
         name = "debugger-for-chrome";
         publisher = "msjsdiag";
-        version = "4.12.10";
-        sha256 = "0il5fkqyjs67f8sfkknih6nmr09b7gsmv9n854asvvyd9iyjryyj";
+        version = "4.12.11";
+        sha256 = "03krf4rfdyvb2i1qpzqygbcmqgjf00pcsc67wm2p31jk460d6bgn";
       }
 
       {
