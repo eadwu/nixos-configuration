@@ -3,6 +3,7 @@
 {
   services.picom = {
     enable = lib.mkDefault true;
+    experimentalBackends = true;
 
     fade = true;
     fadeDelta = 5;
