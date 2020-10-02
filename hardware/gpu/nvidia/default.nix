@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 
 {
   environment.variables = {
@@ -13,6 +13,7 @@
     vdpauinfo
   ];
 
+  hardware.nvidia.package = config.boot.kernelPackages.nvidiaPackages.beta;
   hardware.nvidia.nvidiaPersistenced = true;
   hardware.nvidia.powerManagement.enable = true;
   hardware.opengl.extraPackages = with pkgs; [
@@ -21,7 +22,7 @@
   ];
 
   services.xserver.useGlamor = true;
-  services.xserver.videoDrivers = [ "nvidiaBeta" ];
+  services.xserver.videoDrivers = [ "nvidia" ];
 
   boot.kernelParams = [
     # PCI-Express Runtime D3 (RTD3) Power Management
