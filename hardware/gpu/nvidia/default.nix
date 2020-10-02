@@ -5,6 +5,8 @@
     # Ultra low latency mode
     # https://devtalk.nvidia.com/default/topic/1067593/linux/how-to-turn-on-low-latency-mode-max-pre-render-frames-on-linux-/
     __GL_MaxFramesAllowed = "0";
+    # Anisotropic texture filtering, 0-4, 0x, 2x, 4x, 8x, 16x
+    __GL_LOG_MAX_ANISO = "4";
   };
 
   environment.systemPackages = with pkgs; [
