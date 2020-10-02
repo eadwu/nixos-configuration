@@ -5,7 +5,7 @@
     [
       ./grafana.nix
       ./netdata.nix
-      ./prometheus.nix
+      # ./prometheus.nix
       # ./zabbix.nix
     ];
 }
