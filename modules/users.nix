@@ -1,4 +1,4 @@
-{ nixosModules, flakes, config, pkgs, ... }:
+{ nixosModules, config, pkgs, ... }@args:
 
 with config.nixos; {
   imports =
@@ -13,7 +13,7 @@ with config.nixos; {
         imports = [ ../home-manager ];
         _module.args = { inherit flakes sysConfig; };
       }
-    ) { inherit flakes; sysConfig = config; };
+    ) { inherit (args) flakes; sysConfig = config; };
   };
 
   users = {
