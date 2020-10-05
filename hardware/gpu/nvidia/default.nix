@@ -11,6 +11,7 @@
 
   environment.systemPackages = with pkgs; [
     glxinfo
+    cudnn
     cudatoolkit
     vdpauinfo
   ];
