@@ -17,8 +17,8 @@ with final.pkgs; {
       {
         name = "todo-tree";
         publisher = "Gruntfuggly";
-        version = "0.0.182";
-        sha256 = "0mmvy837dpck1l57mm21608lpdzdwyl2mbpfr1dzpvxyxibbhzpp";
+        version = "0.0.183";
+        sha256 = "02m70yxabbgi24ly792wfw1aah69vr59j2czypwhsq72rrplclfh";
       }
 
       {
@@ -94,15 +94,15 @@ with final.pkgs; {
       {
         name = "vscode-eslint";
         publisher = "dbaeumer";
-        version = "2.1.8";
-        sha256 = "18yw1c2yylwbvg5cfqfw8h1r2nk9vlixh0im2px8lr7lw0airl28";
+        version = "2.1.10";
+        sha256 = "0z8li3146n51510njnix0k4z5xxwkg8251k7jr029avx25kdgam5";
       }
 
       {
         name = "githistory";
         publisher = "donjayamanne";
-        version = "0.6.11";
-        sha256 = "1nsbhgl0ncnriz8iqz4fn8q8jqp145qd586yjw9gbx0abjnrihsy";
+        version = "0.6.12";
+        sha256 = "1lmhym6wgfzbx2pbhmnv7s20zvjfpkfwnps0d48skzbhwvmkjnj4";
       }
 
       {
@@ -129,15 +129,15 @@ with final.pkgs; {
       {
         name = "auto-rename-tag";
         publisher = "formulahendry";
-        version = "0.1.4";
-        sha256 = "0lww2xx5h16kxx3awax1gg4v46zbx9gwkjlnrgwncmvqfn3jb6w9";
+        version = "0.1.5";
+        sha256 = "1ic3nxpcan8wwwzwm099plkn7fdy0zz2575rh4znc4sqgcqywh2i";
       }
 
       {
         name = "haskell";
         publisher = "haskell";
-        version = "1.1.0";
-        sha256 = "1wg06lyk0qn9jd6gi007sg7v0z9z8gwq7x2449d4ihs9n3w5l0gb";
+        version = "1.2.0";
+        sha256 = "0vxsn4s27n1aqp5pp4cipv804c9cwd7d9677chxl0v18j8bf7zly";
       }
 
       {
@@ -157,15 +157,15 @@ with final.pkgs; {
       {
         name = "rust-analyzer";
         publisher = "matklad";
-        version = "0.2.328";
-        sha256 = "1rszsi6shqc0idz28lbj6gq94xgqx179y3qfczx3yax4kkpqgyzk";
+        version = "0.2.336";
+        sha256 = "1m7mdkhivnazvs63zl69cwlm4h8y3xc26s6xa2sl5hrn7skc3lqy";
       }
 
       {
         name = "vscode-language-babel";
         publisher = "mgmcdermott";
-        version = "0.0.29";
-        sha256 = "1kwxhn5i227kb782l1i68jy169qq2ygfdnnjmcp4dgk4zzwyzzjv";
+        version = "0.0.30";
+        sha256 = "01aqk4xlmyvwgal8ya1dv4p88knwi7k6dwrnlq1rb4akr4fn1mfv";
       }
 
       {
@@ -199,8 +199,8 @@ with final.pkgs; {
       {
         name = "pyright";
         publisher = "ms-pyright";
-        version = "1.1.76";
-        sha256 = "1907qx6is69qvzan4s2vhkd5xirq2p892wqzys15rqxnsw0xq8py";
+        version = "1.1.78";
+        sha256 = "1xyg3pkc2pf24z7h4bw6zffinq68p1ybqgp6qjz0dp1xsn20dpzm";
       }
 
       {
@@ -241,8 +241,8 @@ with final.pkgs; {
       {
         name = "gremlins";
         publisher = "nhoizey";
-        version = "0.23.1";
-        sha256 = "0fbb7j8cnnl187v2336qx0wxjbbc1v3qvyklxspn3brqbrrk0rfn";
+        version = "0.24.0";
+        sha256 = "04ccf11a2bxlg8mmn69s0rvh5aq1nc0a5kx6z08dbabqqbvy3rjn";
       }
 
       {
@@ -276,8 +276,8 @@ with final.pkgs; {
       {
         name = "scala";
         publisher = "scala-lang";
-        version = "0.4.3";
-        sha256 = "1h736b09q89xjgzpgfwmzj58hl56r6sd6k78sf49d4rmi6qi47v1";
+        version = "0.4.5";
+        sha256 = "0nrj32a7a86vwc9gfh748xs3mmfwbc304dp7nks61f0lx8b4wzxw";
       }
 
       {
