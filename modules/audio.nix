@@ -12,6 +12,9 @@
     };
 
     daemon.config = {
+      # Audio Control
+      flat-volumes = "no";
+
       # Priority
       high-priority = "yes";
       nice-level = -11;
