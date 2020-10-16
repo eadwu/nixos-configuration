@@ -1,6 +1,13 @@
 { config, pkgs, ... }:
 
 {
+  boot.kernelModules = [
+    "nvidia"
+    "nvidia_drm"
+    "nvidia_uvm"
+    "nvidia_modeset"
+  ];
+
   environment.variables = {
     # Ultra low latency mode
     # https://devtalk.nvidia.com/default/topic/1067593/linux/how-to-turn-on-low-latency-mode-max-pre-render-frames-on-linux-/
