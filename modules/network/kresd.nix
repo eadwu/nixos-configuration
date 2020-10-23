@@ -1,5 +1,17 @@
 { config, pkgs, lib, ... }:
 
+let
+  hosts-rpz = pkgs.runCommand "etc-hosts-rpz" {
+    src = config.environment.etc.hosts.source;
+    nativeBuildInputs = with pkgs; [ perl gawk gnused gnugrep coreutils ];
+  } ''
+    grep . $src | \
+      grep -v '^#' | \
+      awk '{print $2}' | \
+      perl -pe 's/\r\n$/\n/g' | \
+      sed 's/$/ CNAME ./' > $out
+  '';
+in
 {
   # Thou who art mine, override all who are present
   environment.etc."resolv.conf".source = lib.mkForce (pkgs.writeText "resolv.conf" ''
@@ -29,7 +41,6 @@
   }];
 
   systemd.services."kresd@".after = [ "influxdb.service" ];
-
   services.kresd = {
     enable = true;
     listenPlain = [ "[::1]:53" "127.0.0.1:53" ];
@@ -42,7 +53,6 @@
         'policy', -- manipulate request handling
         'prefill', -- provides ability to prefill the DNS cache
         'stats', 'predict', -- identify usage patterns and preemptively refresh expired queries
-        'hints > iterate', -- allow custom root hints
         'serve_stale < cache', -- allows expired entries to be served from the cache
         'workarounds < iterate', -- contains a set of hotfixes to ensure compatibility
 
@@ -61,9 +71,6 @@
 
       -- Cache size
       cache.size = 1024 * MB
-      -- Respect /etc/hosts, broken a large /etc/hosts, nsswitch dictates local queries resolve first using /etc/hosts anyway
-      -- See https://wiki.archlinux.org/index.php/Domain_name_resolution
-      -- hints.add_hosts()
       -- Prefetch learning (20-minute blocks over 24 hours)
       predict.config({ window = 20, period = 18 * (60 / 15) })
 
@@ -77,6 +84,13 @@
           ca_file = '/etc/ssl/certs/ca-certificates.crt'
         }
       })
+
+      -- If /etc/hosts is too big, hints.add_hosts() fails and causes resource issues, so it's recommended to use `policy.rpz`
+      -- If every program respect nsswitch this wouldn't be a problem but some don't
+      -- So we convert /etc/hosts into it's RPZ equivalent and watch for changes to keep them in sync
+      -- We don't need to keep the file in sync because it's generated through a Nix derivation
+      -- https://wiki.archlinux.org/index.php/Domain_name_resolution
+      policy.add(policy.rpz(policy.DENY, '${hosts-rpz}', false))
 
       -- Forward queries through Cloudflare and Quad9
       policy.add(policy.slice(
