@@ -8,6 +8,8 @@
     ];
 
   boot = {
+    initrd.compressor = "${lib.getBin pkgs.zstd}/bin/zstd";
+
     blacklistedKernelModules = [
       # https://wiki.archlinux.org/index.php/Improving_performance#Watchdogs
       "iTCO_wdt"
