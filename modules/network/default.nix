@@ -29,6 +29,7 @@ with config.nixos; {
   };
 
   services.resolved = {
+    enable = false;
     llmnr = "resolve";
     dnssec = "false";
     extraConfig = ''
@@ -51,11 +52,6 @@ with config.nixos; {
 
     networks.default = rec {
       DHCP = "yes";
-      dns = config.networking.nameservers
-        ++ [ "2620:fe::fe" "9.9.9.9" ]
-        ++ [ "2606:4700:4700::1111" "1.1.1.1" ]
-        ;
-
       matchConfig.Name = "!docker* virbr* tun*";
 
       dhcpV4Config = {

@@ -1,6 +1,11 @@
-{ pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
 {
+  # Thou who art mine, override all who are present
+  environment.etc."resolv.conf".source = lib.mkForce (pkgs.writeText "resolv.conf" ''
+    ${lib.concatMapStringsSep "\n" (ns: "nameserver ${ns}") config.networking.nameservers}
+  '');
+
   networking.nameservers = [ "::1" "127.0.0.1" ];
 
   services.influxdb = {
@@ -56,8 +61,9 @@
 
       -- Cache size
       cache.size = 1024 * MB
-      -- Respect /etc/hosts
-      hints.add_hosts()
+      -- Respect /etc/hosts, broken a large /etc/hosts, nsswitch dictates local queries resolve first using /etc/hosts anyway
+      -- See https://wiki.archlinux.org/index.php/Domain_name_resolution
+      -- hints.add_hosts()
       -- Prefetch learning (20-minute blocks over 24 hours)
       predict.config({ window = 20, period = 18 * (60 / 15) })
 
