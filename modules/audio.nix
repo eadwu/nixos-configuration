@@ -3,6 +3,7 @@
 {
   imports =
     [
-      ./audio/pulseaudio.nix
+      ./audio/pipewire.nix
+      # ./audio/pulseaudio.nix
     ];
 }
