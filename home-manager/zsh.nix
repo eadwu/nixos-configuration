@@ -25,6 +25,8 @@
       ];
 
       initExtra = ''
+        GITSTATUS_LOG_LEVEL=DEBUG
+
         ZSH_AUTOSUGGEST_USE_ASYNC=1
         ZSH_AUTOSUGGEST_STRATEGY=(history completion)
         POWERLEVEL9K_DISABLE_CONFIGURATION_WIZARD=true
