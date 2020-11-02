@@ -24,8 +24,8 @@ with final.pkgs; {
       {
         name = "r";
         publisher = "Ikuyadeu";
-        version = "1.5.1";
-        sha256 = "1qyg2xddqm0h2b3zmmwyvxzfjhjmydijc8i1ps2lvykjgnq80vk1";
+        version = "1.5.2";
+        sha256 = "1r865v56cv0v624jl5kclmjylqsggx0lvr8pssg5gywh4d08p0wi";
       }
 
       {
@@ -157,8 +157,8 @@ with final.pkgs; {
       {
         name = "rust-analyzer";
         publisher = "matklad";
-        version = "0.2.352";
-        sha256 = "1cblgnrv37wql0f1rwfapda9d5ma1a636v52fw9g00lrdcvy1rhz";
+        version = "0.2.360";
+        sha256 = "0hl4mav9slfhvyv0jkcw197lbq5bm29s7l4xrck44ygvb874w3qb";
       }
 
       {
@@ -171,8 +171,8 @@ with final.pkgs; {
       {
         name = "git-graph";
         publisher = "mhutchie";
-        version = "1.26.0";
-        sha256 = "0zvxsbx26frsawmm4ad15wbi312df4vs890pj45h0y4mrhbdmc8s";
+        version = "1.27.0";
+        sha256 = "06w330k1lb6r03kvfsvcihxp7rh8v84czpcgx6fym1vwr7ab72wp";
       }
 
       {
@@ -199,8 +199,8 @@ with final.pkgs; {
       {
         name = "pyright";
         publisher = "ms-pyright";
-        version = "1.1.81";
-        sha256 = "0f2z15m2nkhlciy7n43nz4yq2i9khhddk6md6jlp80ffbv03ipp1";
+        version = "1.1.82";
+        sha256 = "1hda3cw868zlfjh1r6x7m99jgq40k1amac51i8kxwna7gmk0i8ag";
       }
 
       {
@@ -227,8 +227,8 @@ with final.pkgs; {
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.3046";
-        sha256 = "1gikfs2w9z12r2jdpf5k7hyycwnwkhb3wzny9b0napvhqshc02x1";
+        version = "1.0.3071";
+        sha256 = "1zcm1za0dd8pjypwragywhbpwxc2q1abay9fm6brvhp79zclff7j";
       }
 
       {
