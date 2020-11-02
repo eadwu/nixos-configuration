@@ -1,7 +1,7 @@
 final: prev:
 
 with final.pkgs; {
-  sddm = final._channels.nixos-unstable.libsForQt5.callPackage
+  sddm = libsForQt5.callPackage
     (
       { callPackage, qtbase }:
         (callPackage (final.pkgs.path + "/pkgs/applications/display-managers/sddm") {}).overrideAttrs (
@@ -22,24 +22,21 @@ with final.pkgs; {
             preFixup = (oldAttrs.preFixup or "") + ''
               gappsWrapperArgs+=(
                 --prefix GST_PLUGIN_SYSTEM_PATH : "$GST_PLUGIN_SYSTEM_PATH"
-                --prefix QT_PLUGIN_PATH : /run/current-system/sw/${qtbase.qtPluginPrefix}
-                --prefix QML_IMPORT_PATH : /run/current-system/sw/${qtbase.qtQmlPrefix}
-                --prefix QML2_IMPORT_PATH : /run/current-system/sw/${qtbase.qtQmlPrefix}
               )
             '';
           }
         )
     ) {};
 
-  sddm-sugar-dark = final._channels.nixos-unstable.libsForQt5.callPackage
+  sddm-sugar-dark = libsForQt5.callPackage
     (
       { lib
-      , stdenv
+      , mkDerivation
       , qtsvg
       , qtbase
       , qtquickcontrols2
       , qtmultimedia
-      }: stdenv.mkDerivation rec {
+      }: mkDerivation rec {
         pname = "sddm-sugar-dark";
         version = "unstable-2019-06-15";
 
