@@ -1,7 +1,8 @@
 {
   inputs.nixpkgs = { type = "github"; owner = "eadwu"; repo = "nixpkgs"; ref = "develop"; };
-  inputs.nixos-unstable = { type = "github"; owner = "NixOS"; repo = "nixpkgs-channels"; ref = "nixos-unstable"; };
-  inputs.nixpkgs-unstable = { type = "github"; owner = "NixOS"; repo = "nixpkgs-channels"; ref = "nixpkgs-unstable"; };
+  inputs.nixos-stable = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixos-20.09"; };
+  inputs.nixos-unstable = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixos-unstable"; };
+  inputs.nixpkgs-unstable = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixpkgs-unstable"; };
   inputs.external = { type = "github"; owner = "eadwu"; repo = "flakes"; };
   inputs.home-manager = { type = "github"; owner = "nix-community"; repo = "home-manager"; };
   inputs.impermanence = { type = "github"; owner = "eadwu"; repo = "impermanence"; };
