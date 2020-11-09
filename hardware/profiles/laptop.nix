@@ -6,6 +6,8 @@
     "scsi_mod.use_blk_mq=1"
   ];
 
+  environment.systemPackages = with pkgs; [ piper ];
+
   fileSystems."/".options = [
     "noatime"
     "nodiratime"
@@ -15,11 +17,16 @@
     enableRedistributableFirmware = true;
     bluetooth.enable = true;
     opengl.enable = true;
+
+    logitech.lcd.enable = true;
+    logitech.wireless.enable = true;
+    logitech.wireless.enableGraphical = true;
   };
 
   powerManagement.enable = true;
 
   services.irqbalance.enable = lib.mkDefault true;
+  services.ratbagd.enable = true;
   services.udev.extraRules = ''
     # Automatically suspend the system at <5%
     SUBSYSTEM=="power_supply", ATTR{status}=="Discharging", ATTR{capacity}=="[0-5]", RUN+="${pkgs.systemd}/bin/systemctl suspend"
