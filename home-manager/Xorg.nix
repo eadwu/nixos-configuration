@@ -32,8 +32,8 @@
     enable = true;
 
     pointerCursor = {
-      name = "Paper";
-      package = pkgs.paper-icon-theme;
+      name = "capitaine-cursors";
+      package = pkgs.capitaine-cursors;
       size = 32 * sysConfig.nixos.settings.xserver.dpiScale;
     };
 
