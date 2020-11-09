@@ -189,6 +189,7 @@ in
   "materialTheme.accent" = "Graphite";
   "npm.packageManager" = "yarn";
   "path-intellisense.showHiddenFiles" = true;
+  "python.analysis.completeFunctionParens" = true;
   "python.autoComplete.addBrackets" = true;
   "python.autoUpdateLanguageServer" = false;
   "python.dataScience.disableJupyterAutoStart" = true;
@@ -197,7 +198,7 @@ in
   "python.defaultInterpreterPath" = "${python3Packages.python}/bin/python3";
   "python.formatting.provider" = "yapf";
   "python.formatting.yapfPath" = "${python3Packages.yapf}/bin/yapf";
-  "python.languageServer" = "Microsoft";
+  "python.languageServer" = "Pylance";
   "python.linting.flake8Enabled" = true;
   "python.linting.flake8Path" = "${python3Packages.flake8}/bin/flake8";
   "python.linting.mypyEnabled" = true;

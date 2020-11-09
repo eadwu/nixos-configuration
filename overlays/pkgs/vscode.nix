@@ -101,15 +101,15 @@ with final.pkgs; {
       {
         name = "githistory";
         publisher = "donjayamanne";
-        version = "0.6.12";
-        sha256 = "1lmhym6wgfzbx2pbhmnv7s20zvjfpkfwnps0d48skzbhwvmkjnj4";
+        version = "0.6.13";
+        sha256 = "11ikpk1ryxlj62qxym8x0vrcvm72yq3j6ynln6kic1v03cwxq0d2";
       }
 
       {
         name = "gitlens";
         publisher = "eamodio";
-        version = "10.2.2";
-        sha256 = "00fp6pz9jqcr6j6zwr2wpvqazh1ssa48jnk1282gnj5k560vh8mb";
+        version = "10.2.3";
+        sha256 = "00pddp8jlmqmc9c50vwm6bnkwg9gvvfn8mvrz1l9fl1w88ia1nz0";
       }
 
       {
@@ -157,8 +157,8 @@ with final.pkgs; {
       {
         name = "rust-analyzer";
         publisher = "matklad";
-        version = "0.2.360";
-        sha256 = "0hl4mav9slfhvyv0jkcw197lbq5bm29s7l4xrck44ygvb874w3qb";
+        version = "0.2.368";
+        sha256 = "0z82ghbggms6vxiz8n5kxkbih7z754zzzbzpqr1kk2d5slj7ajh5";
       }
 
       {
@@ -197,10 +197,10 @@ with final.pkgs; {
       }
 
       {
-        name = "pyright";
-        publisher = "ms-pyright";
-        version = "1.1.82";
-        sha256 = "1hda3cw868zlfjh1r6x7m99jgq40k1amac51i8kxwna7gmk0i8ag";
+        name = "vscode-pylance";
+        publisher = "ms-python";
+        version = "2020.11.0";
+        sha256 = "0gwsz0f11vw4klvc3dydk97vfrhdd5a2ajk0fmkzlr328mv6c4dc";
       }
 
       {
@@ -227,8 +227,8 @@ with final.pkgs; {
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.3071";
-        sha256 = "1zcm1za0dd8pjypwragywhbpwxc2q1abay9fm6brvhp79zclff7j";
+        version = "1.0.3121";
+        sha256 = "0jmbp2nph786n6gzd58yhmx22p2h87s98xq4shjn42blrkcgnb7z";
       }
 
       {
@@ -241,8 +241,8 @@ with final.pkgs; {
       {
         name = "gremlins";
         publisher = "nhoizey";
-        version = "0.25.0";
-        sha256 = "05a1lwjiyhv7dk4im2g8yaigdn1xgx9s93ypa0i1gpmsb4l4xicd";
+        version = "0.26.0";
+        sha256 = "1sfs98nxm5ylcjrmylr5y68ddml8cfg1q1wdm7wvhfhjqx4kig9h";
       }
 
       {
@@ -262,8 +262,8 @@ with final.pkgs; {
       {
         name = "java";
         publisher = "redhat";
-        version = "0.69.0";
-        sha256 = "1x5rphs085a38jzlyki49smk3wg58y3592x2jr5akpadh05vh6hp";
+        version = "0.70.0";
+        sha256 = "1f10yc4vlqvsvv8ld23bwxlazapgxbvwk34bhsv96350nvhzapak";
       }
 
       {
