@@ -7,7 +7,6 @@ with config.nixos; {
 
       ../modules/audio.nix
       ../modules/backlight
-      ../modules/ccache.nix
       ../modules/clight.nix
       ../modules/picom.nix
       ../modules/cups.nix
