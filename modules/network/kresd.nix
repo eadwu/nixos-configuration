@@ -5,10 +5,8 @@ let
     src = config.environment.etc.hosts.source;
     nativeBuildInputs = with pkgs; [ perl gawk gnused gnugrep coreutils ];
   } ''
-    grep . $src | \
-      grep -v '^#' | \
-      awk '{print $2}' | \
-      perl -pe 's/\r\n$/\n/g' | \
+    grep . $src | grep -v '^#' | awk '{print $2}' | \
+      perl -pe 's/\r\n$/\n/g' | sort | uniq | \
       sed 's/$/ CNAME ./' > $out
   '';
 in
