@@ -50,6 +50,12 @@ in
     "editorWidget.border" = "#616161";
   };
   "workbench.colorTheme" = "Material Theme Ocean";
+  "workbench.editorAssociations" = [
+    {
+      "viewType" = "jupyter-notebook";
+      "filenamePattern" = "*.ipynb";
+    }
+  ];
   "workbench.iconTheme" = "vs-seti";
   "workbench.sideBar.location" = "right";
   "breadcrumbs.enabled" = true;
@@ -71,6 +77,7 @@ in
     "**/.hg" = true;
     "**/CVS" = true;
     "**/.DS_Store" = false;
+    "**/*.olean" = true;
   };
   "files.insertFinalNewline" = true;
   "files.trimTrailingWhitespace" = true;
@@ -141,6 +148,9 @@ in
   "java.implementationsCodeLens.enabled" = true;
   "java.referencesCodeLens.enabled" = true;
   "java.saveActions.organizeImports" = true;
+  "jupyter.disableJupyterAutoStart" = true;
+  "jupyter.searchForJupyter" = false;
+  "jupyter.useNotebookEditor" = false;
   "haskell.formattingProvider" = "none";
   "haskell.serverExecutablePath" = "\${workspaceFolder}/hie-wrapper.sh";
   "latex-workshop.chktex.enabled" = true;
@@ -192,9 +202,6 @@ in
   "python.analysis.completeFunctionParens" = true;
   "python.autoComplete.addBrackets" = true;
   "python.autoUpdateLanguageServer" = false;
-  "python.dataScience.disableJupyterAutoStart" = true;
-  "python.dataScience.searchForJupyter" = false;
-  "python.dataScience.useNotebookEditor" = false;
   "python.defaultInterpreterPath" = "${python3Packages.python}/bin/python3";
   "python.formatting.provider" = "yapf";
   "python.formatting.yapfPath" = "${python3Packages.yapf}/bin/yapf";
@@ -211,16 +218,11 @@ in
   "python.linting.pylamaPath" = "${python3Packages.pylama}/bin/pylama";
   "python.linting.pylintPath" = "${python3Packages.pylint}/bin/pylint";
   "python.testing.unittestEnabled" = true;
-  "notebook.kernelProviderAssociations" = [
-    {
-      viewType = "jupyter-notebook";
-      kernelProvider = "ms-python.python";
-    }
-  ];
   "maven.executable.path" = "${maven}/bin/mvn";
   "maven.terminal.useJavaHome" = true;
   "rust-analyzer.serverPath" = "${rust-analyzer}/bin/rust-analyzer";
   "sqlite.sqlite3" = "${sqlite}/bin/sqlite3";
+  "todo-tree.tree.showScanModeButton" = false;
   "tslint.packageManager" = "yarn";
   "tslint.validateWithDefaultConfig" = true;
 }
