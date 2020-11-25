@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 
 {
   imports =
@@ -39,12 +39,18 @@
     };
   };
 
-  services.udev.extraRules = ''
-    # Enable rootless passthrough for Goodix Fingerprint Device
-    SUBSYSTEM=="usb", ATTR{idVendor}=="27c6", ATTR{idProduct}=="5395", OWNER="root", GROUP="kvm"
-  '';
+  services.thermald = {
+    enable = lib.mkDefault true;
+    configFile = ./thermald/thermal-conf.xml.auto;
+  };
+
   services.tlp.settings = {
     # Enable autosuspend for Goodix Fingerprint Device
     USB_WHITELIST = ''"27c6:5395"'';
   };
+
+  services.udev.extraRules = ''
+    # Enable rootless passthrough for Goodix Fingerprint Device
+    SUBSYSTEM=="usb", ATTR{idVendor}=="27c6", ATTR{idProduct}=="5395", OWNER="root", GROUP="kvm"
+  '';
 }
