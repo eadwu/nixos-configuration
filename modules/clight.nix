@@ -1,4 +1,4 @@
-{ lib, ... }:
+{ pkgs, lib, ... }:
 
 {
   location = {
@@ -30,4 +30,6 @@
       screen.num_samples = 20;
     };
   };
+
+  systemd.user.services.clight.path = with pkgs; [ gawk ];
 }
