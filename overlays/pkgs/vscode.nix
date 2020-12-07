@@ -24,22 +24,22 @@ with final.pkgs; {
       {
         name = "r";
         publisher = "Ikuyadeu";
-        version = "1.6.1";
-        sha256 = "0230wzskws3xaiq2b9la3pksrjjndq8a3dl07d2wp8hljsyiaqga";
+        version = "1.6.2";
+        sha256 = "1cvh2qb2jvp4nbf789isf5n4gn2v7qgvvgim3azlawjlwas7b76b";
       }
 
       {
         name = "latex-workshop";
         publisher = "James-Yu";
-        version = "8.14.0";
-        sha256 = "12bh2gpmak7vgzhjnvk2hw0yqm6wkd7vsm4ki4zbqa6lpriscjyi";
+        version = "8.15.0";
+        sha256 = "0v4pq3l6g4dr1qvnmgsw148061lngwmk3zm12q0kggx85blki12d";
       }
 
       {
         name = "r-lsp";
         publisher = "REditorSupport";
-        version = "0.1.11";
-        sha256 = "0xkccl82zm9qsysi0rv4k0jcn8y20iqjdlivkm5a1a0w4xjjhqf0";
+        version = "0.1.12";
+        sha256 = "0b5ycmnjsi1jc8mbzapzxxpxihz1zfpp2pxj1h0fzmwk1icjbhck";
       }
 
       {
@@ -143,8 +143,8 @@ with final.pkgs; {
       {
         name = "lean";
         publisher = "jroesch";
-        version = "0.16.16";
-        sha256 = "06b08yyhmzq84fq83vri1hiphjdkg3hqv1qxdma7v6qfnhsrfi02";
+        version = "0.16.17";
+        sha256 = "0mxv361gknlq2caab5m7psj9c5j0lila3jaagy6l3ja2kzz1bd6k";
       }
 
       {
@@ -171,8 +171,8 @@ with final.pkgs; {
       {
         name = "rust-analyzer";
         publisher = "matklad";
-        version = "0.2.392";
-        sha256 = "0j9kimrvz5i3zwb34lhwjdiydxkivch3vc6j94bcdfavx35z4fsy";
+        version = "0.2.400";
+        sha256 = "1awgnxljdaw5g5w6pxyxzkk1kh4h4bk87bsmfx71rqsmk8hyxfw0";
       }
 
       {
@@ -185,8 +185,8 @@ with final.pkgs; {
       {
         name = "git-graph";
         publisher = "mhutchie";
-        version = "1.27.0";
-        sha256 = "06w330k1lb6r03kvfsvcihxp7rh8v84czpcgx6fym1vwr7ab72wp";
+        version = "1.28.0";
+        sha256 = "1ybwnyb57w020p0fgpqaviajdrdmy1gk8xq50l8d5zwc81cyknyv";
       }
 
       {
@@ -213,15 +213,15 @@ with final.pkgs; {
       {
         name = "vscode-pylance";
         publisher = "ms-python";
-        version = "2020.11.2";
-        sha256 = "0n2dm21vgzir3hx1m3pmx7jq4zy3hdxfsandd2wv5da4fs9b5g50";
+        version = "2020.12.0";
+        sha256 = "0xa10x9drshzs6bfq2lji8vrkz4hwwsb9kr9rygn0sxn4dqn0xyh";
       }
 
       {
         name = "jupyter";
         publisher = "ms-toolsai";
-        version = "2020.11.372831992";
-        sha256 = "0r39xqrbkzcfkz6rca039s87ibx79a983y8lbiglhkmw3bp4p658";
+        version = "2020.11.399280825";
+        sha256 = "1iwas9rc79c22dlc3mjmdgkc58z0yikfyddxwj4yhnjyc6ddhp6m";
       }
 
       {
@@ -283,8 +283,8 @@ with final.pkgs; {
       {
         name = "java";
         publisher = "redhat";
-        version = "0.71.0";
-        sha256 = "06p4vanniy14gn1f89za6w91dla54n0y5rk504dmx01ywfvqzxsk";
+        version = "0.72.0";
+        sha256 = "1b84bf0v30y4jp2bidmz21w0dg55qhb8kvb2n090fwnkza01i3l4";
       }
 
       {
@@ -339,8 +339,8 @@ with final.pkgs; {
       {
         name = "vscode-java-pack";
         publisher = "vscjava";
-        version = "0.11.0";
-        sha256 = "15iqkfh8l6f6dpl0sk96nx7p20zdrky8zc129z8g0zcpx67ilzfp";
+        version = "0.12.0";
+        sha256 = "1w0w6gdc0ppqfdhji132iwqn0cz09vsng6fps96031vdpzgqdd0x";
       }
 
       {
