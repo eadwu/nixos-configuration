@@ -1,16 +1,15 @@
-{ pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
 {
-  # services.ofono.enable = true;
+  environment.systemPackages = with pkgs; [
+    pavucontrol pulsemixer
+  ];
 
-  environment.systemPackages = with pkgs; [ pulsemixer pavucontrol ];
-
-  hardware.bluetooth.hsphfpd.enable = true;
+  services.ofono.enable = true;
   hardware.pulseaudio = {
     enable = true;
-    # extraModules = [ pkgs.pulseaudio-modules-bt ];
-    # package = pkgs.pulseaudioFull;
-    package = pkgs.pulseaudio-hsphfpd;
+    extraModules = [ pkgs.pulseaudio-modules-bt ];
+    package = pkgs.pulseaudioFull;
 
     tcp = {
       enable = true;
@@ -29,14 +28,12 @@
       rlimit-rtprio = 9;
 
       # Audio quality
-      default-sample-channels = 6;
       default-sample-rate = 96000;
       alternate-sample-rate = 44100;
 
       # lscpu | grep 'Byte Order'
       default-sample-format = "float32le";
       resample-method = "soxr-vhq";
-      # resample-method = "speex-float-10";
 
       avoid-resampling = false;
       enable-lfe-remixing = "no";
