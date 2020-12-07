@@ -10,6 +10,10 @@
     "kvm.ignore_msrs=1"
   ];
 
+  boot.kernelModules = [
+    "nbd" # mount Qemu disks
+  ];
+
   environment.systemPackages = with pkgs; [
     swtpm
     looking-glass-client
