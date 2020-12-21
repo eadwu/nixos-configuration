@@ -46,6 +46,7 @@ with config.nixos; {
       # Languages / SDKs
       gcc
       gdb
+      julia
       llvmPackages.clang-unwrapped
       mongodb
       mysql
@@ -62,6 +63,10 @@ with config.nixos; {
       texlive.combined.scheme-full
       ## Haskell
       stack
+      ## Lean
+      lean
+      mathlibtools
+      elan
       ## Rust
       rustPlatform.rust
       rust-analyzer
@@ -72,6 +77,7 @@ with config.nixos; {
       # Misc
       archiver
       cachix
+      cpuset
       epubcheck
       ffmpeg
       gnupg
