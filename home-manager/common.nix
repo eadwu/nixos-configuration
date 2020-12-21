@@ -39,6 +39,7 @@
     ghidra-bin
     gimp
     gnome3.gnome-system-monitor
+    gnome3.simple-scan
     jetbrains.idea-ultimate
     libreoffice-fresh
     radian
