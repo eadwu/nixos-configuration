@@ -3,7 +3,6 @@
 {
   imports =
     [
-      ./atom.nix
       ./blender.nix
       ./code.nix
       ./clight.nix
