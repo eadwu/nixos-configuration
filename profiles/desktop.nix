@@ -113,7 +113,7 @@ with config.nixos; {
 
   programs.gnupg.agent = {
     enable = true;
-    pinentryFlavor = "gnome3";
+    pinentryFlavor = "qt";
   };
 
   programs.zsh = {
