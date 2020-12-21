@@ -38,7 +38,7 @@
       zip
       zstd
       # Version Control
-      git
+      gitFull
 
       # Debug / Utils
       lsof
