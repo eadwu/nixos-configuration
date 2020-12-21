@@ -148,6 +148,13 @@ with final.pkgs; {
       }
 
       {
+        name = "language-julia";
+        publisher = "julialang";
+        version = "1.0.10";
+        sha256 = "04mc4z5x72v8g25b60zjxn3wpjhbp9s6wa50bvx5cdbrvcfg5ngs";
+      }
+
+      {
         name = "language-haskell";
         publisher = "justusadam";
         version = "3.3.0";
@@ -206,8 +213,8 @@ with final.pkgs; {
       {
         name = "vscode-docker";
         publisher = "ms-azuretools";
-        version = "1.8.1";
-        sha256 = "08691mwb3kgmk5fnjpw1g3a5i7qwalw1yrv2skm519wh62w6nmw8";
+        version = "1.9.0";
+        sha256 = "10xih3djdbxvndlz8s98rf635asjx8hmdza49y67v624i59jdn3x";
       }
 
       {
@@ -248,8 +255,8 @@ with final.pkgs; {
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.3303";
-        sha256 = "1vr8lwnc5jasg79j68lsj1hv0yq3jgcpfprs9rn0k1f8xcr7z7dv";
+        version = "1.0.3375";
+        sha256 = "0mfjlfs24m8s2z0a80gh4j6sxwa7vwi6gqsgm0wk2wggb2bjvd0w";
       }
 
       {
@@ -283,8 +290,8 @@ with final.pkgs; {
       {
         name = "java";
         publisher = "redhat";
-        version = "0.72.0";
-        sha256 = "1b84bf0v30y4jp2bidmz21w0dg55qhb8kvb2n090fwnkza01i3l4";
+        version = "0.73.0";
+        sha256 = "0hs45133kwpq8c2bp1gwpggf2xnbnkxrmswbivpk4x9fml8yw9rg";
       }
 
       {
@@ -297,8 +304,8 @@ with final.pkgs; {
       {
         name = "scala";
         publisher = "scala-lang";
-        version = "0.4.5";
-        sha256 = "0nrj32a7a86vwc9gfh748xs3mmfwbc304dp7nks61f0lx8b4wzxw";
+        version = "0.5.0";
+        sha256 = "0rhdnj8vfpcvy771l6nhh4zxyqspyh84n9p1xp45kq6msw22d7rx";
       }
 
       {
@@ -332,15 +339,15 @@ with final.pkgs; {
       {
         name = "vscode-java-debug";
         publisher = "vscjava";
-        version = "0.29.0";
-        sha256 = "117z57fyl2ak6c71hrdh3xp9zsw2l4m90qw050n83an04lkxpqy4";
+        version = "0.30.0";
+        sha256 = "0dawszx8bclvn6qg9vagxhjfh8d2h9paas6775m6p182flq7ap38";
       }
 
       {
         name = "vscode-java-pack";
         publisher = "vscjava";
-        version = "0.12.0";
-        sha256 = "1w0w6gdc0ppqfdhji132iwqn0cz09vsng6fps96031vdpzgqdd0x";
+        version = "0.12.1";
+        sha256 = "1xx84qg1jvhdxlrr3iki5zaggzm25a41vpdkxjdbkzfq41l1w6p1";
       }
 
       {
@@ -353,8 +360,8 @@ with final.pkgs; {
       {
         name = "vscode-maven";
         publisher = "vscjava";
-        version = "0.26.0";
-        sha256 = "1vqsrmy2jdq5zn4gjv4iwhc0jq0x7ba84fp464ki1m0dc3nchsyw";
+        version = "0.27.0";
+        sha256 = "12rk1v2jj8w2n6w2mm7a4ylw71y0pmc0zgbymjp1mn6rarriv9kg";
       }
     ];
   };
