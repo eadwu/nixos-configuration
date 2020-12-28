@@ -41,7 +41,7 @@
 
   services.thermald = {
     enable = lib.mkDefault true;
-    configFile = ./thermald/thermal-conf.xml.auto;
+    configFile = ./thermald/9570/thermal-conf.xml.auto;
   };
 
   services.tlp.settings = {
