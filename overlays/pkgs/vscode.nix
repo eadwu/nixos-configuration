@@ -8,6 +8,13 @@ with final.pkgs; {
       WakaTime.vscode-wakatime
     ] ++ vscode-utils.extensionsFromVscodeMarketplace [
       {
+        name = "vscode-bazel";
+        publisher = "BazelBuild";
+        version = "0.4.0";
+        sha256 = "0p018878pxr7vxr6375fywchzq1xwvxnjrb4zvp444s6p3sknxxg";
+      }
+
+      {
         name = "vsc-material-theme";
         publisher = "Equinusocio";
         version = "33.1.2";
@@ -59,8 +66,8 @@ with final.pkgs; {
       {
         name = "Bookmarks";
         publisher = "alefragnani";
-        version = "12.0.0";
-        sha256 = "0jn5pfplnmnypd4gy3c5gqkmsqxza2vb6qn4ivf6ipmybpdb6rcb";
+        version = "12.1.0";
+        sha256 = "0pil2a4lcyspj35lv8b1iz1ajp5yaz89s4yjdhc2km88iywflrn2";
       }
 
       {
@@ -108,8 +115,8 @@ with final.pkgs; {
       {
         name = "gitlens";
         publisher = "eamodio";
-        version = "11.0.6";
-        sha256 = "0qlaq7hn3m73rx9bmbzz3rc7khg0kw948z2j4rd8gdmmryy217yw";
+        version = "11.1.0";
+        sha256 = "1g8ayhsfq6yzbbrvffsdqgms3nsijd5x0x13vdldfqsp6yfkh0f1";
       }
 
       {
@@ -122,8 +129,8 @@ with final.pkgs; {
       {
         name = "vsc-material-theme-icons";
         publisher = "equinusocio";
-        version = "1.2.0";
-        sha256 = "0wh295ncm8cbxmw9i3pvg703sn1gw7vp3slbklwjxskb4zivvfk4";
+        version = "1.2.2";
+        sha256 = "06xfv8ggli88zg1hyrd7m494fl6bz4fspbxy626nsswq4f26msms";
       }
 
       {
@@ -178,8 +185,8 @@ with final.pkgs; {
       {
         name = "rust-analyzer";
         publisher = "matklad";
-        version = "0.2.416";
-        sha256 = "0f77l5i0pyd229r4kw63cwbpj3myayh50cfrz2b54j8fl07krfga";
+        version = "0.2.424";
+        sha256 = "0hhi7mdq3aa3lzpx63a1v7d0vq8hq8psvvmfpmjncaqigpzf44is";
       }
 
       {
