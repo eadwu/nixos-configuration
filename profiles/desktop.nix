@@ -72,10 +72,13 @@ with config.nixos; {
       rust-analyzer
       rustfmt
       # Build Tools
+      bazel
+      bazel-buildtools
       cmake
       gnumake
       # Misc
       archiver
+      binutils-unwrapped
       cachix
       cpuset
       epubcheck
