@@ -26,10 +26,7 @@ with config.nixos; {
       enable = true;
       theme = "sugar-dark";
 
-      extraConfig = ''
-        [General]
-        InputMethod=
-      '';
+      settings.General.InputMethod = "";
     };
   };
 
