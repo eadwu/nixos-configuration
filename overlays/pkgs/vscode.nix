@@ -24,15 +24,15 @@ with final.pkgs; {
       {
         name = "todo-tree";
         publisher = "Gruntfuggly";
-        version = "0.0.192";
-        sha256 = "00spvv6kkz3pylwdy6l00d19h1fraigszxrszqfyw1y4bq212gmz";
+        version = "0.0.193";
+        sha256 = "1cqp10pwyjic1p8ss1f5ng9igqmaqn10l65fpyka1dy2k90i1yay";
       }
 
       {
         name = "r";
         publisher = "Ikuyadeu";
-        version = "1.6.2";
-        sha256 = "1cvh2qb2jvp4nbf789isf5n4gn2v7qgvvgim3azlawjlwas7b76b";
+        version = "1.6.3";
+        sha256 = "0x30c4ny887dwhpyzp9yll24zw68l3qy6iwbms8qzb2czx38fdhf";
       }
 
       {
@@ -115,8 +115,8 @@ with final.pkgs; {
       {
         name = "gitlens";
         publisher = "eamodio";
-        version = "11.1.0";
-        sha256 = "1g8ayhsfq6yzbbrvffsdqgms3nsijd5x0x13vdldfqsp6yfkh0f1";
+        version = "11.1.2";
+        sha256 = "1vfj13bcxcg540cim6jmwz8y674p0z4inzipal8vxa13a8pf8y9r";
       }
 
       {
@@ -150,8 +150,8 @@ with final.pkgs; {
       {
         name = "lean";
         publisher = "jroesch";
-        version = "0.16.17";
-        sha256 = "0mxv361gknlq2caab5m7psj9c5j0lila3jaagy6l3ja2kzz1bd6k";
+        version = "0.16.19";
+        sha256 = "1g1ly7yf3mw2jiwdj8rx9zglmp0calnharrphjxzacx228mqh04k";
       }
 
       {
@@ -185,8 +185,8 @@ with final.pkgs; {
       {
         name = "rust-analyzer";
         publisher = "matklad";
-        version = "0.2.424";
-        sha256 = "0hhi7mdq3aa3lzpx63a1v7d0vq8hq8psvvmfpmjncaqigpzf44is";
+        version = "0.2.432";
+        sha256 = "1jmy9qaqyrp7nn63z9db61rycsai1g6bw26wq4s34mzipdynbhjy";
       }
 
       {
