@@ -42,6 +42,7 @@ with config.nixos; {
       xclip
       # Version Control
       gitAndTools.hub
+      gitAndTools.git-filter-repo
       git-lfs
       # Languages / SDKs
       gcc
