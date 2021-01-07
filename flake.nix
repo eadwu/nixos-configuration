@@ -1,4 +1,6 @@
 {
+  inputs.flake-compat = { type = "github"; owner = "edolstra"; repo = "flake-compat"; flake = false; };
+
   inputs.nixpkgs = { type = "github"; owner = "eadwu"; repo = "nixpkgs"; ref = "develop"; };
   inputs.nixos-stable = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixos-20.09"; };
   inputs.nixos-unstable = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixos-unstable"; };
