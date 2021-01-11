@@ -1,4 +1,4 @@
-{ config, lib, ... }:
+{ options, config, lib, ... }:
 
 with config.nixos; {
   imports =
@@ -26,7 +26,36 @@ with config.nixos; {
     enableIPv6 = true;
     dhcpcd.enable = lib.mkDefault false;
     wireless.iwd.enable = lib.mkDefault true;
+
+    timeServers = [
+      # NIST
+      "time.nist.gov"
+      # Cloudflare
+      "time.cloudflare.com"
+    ] ++ options.networking.timeServers.default;
   };
+
+  services.chrony.enable = true;
+  services.chrony.servers = lib.mkForce [];
+  # Needs DNS resolution
+  systemd.services.chronyd.after = lib.optionals (config.services.kresd.enable) [ "kresd.target" ];
+  systemd.services.chronyd.requires = lib.optionals (config.services.kresd.enable) [ "kresd.target" ];
+  services.chrony.extraConfig = ''
+    pool time.nist.gov iburst
+
+    server time.cloudflare.com nts iburst
+
+    pool nixos.pool.ntp.org iburst
+    pool pool.ntp.org iburst
+    pool amazon.pool.ntp.org iburst
+
+    initstepslew ${toString config.services.chrony.initstepslew.threshold} ${lib.concatStringsSep " " config.networking.timeServers}
+
+    # Enable kernel synchronization of the real-time clock (RTC).
+    rtcsync
+
+    ntsdumpdir /var/lib/chrony/nts
+  '';
 
   services.resolved = {
     enable = false;
