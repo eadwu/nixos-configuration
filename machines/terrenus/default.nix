@@ -80,6 +80,4 @@ with config.nixos; {
       '';
     };
   };
-
-  time.hardwareClockInLocalTime = true;
 }
