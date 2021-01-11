@@ -100,7 +100,7 @@ with config.nixos; {
 
     variables = {
       DOCKER_ID_USER = settings.docker.user;
-      RUST_SRC_PATH = "${pkgs.rustPlatform.rust-src}/lib/rustlib/src/rust/src";
+      RUST_SRC_PATH = pkgs.rustPlatform.rustLibSrc;
     };
   };
 
