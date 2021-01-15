@@ -24,12 +24,12 @@
       "_GTK_FRAME_EXTENTS@:c"
     ];
     activeOpacity = 0.95;
-    inactiveOpacity = 0.85;
+    inactiveOpacity = 0.90;
     wintypes = {
       tooltip = {
         fade = true;
         shadow = true;
-        opacity = 0.85;
+        opacity = 0.90;
         focus = true;
         full-shadow = false;
       };
