@@ -1,36 +1,20 @@
-{ pkgs, ... }:
-
-with pkgs;
-
+{ flakes, pkgs, ... }:
 let
-  gitignore = stdenv.mkDerivation {
-    name = "gitignore";
-
-    outputHash = "08plwjy1s4w3hz976x93997j4cavr2ym7fhfxiwkj7l3rm6g53y0mwl8d8wjjxnc2vf6brd4lmi3s65jjl9hazyl1mzbbsn0v2nz4nm";
-    outputHashAlgo = "sha512";
-    outputHashMode = "flat";
-
-    buildInputs = [ wget ];
-
-    buildCommand = ''
-      wget "https://www.gitignore.io/api/c,r,git,c++,java,rust,cmake,elisp,emacs,latex,linux,macos,scala,haskell,database,intellij,visualstudiocode" \
-        --ca-certificate=${cacert}/etc/ssl/certs/ca-bundle.crt \
-        -O $out
+  queryWatchman =
+    with pkgs;
+    runCommand "fsmonitor-watchman"
+      {
+        src = "${_aliases.git}/share/git-core/templates/hooks/fsmonitor-watchman.sample";
+        buildInputs = [ gnused ];
+      } ''
+      sed 's@/usr@${perl}@' $src > $out
+      chmod +x $out
     '';
-  };
-
-  queryWatchman = runCommand "fsmonitor-watchman" {
-    src = "${git}/share/git-core/templates/hooks/fsmonitor-watchman.sample";
-    buildInputs = [ gnused ];
-  } ''
-    sed 's@/usr@${perl}@' $src > $out
-    chmod +x $out
-  '';
 in
 {
   programs.git = {
     enable = true;
-    package = gitAndTools.gitFull;
+    package = pkgs._aliases.git;
     userName = "Edmund Wu";
     userEmail = "fangkazuto@gmail.com";
 
@@ -45,7 +29,7 @@ in
       core = {
         autocrlf = "input";
         editor = "vim";
-        excludesfile = gitignore.outPath;
+        excludesfile = toString flakes.default-gitignore.path;
         fsmonitor = queryWatchman.outPath;
       };
 
@@ -60,9 +44,9 @@ in
       protocol.version = 2;
 
       "filter \"lfs\"" = {
-        clean = "${git-lfs}/bin/git-lfs clean -- %f";
-        smudge = "${git-lfs}/bin/git-lfs smudge -- %f";
-        process = "${git-lfs}/bin/git-lfs filter-process";
+        clean = "${pkgs.git-lfs}/bin/git-lfs clean -- %f";
+        smudge = "${pkgs.git-lfs}/bin/git-lfs smudge -- %f";
+        process = "${pkgs.git-lfs}/bin/git-lfs filter-process";
         required = true;
       };
     };

@@ -38,7 +38,7 @@
       zip
       zstd
       # Version Control
-      gitFull
+      _aliases.git
 
       # Debug / Utils
       lsof

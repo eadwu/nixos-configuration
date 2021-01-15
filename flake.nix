@@ -9,6 +9,13 @@
   inputs.home-manager = { type = "github"; owner = "nix-community"; repo = "home-manager"; inputs.nixpkgs.follows = "/nixpkgs"; };
   inputs.impermanence = { type = "github"; owner = "nix-community"; repo = "impermanence"; };
 
+  inputs.default-gitignore =
+    {
+      type = "file";
+      url = "https://www.gitignore.io/api/c,r,git,c++,java,rust,cmake,elisp,emacs,latex,linux,macos,scala,haskell,database,intellij,visualstudiocode";
+      flake = false;
+    };
+
   outputs = { self, nixpkgs, ... }@inputs: with nixpkgs.lib; let
     baseSystem = { system ? "x86_64-linux", modules ? [], includeExternalOverlay ? true }@config: nixosSystem {
       inherit system;
@@ -63,6 +70,11 @@
                     # Don't build using nightly rustPlatform from `external/rolling`
                     ripgrep nixpkgs-fmt elan nix-index lorri rust-analyzer b3sum mdbook rust-cbindgen
                     ;
+
+                  # Aliases for default derivations without causing rebuilds
+                  _aliases = {
+                    git = final._channels.nixos-unstable.gitFull;
+                  };
 
                   _channels = genAttrs
                     [ "nixos-stable" "nixos-unstable" "nixpkgs-unstable" "nixpkgs" ]
