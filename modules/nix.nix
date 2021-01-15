@@ -13,12 +13,12 @@ with config.nixos; {
 
     binaryCaches = [
       "https://sys.cachix.org/"
-      "https://rpi.cachix.org/"
+      "https://nix-community.cachix.org/"
     ];
 
     binaryCachePublicKeys = [
       "sys.cachix.org-1:KrERagTDZBL9DkZrQb/+loTtpKBats1MxJ/Q+zmCKrg="
-      "rpi.cachix.org-1:Rfb3+jN/+LcMvuTkGFkB9uTkRcNUq97AGSFxF1wMPDU="
+      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
     ];
 
     extraOptions = ''
