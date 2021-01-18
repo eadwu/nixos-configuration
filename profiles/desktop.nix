@@ -88,7 +88,7 @@ with config.nixos; {
       hunspell
       hunspellDicts.en_US
       hunspellDicts.en_US-large
-      imagemagick7
+      imagemagick
       nix-diff
       rofi
       scrot
