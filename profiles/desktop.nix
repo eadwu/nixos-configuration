@@ -90,7 +90,6 @@ with config.nixos; {
       hunspellDicts.en_US-large
       imagemagick7
       nix-diff
-      nix-linter
       rofi
       scrot
       st
