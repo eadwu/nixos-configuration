@@ -11,6 +11,7 @@ in
     "source.organizeImports" = true;
   };
   "editor.cursorBlinking" = "smooth";
+  "editor.cursorSmoothCaretAnimation" = true;
   "editor.fontFamily" = "'Rec Mono Linear', 'Anonymous Pro', 'IBM Plex Mono'";
   "editor.fontLigatures" = "'dlig','ss01','ss05','ss08','ss09','ss20','frac'";
   "editor.fontSize" = 12;
@@ -32,6 +33,7 @@ in
   ];
   "editor.smoothScrolling" = true;
   "editor.snippetSuggestions" = "top";
+  "editor.suggest.localityBonus" = true;
   "editor.tabSize" = 2;
   "editor.wordWrap" = "off";
   "editor.minimap.showSlider" = "always";
@@ -56,6 +58,8 @@ in
       "filenamePattern" = "*.ipynb";
     }
   ];
+  "workbench.experimental.gettingStarted" = true;
+  "workbench.list.smoothScrolling" = true;
   "workbench.iconTheme" = "vs-seti";
   "workbench.sideBar.location" = "right";
   "breadcrumbs.enabled" = true;
@@ -81,9 +85,20 @@ in
   };
   "files.insertFinalNewline" = true;
   "files.trimTrailingWhitespace" = true;
+  "files.watcherExclude" = {
+    "**/.git/objects/**" = true;
+    "**/.git/subtree-cache/**" = true;
+    "**/node_modules/**" = true;
+    "**/.hg/store/**" = true;
+    "**/target/debug/**" = true;
+    "**/.mypy_cache/**" = true;
+    "**/bazel-*/**" = true;
+  };
   "explorer.confirmDragAndDrop" = false;
   "explorer.decorations.badges" = false;
   "explorer.decorations.colors" = true;
+  "explorer.incrementalNaming" = "smart";
+  "explorer.openEditors.visible" = 8;
   "search.smartCase" = true;
   "terminal.external.linuxExec" = "st";
   "terminal.integrated.rendererType" = "experimentalWebgl";
