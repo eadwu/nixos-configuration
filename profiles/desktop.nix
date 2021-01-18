@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ options, config, pkgs, lib, ... }:
 
 with config.nixos; {
   imports =
@@ -104,22 +104,30 @@ with config.nixos; {
     };
   };
 
-  fonts = {
-    fontDir.enable = true;
-    enableGhostscriptFonts = true;
-    fonts = with pkgs; [
+  fonts.fontDir.enable = true;
+  fonts.enableGhostscriptFonts = true;
+  fonts.fontconfig.defaultFonts =
+    {
+      monospace = [ "Liberation Mono" ];
+      sansSerif = [ "Liberation Sans" ];
+      serif = [ "Liberation Serif" ];
+      emoji = [ "Unifont" ] ++ options.fonts.fontconfig.defaultFonts.emoji.default;
+    };
+  fonts.fonts = with pkgs;
+    [
       anonymousPro
+      eb-garamond
       comfortaa
       corefonts
       font-awesome_5
       ibm-plex
+      lato
       liberation_ttf
       noto-fonts-cjk
       recursive
       unifont
       weather-icons
     ];
-  };
 
   programs.gnupg.agent = {
     enable = true;
