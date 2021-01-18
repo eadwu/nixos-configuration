@@ -39,6 +39,9 @@ in
         coverFromDescription = "auto";
       };
 
+      # Don't break existing branch names, may cause problems
+      init.defaultBranch = "master";
+
       lfs.pruneverifyremotealways = true;
 
       protocol.version = 2;
