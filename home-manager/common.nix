@@ -61,6 +61,8 @@
     xwinwrap
     yarn
     youtube-dl
+    ## Misc
+    xdg_utils
 
     # Benchmarks
     mprime
@@ -71,6 +73,7 @@
     inherit (sysConfig.nixpkgs) config overlays;
   };
 
+  xdg.enable = true;
   xdg.configFile."nixpkgs/config.nix".text =
-    lib.generators.toPretty {} sysConfig.nixpkgs.config;
+    lib.generators.toPretty { } sysConfig.nixpkgs.config;
 }
