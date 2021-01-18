@@ -39,5 +39,12 @@ in
     [ "cryptroot" "cryptswap" ]
     (device: { yubikey = yubikey-config "/crypt-storage/${device}"; });
 
-  environment.systemPackages = with pkgs; [ pam_u2f yubikey-personalization ];
+  environment.systemPackages = with pkgs; [
+    pam_u2f
+    yubico-pam
+    yubioath-desktop
+    yubikey-personalization
+  ];
+
+  services.pcscd.enable = true;
 }
