@@ -75,7 +75,7 @@ with config.nixos; {
         EndSection
       '';
 
-      libinput.additionalOptions = ''
+      libinput.touchpad.additionalOptions = ''
         Option "AccelSpeed" "1"
       '';
     };

@@ -1,7 +1,7 @@
 { ... }:
 
 {
-  services.xserver.libinput = {
+  services.xserver.libinput.touchpad = {
     clickMethod = "buttonareas";
     disableWhileTyping = true;
     enable = true;
