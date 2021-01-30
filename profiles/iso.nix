@@ -21,7 +21,7 @@
 
     systemPackages = with pkgs; [
       git
-      emacs
+      _aliases.emacs
       mkpasswd
     ];
   };

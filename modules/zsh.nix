@@ -79,7 +79,7 @@
 
       shellAliases = {
         download-audio = "${pkgs.youtube-dl}/bin/youtube-dl --extract-audio --audio-format mp3";
-        emacs-nox = "${pkgs.emacs}/bin/emacs --no-window-system";
+        emacs-nox = "${pkgs._aliases.emacs}/bin/emacs --no-window-system";
       };
     };
   };

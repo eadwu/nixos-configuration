@@ -1,41 +1,34 @@
 final: prev:
 
-let
-  inherit (final) pkgs;
-  inherit (pkgs) epkgs stdenv fetchurl emacsPackagesNgGen;
+with final.pkgs;
 
-  emacs27 = (
-    prev.emacs.override {
-      srcRepo = true;
-      withGTK2 = false;
-      withGTK3 = true;
-    }
-  );
-  emacsWithPackages = (emacsPackagesNgGen emacs27).emacsWithPackages;
-in
 {
-  emacs = emacsWithPackages (
+  _aliases.emacs = (emacsPackagesFor emacsUnstable).emacsWithPackages (
     epkgs: (
       with epkgs.elpaPackages; [
         auctex
-        # mmm-mode
       ]
     ) ++ (
       with epkgs.melpaPackages; [
+        ccls
+        flycheck-inline
+        wakatime-mode
+      ]
+    ) ++ (
+      with epkgs.melpaStablePackages; [
+        avy
         beacon
         company
-        company-auctex
         company-lsp
         company-web
         counsel
-        # cquery # needs cquery executable
+        # cquery # cquery has been removed because it is abandoned by upstream. Consider switching to clangd or ccls instead.
         doom-themes
         diminish # needed for use-package?
         ein
         elpy
         emmet-mode
         flycheck
-        flycheck-inline
         hydra
         interleave
         ivy-rich
@@ -44,6 +37,7 @@ in
         lsp-mode
         lsp-ui
         magit
+        mmm-mode
         nix-buffer
         nix-mode
         pandoc-mode
@@ -51,11 +45,10 @@ in
         spaceline
         tide
         use-package
-        wakatime-mode
       ]
     ) ++ (
       with epkgs.orgPackages; [
-        org
+        org-plus-contrib
       ]
     )
   );
