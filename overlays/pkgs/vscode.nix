@@ -24,8 +24,8 @@ with final.pkgs; {
       {
         name = "vscode-sqlite";
         publisher = "alexcvzz";
-        version = "0.10.1";
-        sha256 = "07z71kk0hpnr4696vl595ykjnfwznzix4lrnnl8027ydgzxg1lrl";
+        version = "0.11.1";
+        sha256 = "1qcszjmjady47vggfa93wr6pl2iqvp66hxf75gf9iz2l5wmz267w";
       }
 
       {
@@ -157,8 +157,8 @@ with final.pkgs; {
       {
         name = "magit";
         publisher = "kahole";
-        version = "0.6.2";
-        sha256 = "0qr11k4n96wnsc2rn77i01dmn0zbaqj32wp9cblghhr6h5vs2y9h";
+        version = "0.6.4";
+        sha256 = "049hc7f3l7lh58smygwhdnv9ag1jym5gvflr1n25db5riqlgimdv";
       }
 
       {
@@ -178,8 +178,8 @@ with final.pkgs; {
       {
         name = "rust-analyzer";
         publisher = "matklad";
-        version = "0.2.457";
-        sha256 = "1p15gwc6wil99wxw2z2vnp7l52s9m8w3z7kkwnl7yxq4pn8clrbi";
+        version = "0.2.465";
+        sha256 = "0kri5cl2xjgzs8r81ksj10qkbcx2ppmn0hvvma4zn6jwcvc8sla8";
       }
 
       {
@@ -220,8 +220,8 @@ with final.pkgs; {
       {
         name = "vscode-pylance";
         publisher = "ms-python";
-        version = "2021.1.2";
-        sha256 = "0n0cycq197gabkl2mmqib7pl5sg41fv40l6yzbrfcafz0nvzy1fi";
+        version = "2021.1.3";
+        sha256 = "175aypvrrcpsf4f4qxndaqd616kxpvjvnjnfbyv1ih6ckn2nmfq6";
       }
 
       {
@@ -234,8 +234,8 @@ with final.pkgs; {
       {
         name = "azure-account";
         publisher = "ms-vscode";
-        version = "0.9.4";
-        sha256 = "0r687zkvq9ns00zs64rbq6qjg10izz9bf0yrkl2araw5gq6cgrgp";
+        version = "0.9.5";
+        sha256 = "0ay4fqsrwnbbbyh6v2hkfd3wc8ykdnf1g74nw4rkzsfdc6z4ckf5";
       }
 
       {
@@ -255,15 +255,15 @@ with final.pkgs; {
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.3484";
-        sha256 = "094fkc0dkmmd3g676j9sp5nf7r0iic8n3g4cvw44q1wi0ldr91hz";
+        version = "1.0.3577";
+        sha256 = "1aprpx2mhkdg26x35hxlnlr0hx28znha1y6wrrd4cw549scssp9a";
       }
 
       {
         name = "debugger-for-chrome";
         publisher = "msjsdiag";
-        version = "4.12.11";
-        sha256 = "03krf4rfdyvb2i1qpzqygbcmqgjf00pcsc67wm2p31jk460d6bgn";
+        version = "4.12.12";
+        sha256 = "0nkzck3i4342dhswhpg4b3mn0yp23ipad228hwdf23z8b19p4b5g";
       }
 
       {
@@ -297,8 +297,8 @@ with final.pkgs; {
       {
         name = "r-lsp";
         publisher = "REditorSupport";
-        version = "0.1.13";
-        sha256 = "1130f9bcaaa9zy5ri570gl8jywcdavdlkslkra62y1407fbma3d4";
+        version = "0.1.14";
+        sha256 = "0x85mg25ixafg18pgqzrwm4hi0ggjhcsznlkp0rpcca6vq8mrapf";
       }
 
       {
