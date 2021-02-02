@@ -20,8 +20,8 @@
     memoryAllocator.provider = "libc";
 
     systemPackages = with pkgs; [
-      git
-      _aliases.emacs
+      _aliases.git
+      emacs
       mkpasswd
     ];
   };
