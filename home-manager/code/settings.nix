@@ -12,9 +12,9 @@ in
   };
   "editor.cursorBlinking" = "smooth";
   "editor.cursorSmoothCaretAnimation" = true;
-  "editor.fontFamily" = "'Rec Mono Linear', 'Anonymous Pro', 'IBM Plex Mono'";
-  "editor.fontLigatures" = "'dlig','ss01','ss05','ss08','ss09','ss20','frac'";
-  "editor.fontSize" = 12;
+  "editor.fontFamily" = "'Anonymous Pro', 'Recursive Mono Linear Static', 'Rec Mono Linear', 'IBM Plex Mono'";
+  "editor.fontLigatures" = "'ss01','ss05','ss08','ss09','ss20'";
+  "editor.fontSize" = 13;
   "editor.fontWeight" = "normal";
   "editor.formatOnSave" = true;
   "editor.lineHeight" = 20;
