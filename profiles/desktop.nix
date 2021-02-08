@@ -47,6 +47,7 @@ with config.nixos; {
       # Languages / SDKs
       gcc
       gdb
+      go
       julia
       llvmPackages.clang-unwrapped
       mongodb
@@ -62,6 +63,12 @@ with config.nixos; {
       scala
       sqlite
       texlive.combined.scheme-full
+      ## Go
+      delve
+      golint
+      gopls
+      gopkgs
+      go-outline
       ## Haskell
       stack
       ## Lean
