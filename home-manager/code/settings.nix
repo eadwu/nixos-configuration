@@ -7,16 +7,12 @@ let
 in
 {
   "diffEditor.ignoreTrimWhitespace" = false;
-  "editor.codeActionsOnSave" = {
-    "source.organizeImports" = true;
-  };
   "editor.cursorBlinking" = "smooth";
   "editor.cursorSmoothCaretAnimation" = true;
   "editor.fontFamily" = "'Anonymous Pro', 'Recursive Mono Linear Static', 'Rec Mono Linear', 'IBM Plex Mono'";
   "editor.fontLigatures" = "'ss01','ss05','ss08','ss09','ss20'";
   "editor.fontSize" = 13;
   "editor.fontWeight" = "normal";
-  "editor.formatOnSave" = true;
   "editor.lineHeight" = 20;
   "editor.lineNumbers" = "relative";
   "editor.multiCursorModifier" = "ctrlCmd";
@@ -58,7 +54,6 @@ in
       "filenamePattern" = "*.ipynb";
     }
   ];
-  "workbench.experimental.gettingStarted" = true;
   "workbench.list.smoothScrolling" = true;
   "workbench.iconTheme" = "vs-seti";
   "workbench.sideBar.location" = "right";
@@ -131,6 +126,9 @@ in
   "C_Cpp.clang_format_path" = "${llvmPackages.clang-unwrapped}/bin/clang-format";
   "C_Cpp.clang_format_fallbackStyle" = "LLVM";
   "C_Cpp.formatting" = "Disabled";
+  "C_Cpp.intelliSenseEngineFallback" = "Enabled";
+  "C_Cpp.workspaceParsingPriority" = "medium";
+  "clang.executable" = "${clang}/bin/clang";
   "cmake.cmakePath" = "${cmake}/bin/cmake";
   "emmet.includeLanguages" = {
     "jinja-html" = "html";
@@ -142,18 +140,6 @@ in
     "javascript"
     "javascriptreact"
   ];
-  "gitlens.advanced.messages" = {
-    "suppressCommitHasNoPreviousCommitWarning" = false;
-    "suppressCommitNotFoundWarning" = false;
-    "suppressFileNotUnderSourceControlWarning" = false;
-    "suppressGitVersionWarning" = false;
-    "suppressLineUncommittedWarning" = false;
-    "suppressNoRepositoryWarning" = false;
-    "suppressResultsExplorerNotice" = true;
-    "suppressShowKeyBindingsNotice" = true;
-    "suppressUpdateNotice" = false;
-    "suppressWelcomeNotice" = true;
-  };
   "gitlens.codeLens.scopes" = [
     "document"
     "containers"
@@ -235,7 +221,7 @@ in
   "python.testing.unittestEnabled" = true;
   "maven.executable.path" = "${maven}/bin/mvn";
   "maven.terminal.useJavaHome" = true;
-  "rust-analyzer.serverPath" = "${rust-analyzer}/bin/rust-analyzer";
+  "rust-analyzer.server.path" = "${rust-analyzer}/bin/rust-analyzer";
   "sqlite.sqlite3" = "${sqlite}/bin/sqlite3";
   "todo-tree.tree.showScanModeButton" = false;
   "tslint.packageManager" = "yarn";

@@ -17,8 +17,8 @@ with final.pkgs; {
       {
         name = "Bookmarks";
         publisher = "alefragnani";
-        version = "12.1.4";
-        sha256 = "14wcgzcvg8q0ykj24qkq6f67m58jmaaxnasysn8vhwq4xc40hb1r";
+        version = "13.0.0";
+        sha256 = "0m10hdqpbi95xj8klglkpr0gvgv4fkq2pm88mnin3bmfkjh57ail";
       }
 
       {
@@ -101,8 +101,8 @@ with final.pkgs; {
       {
         name = "go";
         publisher = "golang";
-        version = "0.22.0";
-        sha256 = "0kimryvfqqxk9sipqpzlpwn6m3if1a0mn8jxd83hh6fv8z4nbyxd";
+        version = "0.22.1";
+        sha256 = "1gbb13gmif2zzia49153czk3ib6lgwg37gx8gzs4773m9x5hmb2l";
       }
 
       {
@@ -143,15 +143,15 @@ with final.pkgs; {
       {
         name = "lean";
         publisher = "jroesch";
-        version = "0.16.23";
-        sha256 = "09xp72z78k7b4q8dksx55khsk129h2lr3drkm49kgyzxmzlqzxar";
+        version = "0.16.24";
+        sha256 = "1ph5hi0sldkczdbsmscndpqi4yrgpc3v0knfx9wfc7s6h5zydw6c";
       }
 
       {
         name = "language-julia";
         publisher = "julialang";
-        version = "1.0.10";
-        sha256 = "04mc4z5x72v8g25b60zjxn3wpjhbp9s6wa50bvx5cdbrvcfg5ngs";
+        version = "1.1.17";
+        sha256 = "064ns2w2gq40ibxhifw2y30cn8gbp0rcskbsfnr2cjcagql7h1wm";
       }
 
       {
@@ -185,8 +185,8 @@ with final.pkgs; {
       {
         name = "rust-analyzer";
         publisher = "matklad";
-        version = "0.2.473";
-        sha256 = "1i2zwp39bwa9832wwqlv836gj668zqzzdrjgvkkn0kxmycfganm3";
+        version = "0.2.481";
+        sha256 = "1zb8l3x26nap0jm79c899njyyc7c0z91sag9qp3x24gvb0gn5myq";
       }
 
       {
@@ -227,8 +227,8 @@ with final.pkgs; {
       {
         name = "vscode-pylance";
         publisher = "ms-python";
-        version = "2021.2.0";
-        sha256 = "0dr6b1hmv8vsgf0lzjwl6z5aqz81mpd1rqiqajnsklgcwbbran8z";
+        version = "2021.2.2";
+        sha256 = "135d38mh6yd6abn2a8wv9d3c9xrph19vwrclk5mx61ggq78cwxlp";
       }
 
       {
@@ -241,8 +241,8 @@ with final.pkgs; {
       {
         name = "azure-account";
         publisher = "ms-vscode";
-        version = "0.9.5";
-        sha256 = "0ay4fqsrwnbbbyh6v2hkfd3wc8ykdnf1g74nw4rkzsfdc6z4ckf5";
+        version = "0.9.6";
+        sha256 = "0bpx3y7bw9aj9ns3kcxq086qhn9ivgw8q1rr1g76166vh48h2q3k";
       }
 
       {
@@ -297,8 +297,8 @@ with final.pkgs; {
       {
         name = "java";
         publisher = "redhat";
-        version = "0.74.0";
-        sha256 = "0d5rp1p9v5yxq6sadlsa87lg257k43jgsx4s5zb8pwj63lh728h1";
+        version = "0.75.0";
+        sha256 = "0angi2c22bqni7cymcsxsvr2p4735xa204f00153i2xmsnfw4y3i";
       }
 
       {
@@ -332,8 +332,8 @@ with final.pkgs; {
       {
         name = "shader";
         publisher = "slevesque";
-        version = "1.1.4";
-        sha256 = "0m5ld6l5sizqbj2k6754n2hn50ygajy464qz66dar2n3nhvjdv9n";
+        version = "1.1.5";
+        sha256 = "14yraymi96f6lpcrwk93llbiraq8gqzk7jzyw7xmndhcwhazpz9x";
       }
 
       {
