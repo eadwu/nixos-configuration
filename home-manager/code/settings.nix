@@ -57,6 +57,7 @@ in
   "workbench.list.smoothScrolling" = true;
   "workbench.iconTheme" = "vs-seti";
   "workbench.sideBar.location" = "right";
+  "workbench.tree.expandMode" = "singleClick";
   "breadcrumbs.enabled" = true;
   "window.menuBarVisibility" = "toggle";
   "window.titleBarStyle" = "native";
