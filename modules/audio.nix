@@ -8,9 +8,9 @@
     ];
 
   boot.kernelModules = [ "uinput" ]; # AVRCP protocol support/compatibility for input device
-  systemd.services.bluetooth.serviceConfig.ExecStart = [ "" "${config.hardware.bluetooth.package}/libexec/bluetooth/bluetoothd --noplugin=sap" ];
 
-  hardware.bluetooth.config = {
+  hardware.bluetooth.disabledPlugins = [ "sap" ];
+  hardware.bluetooth.settings = {
     General = {
       MultiProfile = "multiple";
       FastConnectable = true;
