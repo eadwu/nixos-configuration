@@ -5,6 +5,7 @@
     [
       nixosModules.settings
 
+      ../hardware/devices/zsa
       ../modules/nix.nix
     ];
 
