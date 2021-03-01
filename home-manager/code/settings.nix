@@ -153,6 +153,9 @@ in
   "jupyter.disableJupyterAutoStart" = true;
   "jupyter.searchForJupyter" = false;
   "jupyter.useNotebookEditor" = false;
+  "gopls" = {
+      "experimentalWorkspaceModule" = true;
+  };
   "haskell.formattingProvider" = "none";
   "haskell.serverExecutablePath" = "\${workspaceFolder}/hie-wrapper.sh";
   "latex-workshop.chktex.enabled" = true;

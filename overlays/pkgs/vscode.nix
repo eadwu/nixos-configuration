@@ -17,8 +17,8 @@ with final.pkgs; {
       {
         name = "Bookmarks";
         publisher = "alefragnani";
-        version = "13.0.1";
-        sha256 = "1l994yszslqw3cdzqq9ksilk2r2km6f4yjpiqf7imf1vv4y451p0";
+        version = "13.0.2";
+        sha256 = "001hz7bababqylbcjaq3xrl3i73scb6hbgrm25jm2idim0g4hgr2";
       }
 
       {
@@ -108,8 +108,8 @@ with final.pkgs; {
       {
         name = "todo-tree";
         publisher = "Gruntfuggly";
-        version = "0.0.196";
-        sha256 = "1l4f290018f2p76q6hn2b2injps6wz65as7dm537wrsvsivyg2qz";
+        version = "0.0.199";
+        sha256 = "0qlh0vm6qji61pkh79wrmgx6kzdf0y6ks0y27dndka4yc0g3ijbh";
       }
 
       {
@@ -150,15 +150,15 @@ with final.pkgs; {
       {
         name = "language-julia";
         publisher = "julialang";
-        version = "1.1.26";
-        sha256 = "0d65nmxcdflrih6j4h34lhg0xwq71xc7s1vvmqn83k52k8xk0q05";
+        version = "1.1.31";
+        sha256 = "1r1145h1rzv179895mf2923b28yi8jy1z7l9fqmrf06034b4b0ji";
       }
 
       {
         name = "language-haskell";
         publisher = "justusadam";
-        version = "3.3.0";
-        sha256 = "1285bs89d7hqn8h8jyxww7712070zw2ccrgy6aswd39arscniffs";
+        version = "3.4.0";
+        sha256 = "0ab7m5jzxakjxaiwmg0jcck53vnn183589bbxh3iiylkpicrv67y";
       }
 
       {
@@ -185,8 +185,8 @@ with final.pkgs; {
       {
         name = "rust-analyzer";
         publisher = "matklad";
-        version = "0.2.489";
-        sha256 = "0q9bahp8dj55x55map70c9diqnia3i34z7zzdb57bxavrdwivff5";
+        version = "0.2.497";
+        sha256 = "0zhr5qhcc8b82vin99lbc13slfa7dhhfd7n0z4wk6b95glxcb5ag";
       }
 
       {
@@ -199,8 +199,8 @@ with final.pkgs; {
       {
         name = "git-graph";
         publisher = "mhutchie";
-        version = "1.28.0";
-        sha256 = "1ybwnyb57w020p0fgpqaviajdrdmy1gk8xq50l8d5zwc81cyknyv";
+        version = "1.29.0";
+        sha256 = "02x4nc7snsr1d1lrybgjmq85qbb2jma3rvv3v5lcry44wd9pqcs5";
       }
 
       {
@@ -227,15 +227,15 @@ with final.pkgs; {
       {
         name = "vscode-pylance";
         publisher = "ms-python";
-        version = "2021.2.3";
-        sha256 = "07zapnindwi79k5a2v5ywgwfiqzgs79li73y56rpq0n3a287z4q6";
+        version = "2021.2.4";
+        sha256 = "043x5k9c0iw5xp36ppdg2184h7qb2q5i53p16r1py6i7v4nkf0bd";
       }
 
       {
         name = "jupyter";
         publisher = "ms-toolsai";
-        version = "2021.2.576440691";
-        sha256 = "0dia2qbvmfc1ijswng39ni3imqssib2bnclwk3lr8bmkl31xg5sh";
+        version = "2021.3.600686576";
+        sha256 = "1nxcq1an3lqidfgfnadwa5nbx491vwynpf63bpf8b44b3f6h3f4n";
       }
 
       {
@@ -325,8 +325,8 @@ with final.pkgs; {
       {
         name = "scala";
         publisher = "scala-lang";
-        version = "0.5.1";
-        sha256 = "0p9nhds2xn08xz8x822q15jdrdlqkg2wa1y7mk9k89n8n2kfh91g";
+        version = "0.5.2";
+        sha256 = "1b8ydigspgr2cni86cqrd0md61ks62y9qca3ia6dq11pvfdwxbsd";
       }
 
       {
