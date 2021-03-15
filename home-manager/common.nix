@@ -54,14 +54,15 @@
     gnome3.gnome-system-monitor
     gnome3.simple-scan
     jetbrains.idea-ultimate
+    krita
     libreoffice-fresh
-    radian
     rstudioWrapper
     slack
     thunderbird
     typora
     vivaldi-snapshot
     woeusb
+    xournalpp
     ## Console
     bfg-repo-cleaner
     buku
