@@ -76,7 +76,7 @@ with config.nixos; {
       mathlibtools
       elan
       ## Rust
-      rustPlatform.rust
+      latestRustPlatform.rustc
       rust-analyzer
       rustfmt
       # Build Tools
@@ -106,7 +106,7 @@ with config.nixos; {
 
     variables = {
       DOCKER_ID_USER = settings.docker.user;
-      RUST_SRC_PATH = pkgs.rustPlatform.rustLibSrc;
+      RUST_SRC_PATH = pkgs.latestRustPlatform.rustLibSrc;
     };
   };
 
