@@ -21,6 +21,18 @@
       ./Xorg.nix
     ];
 
+  home.activation.setXDGbrowser = lib.hm.dag.entryBefore [ "linkGeneration" ] ''
+    xdg-settings set default-web-browser vivaldi-snapshot.desktop
+  '';
+
+  xdg.mimeApps.defaultApplications =
+    let
+      web_browser = [ "vivaldi-snapshot.desktop" "vivaldi-stable.desktop" "chromium.desktop" ];
+    in
+    {
+      "default-web-browser" = web_browser;
+    };
+
   home.packages = with pkgs; [
     # Environment
     nitrogen
@@ -33,6 +45,7 @@
     # Other
     ## Applications
     ark
+    chromium
     discord-canary
     element-desktop
     evince
