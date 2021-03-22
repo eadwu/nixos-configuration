@@ -8,19 +8,6 @@ with final.pkgs; {
       WakaTime.vscode-wakatime
     ] ++ vscode-utils.extensionsFromVscodeMarketplace [
       {
-        name = "vsc-material-theme";
-        publisher = "Equinusocio";
-        version = "33.1.2";
-        sha256 = "14db0xmhcrk0lxafcgiqqzi1ydhiy16hs4r9g0jcdglj8bn6y624";
-      }
-
-      {
-        name = "vsc-material-theme-icons";
-        publisher = "equinusocio";
-        version = "1.2.2";
-        sha256 = "06xfv8ggli88zg1hyrd7m494fl6bz4fspbxy626nsswq4f26msms";
-      }
-      {
         name = "better-comments";
         publisher = "aaron-bond";
         version = "2.1.0";
@@ -65,8 +52,8 @@ with final.pkgs; {
       {
         name = "vscode-eslint";
         publisher = "dbaeumer";
-        version = "2.1.17";
-        sha256 = "1c895irqj99kkhikd2f7hfx6i7ml6vhdy6rlbsbhmsfiw0vhqzkb";
+        version = "2.1.19";
+        sha256 = "0cgl2hvsha51fibmf7qx88d2j9zw2i2bng6bwwbivbpq73lgg24y";
       }
 
       {
@@ -91,6 +78,20 @@ with final.pkgs; {
       }
 
       {
+        name = "vsc-material-theme";
+        publisher = "Equinusocio";
+        version = "33.2.2";
+        sha256 = "0a55ksf58d4fhk1vgafibxkg61rhyd6cl10wz9gwg22rykx6i8d9";
+      }
+
+      {
+        name = "vsc-material-theme-icons";
+        publisher = "equinusocio";
+        version = "2.0.10";
+        sha256 = "0ki9x63wvc1h44cy5g9i96zkmcy1a3wc4sqzw3an17qad1lsicwb";
+      }
+
+      {
         name = "auto-rename-tag";
         publisher = "formulahendry";
         version = "0.1.6";
@@ -107,8 +108,8 @@ with final.pkgs; {
       {
         name = "todo-tree";
         publisher = "Gruntfuggly";
-        version = "0.0.205";
-        sha256 = "0s7bmnsx40lz9wiijrh7cnazwqvmkhsbnidl832qx27pzk0977ix";
+        version = "0.0.208";
+        sha256 = "1yjz7i3f2f9a3i797vwa9vnxsh9lyxqr4k0ixx8v55h628kvafr9";
       }
 
       {
@@ -121,8 +122,8 @@ with final.pkgs; {
       {
         name = "r";
         publisher = "Ikuyadeu";
-        version = "1.6.4";
-        sha256 = "0zz8x6v9q9n8rzf6qrxz4hz3bwz9xmb4nksb0c9mj1bx5ljgaalp";
+        version = "1.6.5";
+        sha256 = "1pcpfx580svfwmwmssm2qdk28kgmm6gz9587s3f1dhy6bh39h4dm";
       }
 
       {
@@ -149,8 +150,8 @@ with final.pkgs; {
       {
         name = "language-julia";
         publisher = "julialang";
-        version = "1.1.35";
-        sha256 = "079i79fzq4fa6jj6c591skd8lg293a4w5h8rn0cfk1flkf53kza5";
+        version = "1.1.37";
+        sha256 = "0kzrc75bkxwppbl2157gmz4b08vffqf4m7jcbfzc0hvfjacp5y23";
       }
 
       {
@@ -163,8 +164,8 @@ with final.pkgs; {
       {
         name = "magit";
         publisher = "kahole";
-        version = "0.6.6";
-        sha256 = "0gimkq3jihdikh2bdk9ljv7hc4rn92zsshf5awykd8pa0la8gxsh";
+        version = "0.6.7";
+        sha256 = "1ijyb7mgbn7wfwnfvflc8giyi59dmqs60iyriz4kr5cx3nyjcm5f";
       }
 
       {
@@ -184,8 +185,8 @@ with final.pkgs; {
       {
         name = "rust-analyzer";
         publisher = "matklad";
-        version = "0.2.513";
-        sha256 = "1x7a69bd8h1a33mk4j3x9vsy3m6byc19rv2mcyhciq1hk40pk47p";
+        version = "0.2.521";
+        sha256 = "0h2v6g8xgsnkjjjfjpbjclx9gxrv133bwn594hv94wamjj3ainln";
       }
 
       {
@@ -219,15 +220,15 @@ with final.pkgs; {
       {
         name = "vscode-docker";
         publisher = "ms-azuretools";
-        version = "1.10.0";
-        sha256 = "0kryrvs1gm2d3kj378gsszhn4dkkgv34vir4gky7347jw2rmg7rb";
+        version = "1.11.0";
+        sha256 = "141800jcxslqa5nbwcdj4mwnysa42mxligvc073gf225ns984vfr";
       }
 
       {
         name = "vscode-pylance";
         publisher = "ms-python";
-        version = "2021.3.1";
-        sha256 = "0p8ldfl1dvfw48ia5nfkxx986dijj39irwnacnijhn5brxf477nc";
+        version = "2021.3.2";
+        sha256 = "1fqqkyshm1gdf8isaj3cgb1k89w6ndjnf8pm1aq5n5lrci7bjsqz";
       }
 
       {
