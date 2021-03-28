@@ -1,4 +1,4 @@
-{ flakes, pkgs, ... }:
+{ pkgs, ... }:
 let
   queryWatchman =
     with pkgs;
@@ -29,7 +29,7 @@ in
       core = {
         autocrlf = "input";
         editor = "vim";
-        excludesfile = toString flakes.default-gitignore.path;
+        excludesfile = pkgs._srcs + "/srcs/default-gitignore";
         fsmonitor = queryWatchman.outPath;
       };
 
