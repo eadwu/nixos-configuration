@@ -57,7 +57,4 @@
   # Multiple virtual cores per physical core
   # NOTE: About 30% boost compared to a single physical core
   security.allowSimultaneousMultithreading = lib.mkDefault false;
-
-  # Incompatible for cgroups v2, see https://github.com/systemd/systemd/issues/12955#issuecomment-508490893
-  security.hideProcessInformation = lib.mkForce false;
 }
