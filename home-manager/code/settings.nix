@@ -154,7 +154,8 @@ in
   "jupyter.searchForJupyter" = false;
   "jupyter.useNotebookEditor" = false;
   "gopls" = {
-      "experimentalWorkspaceModule" = true;
+    "expandWorkspaceToModule" = true;
+    "experimentalWorkspaceModule" = true;
   };
   "haskell.formattingProvider" = "none";
   "haskell.serverExecutablePath" = "\${workspaceFolder}/hie-wrapper.sh";
@@ -227,6 +228,7 @@ in
   "maven.terminal.useJavaHome" = true;
   "rust-analyzer.server.path" = "${rust-analyzer}/bin/rust-analyzer";
   "sqlite.sqlite3" = "${sqlite}/bin/sqlite3";
+  "todo-tree.general.tags" = [ "BUG" "HACK" "FIXME" "TODO" "XXX" "[ ]" "[x]" ];
   "todo-tree.tree.showScanModeButton" = false;
   "tslint.packageManager" = "yarn";
   "tslint.validateWithDefaultConfig" = true;
