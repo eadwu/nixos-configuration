@@ -48,7 +48,7 @@ with config.nixos; {
       gcc
       gdb
       go
-      julia
+      julia_15
       llvmPackages.clang-unwrapped
       mongodb
       mariadb
