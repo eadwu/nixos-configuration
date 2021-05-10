@@ -69,6 +69,7 @@ with config.nixos; {
       gopls
       gopkgs
       go-outline
+      go-tools
       ## Haskell
       stack
       ## Lean
