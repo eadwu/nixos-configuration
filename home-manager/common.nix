@@ -36,9 +36,9 @@
   home.packages = with pkgs; [
     # Environment
     nitrogen
-    xfceUnstable.thunar
-    xfceUnstable.thunar-volman
-    xfceUnstable.xfce4-screenshooter
+    xfce.thunar
+    xfce.thunar-volman
+    xfce.xfce4-screenshooter
     ## Theme
     gtk-engine-murrine
 
@@ -51,8 +51,8 @@
     evince
     ghidra-bin
     gimp
-    gnome3.gnome-system-monitor
-    gnome3.simple-scan
+    gnome.gnome-system-monitor
+    gnome.simple-scan
     jetbrains.idea-ultimate
     krita
     libreoffice-fresh
@@ -76,7 +76,7 @@
     yarn
     youtube-dl
     ## Misc
-    xdg_utils
+    xdg-utils
 
     # Benchmarks
     mprime

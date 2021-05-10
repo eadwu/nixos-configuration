@@ -17,7 +17,7 @@
     pulse.enable = true;
   };
 
-  environment.systemPackages = with pkgs; [ pavucontrol pulsemixer pulseaudioLight ] # for pactl usage and finer output control
+  environment.systemPackages = with pkgs; [ pavucontrol pulsemixer pulseaudio ] # for pactl usage and finer output control
     ++ [ carla ] # JACK utilities
     ++ [ lsp-plugins dragonfly-reverb ladspa-bs2b rnnoise-plugin ] # Audio plugins
     ++ [ distrho swh_lv2 calf ir.lv2 ]

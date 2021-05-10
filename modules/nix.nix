@@ -73,6 +73,8 @@ with config.nixos; {
 
     config = {
       allowUnfree = true;
+      # Ensures no aliases.  Essentially attempt to keep up with the times.
+      allowAliases = false;
     };
   };
 

@@ -41,8 +41,8 @@ with config.nixos; {
       pywal
       xclip
       # Version Control
-      gitAndTools.hub
-      gitAndTools.git-filter-repo
+      hub
+      git-filter-repo
       git-lfs
       # Languages / SDKs
       gcc
@@ -51,7 +51,7 @@ with config.nixos; {
       julia
       llvmPackages.clang-unwrapped
       mongodb
-      mysql
+      mariadb
       nasm
       nodejs
       openjdk
@@ -162,5 +162,5 @@ with config.nixos; {
     '') (builtins.attrNames commands);
   };
 
-  services.dbus.packages = [ pkgs.gnome3.dconf ];
+  services.dbus.packages = [ pkgs.dconf ];
 }
