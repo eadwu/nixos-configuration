@@ -13,17 +13,19 @@ with config.nixos; {
 
     binaryCaches = [
       "https://sys.cachix.org/"
+      "https://cache.ngi0.nixos.org/"
       "https://nix-community.cachix.org/"
     ];
 
     binaryCachePublicKeys = [
       "sys.cachix.org-1:KrERagTDZBL9DkZrQb/+loTtpKBats1MxJ/Q+zmCKrg="
+      "cache.ngi0.nixos.org-1:KqH5CBLNSyX184S9BKZJo1LxrxJ9ltnY2uAs5c/f1MA="
       "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
     ];
 
     extraOptions = ''
       show-trace = true
-      experimental-features = flakes nix-command
+      experimental-features = flakes nix-command ca-derivations ca-references
     '';
 
     nixPath =
