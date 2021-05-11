@@ -46,6 +46,7 @@
       blktrace
       iotop
       nix-prefetch-scripts
+      patchelf
       pciutils
       usbutils
     ];
