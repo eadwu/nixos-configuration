@@ -48,7 +48,7 @@ in
         type = types.path;
         visible = false;
         readOnly = true;
-        default = "/home/${cfg.system.user}";
+        default = builtins.toPath "/home/${cfg.system.user}";
         description = ''
           The user account's HOME directory
         '';
