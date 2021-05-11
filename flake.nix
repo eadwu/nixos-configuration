@@ -8,6 +8,7 @@
   inputs.external = { type = "github"; owner = "eadwu"; repo = "flakes"; inputs.nixpkgs.follows = "/nixpkgs"; };
   inputs.home-manager = { type = "github"; owner = "nix-community"; repo = "home-manager"; inputs.nixpkgs.follows = "/nixpkgs"; };
   inputs.impermanence = { type = "github"; owner = "nix-community"; repo = "impermanence"; };
+  inputs.fenix = { type = "github"; owner = "nix-community"; repo = "fenix"; inputs.nixpkgs.follows = "/nixpkgs"; };
 
   outputs = { self, nixpkgs, ... }@inputs: with nixpkgs.lib; let
     baseSystem = { system ? "x86_64-linux", modules ? [], includeExternalOverlay ? true }@config: nixosSystem {
@@ -108,6 +109,8 @@
       modules =
         [ ({ ... }: {
           imports = [ ./machines/terrenus ];
+
+          nixpkgs.overlays = [ inputs.fenix.overlay ];
 
           system.stateVersion = "20.03";
           system.configurationRevision = mkIf (self ? rev) self.rev;
