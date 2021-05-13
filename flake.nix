@@ -31,7 +31,7 @@
       };
 
       modules =
-        (optional includeExternalOverlay { nixpkgs.overlays = mkBefore [ inputs.external.overlay ]; })
+        (optional includeExternalOverlay { nixpkgs.overlays = mkBefore (builtins.attrValues inputs.external.overlays); })
         ++
           [
             {
