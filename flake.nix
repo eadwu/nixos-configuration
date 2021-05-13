@@ -13,80 +13,81 @@
   inputs.fenix = { type = "github"; owner = "nix-community"; repo = "fenix"; inputs.nixpkgs.follows = "/nixpkgs"; };
 
   outputs = { self, nixpkgs, ... }@inputs: with nixpkgs.lib; let
-    baseSystem = { system ? "x86_64-linux", modules ? [], includeExternalOverlay ? true }@config: nixosSystem {
+    baseSystem = { system ? "x86_64-linux", modules ? [ ], includeExternalOverlay ? true }@config: nixosSystem {
       inherit system;
       # TODO: Figure out why _module.args gives infinite recursion
       specialArgs = rec {
         flakes = genAttrs (builtins.attrNames inputs)
           (flake:
             (if (inputs.${flake} ? packages && inputs.${flake}.packages ? ${system})
-              then inputs.${flake}.packages.${system}
-              else {})
+            then inputs.${flake}.packages.${system}
+            else { })
             // {
               path = inputs.${flake};
-              nixosModules = inputs.${flake}.nixosModules or {};
+              nixosModules = inputs.${flake}.nixosModules or { };
             });
 
-        nixosModules = foldl recursiveUpdate {} (map (flake: flake.nixosModules or {}) (attrValues flakes));
+        nixosModules = foldl recursiveUpdate { } (map (flake: flake.nixosModules or { }) (attrValues flakes));
       };
 
       modules =
         (optional includeExternalOverlay { nixpkgs.overlays = mkBefore (builtins.attrValues inputs.external.overlays); })
         ++
-          [
-            {
-              _module.args.system = system;
-            }
+        [
+          {
+            _module.args.system = system;
+          }
 
-            {
-              nixpkgs.overlays = mkBefore [
-                (final: prev: {
-                  inherit (final._channels.nixos-stable)
-                    # Broken builds on `nixpkgs`
-                    ark buku krita
-                    ;
+          {
+            nixpkgs.overlays = mkBefore [
+              (final: prev: {
+                inherit (final._channels.nixos-stable)
+                  # Broken builds on `nixpkgs`
+                  ark buku krita
+                  ;
 
-                  inherit (final._channels.nixos-stable-small)
-                    # "Expensive" builds
-                    libreoffice-fresh
-                    ;
+                inherit (final._channels.nixos-stable-small)
+                  # "Expensive" builds
+                  libreoffice-fresh
+                  ;
 
-                  inherit (final._channels.nixos-unstable)
-                    # Builds that have a high chance of not being broken
-                    mailutils nix-prefetch-scripts
-                    # "Expensive" builds
-                    rstudio chromium
-                    ;
+                inherit (final._channels.nixos-unstable)
+                  # Builds that have a high chance of not being broken
+                  mailutils nix-prefetch-scripts
+                  # "Expensive" builds
+                  rstudio chromium
+                  ;
 
-                  inherit (final._channels.nixpkgs-unstable)
-                    hplip docker evince
-                    # "Expensive" builds so wait for a probable cache hit scenario
-                    gimp julia blender inkscape thunderbird noto-fonts-emoji
-                    ## Java stuff so openjdk doesn't get built
-                    sbt maven openjdk ghidra-bin epubcheck bfg-repo-cleaner
-                    ;
+                inherit (final._channels.nixpkgs-unstable)
+                  hplip docker evince
+                  # "Expensive" builds so wait for a probable cache hit scenario
+                  gimp julia blender inkscape thunderbird noto-fonts-emoji
+                  ## Java stuff so openjdk doesn't get built
+                  sbt maven openjdk ghidra-bin epubcheck bfg-repo-cleaner
+                  ;
 
-                  inherit (final._channels.nixpkgs)
-                    ;
+                inherit (final._channels.nixpkgs)
+                  ;
 
-                  # Defer to `nixpkgs-unstable` so that there's a greater chance for a cache hit, not a top priority for rebuilds
-                  jetbrains = prev.jetbrains // { jdk = final._channels.nixpkgs-unstable.jetbrains.jdk; };
+                # Defer to `nixpkgs-unstable` so that there's a greater chance for a cache hit, not a top priority for rebuilds
+                jetbrains = prev.jetbrains // { jdk = final._channels.nixpkgs-unstable.jetbrains.jdk; };
 
-                  # Aliases for default derivations without causing rebuilds
-                  _aliases = {
-                    git = final._channels.nixos-unstable.gitFull;
-                  };
+                # Aliases for default derivations without causing rebuilds
+                _aliases = {
+                  git = final._channels.nixos-unstable.gitFull;
+                };
 
-                  _channels = genAttrs
-                    [ "nixos-stable" "nixos-stable-small" "nixos-unstable" "nixos-unstable-small" "nixpkgs-unstable" "nixpkgs" ]
-                    (channel: import inputs.${channel} { inherit system; config.allowUnfree = true; });
-                })
-              ];
-            }
-          ]
+                _channels = genAttrs
+                  [ "nixos-stable" "nixos-stable-small" "nixos-unstable" "nixos-unstable-small" "nixpkgs-unstable" "nixpkgs" ]
+                  (channel: import inputs.${channel} { inherit system; config.allowUnfree = true; });
+              })
+            ];
+          }
+        ]
         ++ config.modules;
     };
-  in {
+  in
+  {
 
     nixosModules = {
       settings = import ./options/settings;
@@ -114,14 +115,16 @@
 
     nixosConfigurations.terrenus = baseSystem rec {
       modules =
-        [ ({ ... }: {
-          imports = [ ./machines/terrenus ];
+        [
+          ({ ... }: {
+            imports = [ ./machines/terrenus ];
 
-          nixpkgs.overlays = [ inputs.fenix.overlay ];
+            nixpkgs.overlays = [ inputs.fenix.overlay ];
 
-          system.stateVersion = "20.03";
-          system.configurationRevision = mkIf (self ? rev) self.rev;
-        }) ];
+            system.stateVersion = "20.03";
+            system.configurationRevision = mkIf (self ? rev) self.rev;
+          })
+        ];
     };
 
   };
