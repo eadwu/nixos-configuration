@@ -3,7 +3,9 @@
 
   inputs.nixpkgs = { type = "github"; owner = "eadwu"; repo = "nixpkgs"; ref = "develop"; };
   inputs.nixos-stable = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixos-20.09"; };
+  inputs.nixos-stable-small = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixos-20.09-small"; };
   inputs.nixos-unstable = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixos-unstable"; };
+  inputs.nixos-unstable-small = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixos-unstable-small"; };
   inputs.nixpkgs-unstable = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixpkgs-unstable"; };
   inputs.external = { type = "github"; owner = "eadwu"; repo = "flakes"; inputs.nixpkgs.follows = "/nixpkgs"; };
   inputs.home-manager = { type = "github"; owner = "nix-community"; repo = "home-manager"; inputs.nixpkgs.follows = "/nixpkgs"; };
@@ -71,7 +73,7 @@
                   };
 
                   _channels = genAttrs
-                    [ "nixos-stable" "nixos-unstable" "nixpkgs-unstable" "nixpkgs" ]
+                    [ "nixos-stable" "nixos-stable-small" "nixos-unstable" "nixos-unstable-small" "nixpkgs-unstable" "nixpkgs" ]
                     (channel: import inputs.${channel} { inherit system; config.allowUnfree = true; });
                 })
               ];
