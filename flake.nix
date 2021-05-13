@@ -41,31 +41,36 @@
             {
               nixpkgs.overlays = mkBefore [
                 (final: prev: {
+                  inherit (final._channels.nixos-stable)
+                    # Broken builds on `nixpkgs`
+                    ark buku krita
+                    ;
+
+                  inherit (final._channels.nixos-stable-small)
+                    # "Expensive" builds
+                    libreoffice-fresh
+                    ;
+
                   inherit (final._channels.nixos-unstable)
-                    # Likely broken builds on `nixpkgs`
-                    buku
                     # Builds that have a high chance of not being broken
                     mailutils nix-prefetch-scripts
                     # "Expensive" builds
-                    rstudio
+                    rstudio chromium
                     ;
 
                   inherit (final._channels.nixpkgs-unstable)
                     hplip docker evince
                     # "Expensive" builds so wait for a probable cache hit scenario
-                    gimp krita blender inkscape chromium thunderbird
-                    libreoffice-fresh noto-fonts-emoji
+                    gimp julia blender inkscape thunderbird noto-fonts-emoji
                     ## Java stuff so openjdk doesn't get built
-                    sbt openjdk ghidra-bin epubcheck bfg-repo-cleaner
+                    sbt maven openjdk ghidra-bin epubcheck bfg-repo-cleaner
+                    ;
+
+                  inherit (final._channels.nixpkgs)
                     ;
 
                   # Defer to `nixpkgs-unstable` so that there's a greater chance for a cache hit, not a top priority for rebuilds
                   jetbrains = prev.jetbrains // { jdk = final._channels.nixpkgs-unstable.jetbrains.jdk; };
-
-                  inherit (final._channels.nixpkgs)
-                    # Don't build using nightly rustPlatform from `external/rolling`
-                    ripgrep nixpkgs-fmt elan nix-index lorri rust-analyzer b3sum mdbook rust-cbindgen
-                    ;
 
                   # Aliases for default derivations without causing rebuilds
                   _aliases = {
