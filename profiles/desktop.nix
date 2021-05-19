@@ -77,7 +77,7 @@ with config.nixos; {
       mathlibtools
       elan
       ## Rust
-      fenix.latest.rustc
+      rust-bin.nightly.latest.rustc
       rust-analyzer
       rustfmt
       # Build Tools
@@ -107,7 +107,7 @@ with config.nixos; {
 
     variables = {
       DOCKER_ID_USER = settings.docker.user;
-      RUST_SRC_PATH = pkgs.fenix.latest.rust-src + "/lib/rustlib/src/rust/library";
+      RUST_SRC_PATH = pkgs.rust-bin.nightly.latest.rust-src + "/lib/rustlib/src/rust/library";
     };
   };
 
