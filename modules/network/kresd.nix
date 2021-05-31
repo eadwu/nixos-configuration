@@ -7,7 +7,7 @@ let
   } ''
     grep . $src | grep -v '^#' | awk '{print $2}' | \
       perl -pe 's/\r\n$/\n/g' | sort | uniq | \
-      sed 's/$/ CNAME ./' > $out
+      sed 's/$/\tCNAME\t./' > $out
   '';
 in
 {
