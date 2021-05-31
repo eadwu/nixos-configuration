@@ -75,20 +75,24 @@ in
       -- Don't cache local tld
       policy.add(policy.suffix(policy.FLAGS('NO_CACHE'), { todname('local') }))
       -- Prefill root zone data
-      prefill.config({
-        ['.'] = {
-          url = 'https://www.internic.net/domain/root.zone',
-          interval = 86400, -- 1 day is roughly 86400 seconds
-          ca_file = '/etc/ssl/certs/ca-certificates.crt'
-        }
-      })
+      local prefill_root = coroutine.wrap(function ()
+        prefill.config({
+          ['.'] = {
+            url = 'https://www.internic.net/domain/root.zone',
+            interval = 86400, -- 1 day is roughly 86400 seconds
+            ca_file = '/etc/ssl/certs/ca-certificates.crt'
+          }
+        })
+      end)
 
       -- If /etc/hosts is too big, hints.add_hosts() fails and causes resource issues, so it's recommended to use `policy.rpz`
       -- If every program respect nsswitch this wouldn't be a problem but some don't
       -- So we convert /etc/hosts into it's RPZ equivalent and watch for changes to keep them in sync
       -- We don't need to keep the file in sync because it's generated through a Nix derivation
       -- https://wiki.archlinux.org/index.php/Domain_name_resolution
-      policy.add(policy.rpz(policy.DENY, '${hosts-rpz}', false))
+      local load_rpz = coroutine.wrap(function ()
+        policy.add(policy.rpz(policy.DENY, '${hosts-rpz}', false))
+      end)
 
       -- Forward queries through Cloudflare and Quad9
       policy.add(policy.slice(
@@ -110,6 +114,10 @@ in
           { '1.0.0.1', hostname = 'cloudflare-dns.com', ca_file = '/etc/ssl/certs/ca-certificates.crt' }
         })
       ))
+
+      -- Start offloaded coroutines
+      load_rpz()
+      prefill_root()
     '';
   };
 
