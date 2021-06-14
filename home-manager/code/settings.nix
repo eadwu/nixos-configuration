@@ -48,12 +48,9 @@ in
     "editorWidget.border" = "#616161";
   };
   "workbench.colorTheme" = "Material Theme Ocean";
-  "workbench.editorAssociations" = [
-    {
-      "viewType" = "jupyter-notebook";
-      "filenamePattern" = "*.ipynb";
-    }
-  ];
+  "workbench.editorAssociations" = {
+    "*.ipynb" = "jupyter-notebook";
+  };
   "workbench.list.smoothScrolling" = true;
   "workbench.iconTheme" = "vs-seti";
   "workbench.sideBar.location" = "right";
@@ -97,7 +94,6 @@ in
   "explorer.openEditors.visible" = 8;
   "search.smartCase" = true;
   "terminal.external.linuxExec" = "st";
-  "terminal.integrated.rendererType" = "experimentalWebgl";
   "scm.defaultViewMode" = "tree";
   "update.mode" = "none";
   "html.format.contentUnformatted" = "pre,code,style,textarea";
@@ -152,7 +148,6 @@ in
   "java.saveActions.organizeImports" = true;
   "jupyter.disableJupyterAutoStart" = true;
   "jupyter.searchForJupyter" = false;
-  "jupyter.useNotebookEditor" = false;
   "gopls" = {
     "expandWorkspaceToModule" = true;
     "experimentalWorkspaceModule" = true;
@@ -229,7 +224,6 @@ in
   "rust-analyzer.server.path" = "${rust-analyzer}/bin/rust-analyzer";
   "sqlite.sqlite3" = "${sqlite}/bin/sqlite3";
   "todo-tree.general.tags" = [ "BUG" "HACK" "FIXME" "TODO" "XXX" "[ ]" "[x]" ];
-  "todo-tree.tree.showScanModeButton" = false;
   "tslint.packageManager" = "yarn";
   "tslint.validateWithDefaultConfig" = true;
 }
