@@ -34,6 +34,7 @@ with config.nixos; {
           "audio"
           "wheel"
           "docker"
+          "plugdev"
           "libvirtd"
           "networkmanager"
           "systemd-journal"
