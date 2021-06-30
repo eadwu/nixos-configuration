@@ -41,6 +41,31 @@
 
       # LUKS
       "dm_crypt"
+
+      # VFIO
+      "vfio"
+      "vfio_iommu_type1"
+      "vfio_pci"
+      "vfio_virqfd"
+
+      # Virtio/Host passthrough
+      "vhost-net"
+      "virtio_net"
+      "virtio_pmem"
+      "virtio_blk"
+      "virtio_crypto"
+      "virtio-gpu"
+      "virtio_console"
+      "virtio-rng"
+      "virtio_rpmsg_bus"
+      "virtio_scsi"
+      "virtio_input"
+      "virtio"
+      "virtio_balloon"
+      "virtio_mmio"
+      "virtio_pci"
+      "virtio_ring"
+      "virtiofs"
     ];
 
     kernelParams = [
