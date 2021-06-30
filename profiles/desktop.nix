@@ -48,7 +48,7 @@ with config.nixos; {
       gcc
       gdb
       go
-      julia_15
+      julia-stable-bin
       llvmPackages.clang-unwrapped
       mongodb
       mariadb
@@ -77,6 +77,7 @@ with config.nixos; {
       mathlibtools
       elan
       ## Rust
+      rust-bin.nightly.latest.cargo
       rust-bin.nightly.latest.rustc
       rust-analyzer
       rustfmt
