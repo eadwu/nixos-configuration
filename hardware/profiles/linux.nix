@@ -38,6 +38,9 @@
       "uas"
       "sd_mod"
       "usb_storage"
+
+      # LUKS
+      "dm_crypt"
     ];
 
     kernelParams = [
