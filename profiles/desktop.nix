@@ -124,6 +124,7 @@ with config.nixos; {
     [
       anonymousPro
       eb-garamond
+      cascadia-code
       comfortaa
       corefonts
       font-awesome_5
