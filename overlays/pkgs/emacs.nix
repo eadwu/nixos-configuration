@@ -21,7 +21,6 @@ with final.pkgs;
             avy
             beacon
             company
-            company-lsp
             company-web
             counsel
             # cquery # cquery has been removed because it is abandoned by upstream. Consider switching to clangd or ccls instead.
@@ -32,7 +31,6 @@ with final.pkgs;
             emmet-mode
             flycheck
             hydra
-            interleave
             ivy-rich
             js2-mode
             lsp-java
