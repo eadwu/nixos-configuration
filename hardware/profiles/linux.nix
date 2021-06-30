@@ -12,7 +12,8 @@
 
     blacklistedKernelModules = [
       # https://wiki.archlinux.org/index.php/Improving_performance#Watchdogs
-      "iTCO_wdt"
+      # Intel, HP, IBM, Xen (VM)
+      # "iTCO_wdt" "hpwdt" "vmwatchdog" "xen_wdt"
     ];
 
     kernel.sysctl = {
