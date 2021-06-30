@@ -17,6 +17,24 @@
     pulse.enable = true;
   };
 
+  services.pipewire.media-session.config.bluez-monitor = {
+    properties = {
+      "bluez5.msbc-support" = true;
+      "bluez5.sbc-xq-support" = true;
+      "bluez5.codecs" = [ "sbc_xq" "sbc" ];
+    };
+
+    rules = [
+      {
+        matches = [ { "device.name" = "~bluez_card.*"; } ];
+        actions.update-props = {
+          "bluez5.a2dp.ldac.quality" = "hq";
+          "bluez5.a2dp.aac.bitratemode" = 5;
+        };
+      }
+    ];
+  };
+
   environment.systemPackages = with pkgs; [ pavucontrol pulsemixer pulseaudio ] # for pactl usage and finer output control
     ++ [ carla ] # JACK utilities
     ++ [ lsp-plugins dragonfly-reverb ladspa-bs2b rnnoise-plugin ] # Audio plugins
@@ -33,6 +51,4 @@
         )
         [ "dssi" "ladspa" "lv2" "lxvst" "vst" "vst3" ]
     ));
-
-  environment.etc."pipewire".source = pkgs.pipewire + "/etc/pipewire";
 }
