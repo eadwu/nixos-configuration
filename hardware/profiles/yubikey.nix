@@ -37,7 +37,7 @@ in
 
   boot.initrd.luks.devices = lib.genAttrs
     [ "cryptroot" "cryptswap" ]
-    (device: { yubikey = yubikey-config "/crypt-storage/${device}"; });
+    (device: { bypassWorkqueues = true; yubikey = yubikey-config "/crypt-storage/${device}"; });
 
   environment.systemPackages = with pkgs; [
     pam_u2f
