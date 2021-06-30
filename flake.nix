@@ -48,14 +48,14 @@
 
                 inherit (final._channels.nixos-stable-small)
                   # "Expensive" builds
-                  libreoffice-fresh
+                  rstudio libreoffice-fresh
                   ;
 
                 inherit (final._channels.nixos-unstable)
                   # Builds that have a high chance of not being broken
                   mailutils nix-prefetch-scripts
                   # "Expensive" builds
-                  rstudio chromium
+                  chromium lsp-plugins
                   ;
 
                 inherit (final._channels.nixpkgs-unstable)
