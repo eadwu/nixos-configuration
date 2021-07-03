@@ -21,9 +21,20 @@ with lib; {
   # Fails to compile
   documentation.enable = false;
   documentation.info.enable = false;
-  services.nixosManual.showManual = mkForce false;
+  documentation.nixos.enable = mkOverride (-100) false;
   fonts.fontconfig.enable = mkForce false;
   security.polkit.enable = mkForce false;
+
+  nixpkgs.overlays = [
+    (final: prev:
+      with final.pkgs;
+      {
+        gobject-introspection = prev.gobject-introspection.overrideAttrs (oldAttrs:
+          {
+            nativeBuildInputs = (oldAttrs.nativeBuildInputs or [ ]) ++ [ pkg-config ];
+          });
+      })
+  ];
 
   systemd.services.spew-debug-flies = {
     wantedBy = [ "network.target" "multi-user.target" ];
