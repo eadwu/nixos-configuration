@@ -1,16 +1,20 @@
 {
+  # Flake for compatibility with non-flake commands
   inputs.flake-compat = { type = "github"; owner = "edolstra"; repo = "flake-compat"; flake = false; };
 
+  # Flake Dependencies
+  inputs.external = { type = "github"; owner = "eadwu"; repo = "flakes"; inputs.nixpkgs.follows = "/nixpkgs"; };
+  inputs.home-manager = { type = "github"; owner = "nix-community"; repo = "home-manager"; inputs.nixpkgs.follows = "/nixpkgs"; };
+  inputs.impermanence = { type = "github"; owner = "nix-community"; repo = "impermanence"; };
+  inputs.rust-overlay = { type = "github"; owner = "oxalica"; repo = "rust-overlay"; inputs.nixpkgs.follows = "/nixpkgs"; };
+
+  # Nixpkgs Channels
   inputs.nixpkgs = { type = "github"; owner = "eadwu"; repo = "nixpkgs"; ref = "develop"; };
   inputs.nixos-stable = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixos-20.09"; };
   inputs.nixos-stable-small = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixos-20.09-small"; };
   inputs.nixos-unstable = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixos-unstable"; };
   inputs.nixos-unstable-small = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixos-unstable-small"; };
   inputs.nixpkgs-unstable = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixpkgs-unstable"; };
-  inputs.external = { type = "github"; owner = "eadwu"; repo = "flakes"; inputs.nixpkgs.follows = "/nixpkgs"; };
-  inputs.home-manager = { type = "github"; owner = "nix-community"; repo = "home-manager"; inputs.nixpkgs.follows = "/nixpkgs"; };
-  inputs.impermanence = { type = "github"; owner = "nix-community"; repo = "impermanence"; };
-  inputs.rust-overlay = { type = "github"; owner = "oxalica"; repo = "rust-overlay"; inputs.nixpkgs.follows = "/nixpkgs"; };
 
   outputs = { self, nixpkgs, ... }@inputs: with nixpkgs.lib; let
     baseSystem = { system ? "x86_64-linux", modules ? [ ], includeExternalOverlay ? true }@config: nixosSystem {
