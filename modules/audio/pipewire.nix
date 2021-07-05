@@ -17,18 +17,43 @@
     pulse.enable = true;
   };
 
+  services.pipewire.config.pipewire = {
+    "context.properties" = {
+      ## Configure properties in the system.
+      "link.max-buffers" = 64; # version < 3 clients can't handle more than 16
+      "clock.power-of-two-quantum" = true;
+
+      ## Properties for the DSP configuration.
+      "default.clock.rate" = 96000;
+    };
+  };
+
   services.pipewire.media-session.config.bluez-monitor = {
     properties = {
       "bluez5.msbc-support" = true;
       "bluez5.sbc-xq-support" = true;
-      "bluez5.codecs" = [ "sbc_xq" "sbc" ];
+      "bluez5.enable-hw-volume" = true;
+
+      # Enabled A2DP codecs
+      "bluez5.codecs" = [ "aac" "sbc_xq" "sbc" ];
+
+      # Properties for the A2DP codec configuration
+      "bluez5.default.rate" = 96000;
+      "bluez5.default.channels" = 2;
     };
 
     rules = [
       {
         matches = [ { "device.name" = "~bluez_card.*"; } ];
         actions.update-props = {
+          # LDAC encoding quality
+          # Available values: auto (Adaptive Bitrate, default)
+          #                   hq   (High Quality, 990/909kbps)
+          #                   sq   (Standard Quality, 660/606kbps)
+          #                   mq   (Mobile use Quality, 330/303kbps)
           "bluez5.a2dp.ldac.quality" = "hq";
+          # AAC variable bitrate mode
+          # Available values: 0 (cbr, default), 1-5 (quality level)
           "bluez5.a2dp.aac.bitratemode" = 5;
         };
       }
