@@ -4,6 +4,7 @@
   imports =
     [
       nixosModules.custom
+      nixosModules.sysfs
       "${modulesPath}/profiles/hardened.nix"
     ];
 
