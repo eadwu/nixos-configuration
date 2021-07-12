@@ -87,22 +87,22 @@ with final.pkgs; {
       {
         name = "auto-rename-tag";
         publisher = "formulahendry";
-        version = "0.1.6";
-        sha256 = "0cqg9mxkyf41brjq2c764w42lzyn6ffphw6ciw7xnqk1h1x8wwbs";
+        version = "0.1.7";
+        sha256 = "18w60kqpa444a2mvnj5mq58vvjilzc90kx0s6kpczx8g1m6wlgkh";
       }
 
       {
         name = "copilot";
         publisher = "GitHub";
-        version = "1.1.1944";
-        sha256 = "141rsa21n3aw5ip722ssp3r66ff2vv2p4dnf41jqfn0wflwgmr74";
+        version = "1.1.1959";
+        sha256 = "1hk26hjdqm90hnbpr8vxs3jcgkh2jwn1fi1blv289a3kb5phkrhf";
       }
 
       {
         name = "vscode-pull-request-github";
         publisher = "GitHub";
-        version = "0.27.1";
-        sha256 = "1y89yz7k2i81006p6pkwmhqhmxpdp83pwpajrnfcisadd91l4nfv";
+        version = "0.28.0";
+        sha256 = "0w8aa68xzzl5vw0blnfr6cx14qcifjmwiy5y19cnx71r59qlaf2i";
       }
 
       {
@@ -150,8 +150,8 @@ with final.pkgs; {
       {
         name = "lean";
         publisher = "jroesch";
-        version = "0.16.38";
-        sha256 = "161cqcg425lgmk0dcvlksfwr85d946rqh8v2rd3fnkxkmvw8gfqx";
+        version = "0.16.39";
+        sha256 = "0v1w0rmx2z7q6lfrl430fl6aq6n70y14s2fqsp734igdkdhdnvmk";
       }
 
       {
@@ -192,8 +192,8 @@ with final.pkgs; {
       {
         name = "rust-analyzer";
         publisher = "matklad";
-        version = "0.2.654";
-        sha256 = "0cv7gpqfhwij850a2zrdcqxgycmsf2cqgzj5cg211nf0bzpj8g2r";
+        version = "0.2.670";
+        sha256 = "08p8n87rixqixs292kp4gvx18i1h8d4xmdp06l01sbgdb0xn55ql";
       }
 
       {
@@ -234,15 +234,15 @@ with final.pkgs; {
       {
         name = "vscode-pylance";
         publisher = "ms-python";
-        version = "2021.6.3";
-        sha256 = "0j01368h0pjz8gjvrsrcip75lkq4zyv7glh9j3691xc43sfddviw";
+        version = "2021.7.2";
+        sha256 = "1xr6g7d09gdsh4ax9m5l4xiz6j7pg1nfb4j8b2r5nlpjqghyfdkj";
       }
 
       {
         name = "jupyter";
         publisher = "ms-toolsai";
-        version = "2021.8.993044620";
-        sha256 = "13lc0v61zsfjj3dg8j6jrxsnmvplh24xjri41f02s0r2qixcy1yi";
+        version = "2021.8.1013163132";
+        sha256 = "09sq1r366nlnfx4s95z9j0rpw1bam6569jr41qyx1ggzhphr1smr";
       }
 
       {
@@ -269,8 +269,8 @@ with final.pkgs; {
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.4498";
-        sha256 = "01gg9jqkq9z05ckw0mnqfr769359j6h3z8ay6r17jj6m4mhy2m5g";
+        version = "1.0.4531";
+        sha256 = "1idcfklcpnclf0n1l4xs2xxkmqm4smk3afkwijaj3qwcdzls0g06";
       }
 
       {
