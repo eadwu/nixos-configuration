@@ -16,6 +16,7 @@ with config.nixos; {
       ../modules/lorri.nix
       ../modules/monitoring
       ../modules/network
+      ../modules/oomd.nix
       ../modules/tlp.nix
       ../modules/users.nix
       ../modules/virtualisation.nix
