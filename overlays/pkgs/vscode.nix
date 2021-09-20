@@ -94,8 +94,8 @@ with final.pkgs; {
       {
         name = "copilot";
         publisher = "GitHub";
-        version = "1.4.2655";
-        sha256 = "0w879dkfawlkkl4i9ydhyxcs6y4cvdrr5qwq8iqkajq8xdzirqzc";
+        version = "1.4.2678";
+        sha256 = "0lycr32sibsdcqslqwk19fa9n644rmkb0hb7lzh9jr08wcp9gg1n";
       }
 
       {
@@ -157,8 +157,8 @@ with final.pkgs; {
       {
         name = "language-julia";
         publisher = "julialang";
-        version = "1.4.0";
-        sha256 = "0946j2vqh4g5fxd30z3j1ym8sv1zhn44ylkqfn5d0nd00c7i32fg";
+        version = "1.4.3";
+        sha256 = "0a3qvnhxzkw0rqbaas2zhbxr7zn8sk01ar587gn22g86ad3n296j";
       }
 
       {
@@ -234,15 +234,15 @@ with final.pkgs; {
       {
         name = "vscode-pylance";
         publisher = "ms-python";
-        version = "2021.9.1";
-        sha256 = "08lijgnyrn1vbs5aqb18w0xzzw6n4ss2m8a8zwyjk62l01ngmffg";
+        version = "2021.9.2";
+        sha256 = "0zm0x16cwmhxaqrxxim608gbfqvx18yikcnn5lyw87rxm4zr8syp";
       }
 
       {
         name = "jupyter";
         publisher = "ms-toolsai";
-        version = "2021.9.1001232960";
-        sha256 = "0llsqiandgkf2qr3qqsy5431mx0hjvfn51a37fdpcdws5q1zgygn";
+        version = "2021.9.1001244851";
+        sha256 = "1lngrzrnwd9q5773k5afwxrcm35srl0jmh0cs46nhbp4igs4ipgx";
       }
 
       {
@@ -304,8 +304,8 @@ with final.pkgs; {
       {
         name = "java";
         publisher = "redhat";
-        version = "0.81.0";
-        sha256 = "0xalsq3ar7h8czrc40b2kp8qa235w31mi9qqhh2hhlajg3hbdk6p";
+        version = "0.82.0";
+        sha256 = "1r0xz8f7qyfzsbz5xl925vzi11xyzwd97wlyca3cybv3dr0pg5p2";
       }
 
       {
