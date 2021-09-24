@@ -71,7 +71,12 @@ assert builtins.pathExists ./xmonad/xmonad.hs;
         font-4 = "Unifont:size=7;3";
         font-5 = "Weather Icons:size=8;4";
         font-6 = "LiterationSans Nerd Font Mono:size=18;12";
-      } // (with sysConfig.fonts.fontconfig; lib.optionalAttrs (dpi != 0) { inherit dpi; });
+      } // (
+        let
+          dpi = sysConfig.nixos.settings.xserver.dpi;
+        in
+        { inherit dpi; }
+      );
 
       "bar/workspace" = let
         temperature = "temperature0 temperature1 temperature2 temperature3 temperature4 temperature5 temperature6";

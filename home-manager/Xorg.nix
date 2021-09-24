@@ -23,10 +23,15 @@
     "*color14" = "#1de9b6";
     "*color15" = "#cccccc";
     "*color66" = "#0c0e14";
-  } // (with sysConfig.fonts.fontconfig; lib.optionalAttrs (dpi != 0) {
-    "*dpi" = dpi;
-    "Xft.dpi" = dpi;
-  });
+  } // (
+    let
+      dpi = sysConfig.nixos.settings.xserver.dpi;
+    in
+    lib.optionalAttrs (dpi != 0) {
+      "*dpi" = dpi;
+      "Xft.dpi" = dpi;
+    }
+  );
 
   xsession = {
     enable = true;

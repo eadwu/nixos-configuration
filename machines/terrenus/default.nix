@@ -20,10 +20,7 @@ with config.nixos; {
 
   environment.variables.QT_AUTO_SCREEN_SCALE_FACTOR = toString settings.xserver.dpiScale;
 
-  fonts.fontconfig = {
-    antialias = true;
-    dpi = 193;
-  };
+  fonts.fontconfig.antialias = true;
 
   console = {
     font = "ter-u28n";
@@ -31,7 +28,6 @@ with config.nixos; {
   };
 
   nixos.settings = {
-    xserver.dpiScale = 2;
     system.user = "xps";
     machine.hostname = "terrenus";
     machine.screen.width = 3840;
@@ -47,6 +43,11 @@ with config.nixos; {
       gpu = (-75);
       uncore = core;
       analogio = core;
+    };
+
+    xserver = {
+      dpi = 193;
+      dpiScale = 2;
     };
   };
 

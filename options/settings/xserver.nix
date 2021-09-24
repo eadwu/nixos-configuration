@@ -12,6 +12,14 @@ with lib;
       '';
     };
 
+    dpi = mkOption {
+      type = types.int;
+      default = 0;
+      description = ''
+        Set the DPI of the screen
+      '';
+    };
+
     dpiScale = mkOption {
       type = types.int;
       default = 1;
