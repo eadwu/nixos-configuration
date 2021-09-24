@@ -7,6 +7,11 @@ with config.nixos; {
       # ./openvpn.nix
     ];
 
+  # University network configuration files
+  systemd.tmpfiles.rules = [
+    "C /var/lib/iwd/eduroam.8021x   - - - - ${./templates/eduroam.8021x}"
+  ];
+
   boot.kernelModules = [
     # iwd crypto modules
     "algif_skcipher"

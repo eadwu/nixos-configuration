@@ -1,0 +1,8 @@
+[Security]
+EAP-Method=PEAP
+EAP-Identity=anonymous@buffalo.edu
+EAP-PEAP-Phase2-Method=MSCHAPV2
+
+[Settings]
+AutoConnect=true
+AlwaysRandomizeAddress=true
