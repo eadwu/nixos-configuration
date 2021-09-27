@@ -139,6 +139,8 @@ with config.nixos; {
       weather-icons
     ];
 
+  programs.dconf.enable = true;
+
   programs.gnupg.agent = {
     enable = true;
     pinentryFlavor = "qt";
@@ -165,6 +167,4 @@ with config.nixos; {
       }
     '') (builtins.attrNames commands);
   };
-
-  services.dbus.packages = [ pkgs.dconf ];
 }
