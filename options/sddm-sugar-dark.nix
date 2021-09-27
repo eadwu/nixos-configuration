@@ -16,7 +16,7 @@ let
 
   sugarConfig = pkgs.writeText "theme.conf" ''
     [General]
-    Background=${cfg.background}
+    Background=${optionalString (cfg.background != null) cfg.background}
     ScaleImageCropped=${boolToString cfg.scaleImageCropped}
     ScreenWidth=${toString cfg.width}
     ScreenHeight=${toString cfg.height}
@@ -145,7 +145,7 @@ in
   options = {
     services.xserver.displayManager.sddm.greeters.sugar-dark = {
       background = mkOption {
-        type = types.path;
+        type = types.nullOr types.path;
         default = config.nixos.settings.xserver.background;
       };
 
