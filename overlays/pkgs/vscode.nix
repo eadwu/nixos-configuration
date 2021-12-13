@@ -101,8 +101,8 @@ with final.pkgs; {
       {
         name = "vscode-pull-request-github";
         publisher = "GitHub";
-        version = "0.33.2021120309";
-        sha256 = "0qp23f2zri7qpyapkffn9lnkl4liahi4dqm9x0xi6wj9rdp6mjnc";
+        version = "0.35.2021121012";
+        sha256 = "1nnv2ycw0vmrbf9r4l1d2ilgrb9ldrzidmkcr7k0iyha8d9wyryd";
       }
 
       {
@@ -122,8 +122,8 @@ with final.pkgs; {
       {
         name = "haskell";
         publisher = "haskell";
-        version = "1.7.1";
-        sha256 = "11myrk3hcc2hdw2n07w092s78aa6igpm7rgvn7ac9rbkkvc66rsi";
+        version = "1.8.0";
+        sha256 = "0yzcibigxlvh6ilba1jpri2irsjnvyy74vzn3rydcywfc17ifkzs";
       }
 
       {
@@ -192,8 +192,8 @@ with final.pkgs; {
       {
         name = "rust-analyzer";
         publisher = "matklad";
-        version = "0.2.834";
-        sha256 = "1q5al9gbnw5vklpq4r3rkhq33dwsanv0hvaknzbr9p766wf836qv";
+        version = "0.2.842";
+        sha256 = "0zafpmz8bbmc60p2rw1q6znkxq4hgg4zkwhwgd5ji0pl3adyjgci";
       }
 
       {
@@ -234,15 +234,15 @@ with final.pkgs; {
       {
         name = "vscode-pylance";
         publisher = "ms-python";
-        version = "2021.12.0";
-        sha256 = "0pvhp63qgdlnj8znxxmwj7mzgpfqpicq3xis0js1hr0lsk7i5w04";
+        version = "2021.12.1";
+        sha256 = "0ca7l9hzk22jrsvpivaxdw448rkbmzf5h703ys6bahnm8iffw9ik";
       }
 
       {
         name = "jupyter";
         publisher = "ms-toolsai";
-        version = "2021.11.1001532801";
-        sha256 = "1c5ja0lqqvxsil83qxw9ly4sjk2c64j5m3mh6afihylnll446m8r";
+        version = "2022.1.1001562662";
+        sha256 = "18ik6qwxkb4w57437v6cj24b8psfs5i96kw67wp78hawrwjk3ii7";
       }
 
       {
@@ -269,8 +269,8 @@ with final.pkgs; {
       {
         name = "vsliveshare";
         publisher = "ms-vsliveshare";
-        version = "1.0.5090";
-        sha256 = "0pc4ls5w72vbf7lywd59rh7wf8icdz9w7czqzcnq5ic63452s3l1";
+        version = "1.0.5196";
+        sha256 = "0p1bkhypwws4ckpnzzgmih9rrmyaxw8rd3ldx5j5dy9fswvi7iq0";
       }
 
       {
