@@ -284,6 +284,7 @@ myManageHook = composeAll
     , className =? "Zenity"              --> doFloat
     , className =? "Nitrogen"            --> doFloat
     , className =? "Pinentry"            --> doFloat
+    , className =? "pinentry"            --> doFloat
     , className =? "Xfce4-screenshooter" --> doFloat
     , className =? "Oblogout"            --> doFloat
     , resource  =? "desktop_window"      --> doIgnore
