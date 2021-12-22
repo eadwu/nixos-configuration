@@ -21,16 +21,10 @@ with config.nixos; {
     "arc4"
   ];
 
-  environment.etc."iwd/main.conf".text = lib.generators.toINI {} {
-    # https://git.kernel.org/pub/scm/network/wireless/iwd.git/commit/?id=e10c6ada1203abe144830830f2314d1c9d870126
-    General.AddressRandomization = "network";
-  };
-
   networking = {
     hostName = settings.machine.hostname;
     enableIPv6 = true;
     dhcpcd.enable = lib.mkDefault false;
-    wireless.iwd.enable = lib.mkDefault true;
 
     timeServers = [
       # NIST
@@ -38,6 +32,14 @@ with config.nixos; {
       # Cloudflare
       "time.cloudflare.com"
     ] ++ options.networking.timeServers.default;
+  };
+
+  networking.wireless.iwd = {
+    enable = lib.mkDefault true;
+    settings = {
+      # https://git.kernel.org/pub/scm/network/wireless/iwd.git/commit/?id=e10c6ada1203abe144830830f2314d1c9d870126
+      General.AddressRandomization = "network";
+    };
   };
 
   services.chrony.enable = true;
