@@ -30,8 +30,8 @@
 
   services.pipewire.media-session.config.bluez-monitor = {
     properties = {
-      "bluez5.msbc-support" = true;
-      "bluez5.sbc-xq-support" = true;
+      "bluez5.enable-msbc" = true;
+      "bluez5.enable-sbc-xq" = true;
       "bluez5.enable-hw-volume" = true;
 
       # Enabled A2DP codecs
@@ -55,6 +55,11 @@
           # AAC variable bitrate mode
           # Available values: 0 (cbr, default), 1-5 (quality level)
           "bluez5.a2dp.aac.bitratemode" = 5;
+          # A2DP <-> HFP profile auto-switching (when device is default output)
+          # Available values: false, role (default), true
+          # 'role' will switch the profile if the recording application
+          # specifies Communication (or "phone" in PA) as the stream role.
+          "bluez5.autoswitch-profile" = "role";
         };
       }
     ];
