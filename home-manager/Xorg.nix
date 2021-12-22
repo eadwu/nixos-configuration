@@ -42,8 +42,17 @@
       size = 32 * sysConfig.nixos.settings.xserver.dpiScale;
     };
 
-    profileExtra = ''
-      nitrogen --restore
-    '';
+    profileExtra =
+      let
+        iccProfilePath = sysConfig.nixos.settings.xserver.iccProfile;
+      in
+      ''
+        ${lib.optionalString (iccProfilePath != null) ''
+        # Set ICC monitor profile
+        ${pkgs.xcalib}/bin/xcalib -d :0 ${sysConfig.nixos.settings.xserver.iccProfile}
+        ''}
+        # Restore background image
+        ${pkgs.nitrogen}/bin/nitrogen --restore
+      '';
   };
 }

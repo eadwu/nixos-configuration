@@ -48,6 +48,7 @@ with config.nixos; {
     xserver = {
       dpi = 193;
       dpiScale = 2;
+      iccProfile = ../../hardware/display/9570/FNVDR-LQ156D1.icc;
     };
   };
 

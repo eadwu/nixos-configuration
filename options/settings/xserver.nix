@@ -27,5 +27,13 @@ with lib;
         Sets how DPI should scale on X.Org
       '';
     };
+
+    iccProfile = mkOption {
+      type = types.nullOr types.path;
+      default = null;
+      description = ''
+        Color profile to apply to the default monitor (:0)
+      '';
+    };
   };
 }
