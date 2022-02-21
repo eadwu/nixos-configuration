@@ -49,6 +49,13 @@ with final.pkgs; {
       }
 
       {
+        name = "doxdocgen";
+        publisher = "cschlosser";
+        version = "1.3.2";
+        sha256 = "08dp9bqxsxxqw8pm1sryl14xrvicagqwlxi5cc1vmksjh30dmn1a";
+      }
+
+      {
         name = "vscode-eslint";
         publisher = "dbaeumer";
         version = "2.2.3";
@@ -93,15 +100,15 @@ with final.pkgs; {
       {
         name = "copilot";
         publisher = "GitHub";
-        version = "1.7.5003";
-        sha256 = "031zci42q6f5baimxf1ma0jzr8fbnzqjjj18qkz1z31yb7vgwrnv";
+        version = "1.7.5067";
+        sha256 = "0w776r53dr2gvy2rics992lb0ql2nml7a1z9vb6s716cv4a7gzy4";
       }
 
       {
         name = "vscode-pull-request-github";
         publisher = "GitHub";
-        version = "0.37.2022021107";
-        sha256 = "0rwym24z1fg7qqffgv8v3szdqkrv4pbb40s7wjqfgi8jmi5zhqir";
+        version = "0.37.2022021709";
+        sha256 = "0jc4nmy18wnlsrkvqzgp33rmls84g2d734cbh2rw373h0zi9hmfs";
       }
 
       {
@@ -140,6 +147,13 @@ with final.pkgs; {
       }
 
       {
+        name = "better-cpp-syntax";
+        publisher = "jeff-hykin";
+        version = "1.15.13";
+        sha256 = "1sm40wjiihi4f1zf748bfgp83ihxjrimkzv0xrvqdz3k8jfgn2ds";
+      }
+
+      {
         name = "nix-ide";
         publisher = "jnoortheen";
         version = "0.1.19";
@@ -149,8 +163,8 @@ with final.pkgs; {
       {
         name = "lean";
         publisher = "jroesch";
-        version = "0.16.45";
-        sha256 = "0y2fnjhzm3g5gqdfx1ji57p1708jrg8njnrhqmirmk9gi7ppg4kd";
+        version = "0.16.46";
+        sha256 = "1bwc9q4vn5hmrnjxzrwlf22wm1m627jmr31ywirimsxs1fxp5h84";
       }
 
       {
@@ -233,29 +247,50 @@ with final.pkgs; {
       {
         name = "vscode-pylance";
         publisher = "ms-python";
-        version = "2022.2.1";
-        sha256 = "0hp4i69qm3bli235ik9qijif8g2d7k1dpqshm17afhs8sr2dph60";
+        version = "2022.2.3";
+        sha256 = "01csiyr4wc0z4ppfnn0k5higzamg5rmkfxhk5ip4id966ipbfbdl";
       }
 
       {
         name = "jupyter";
         publisher = "ms-toolsai";
-        version = "2022.2.1001838602";
-        sha256 = "0zk4fp3wjmgirjy6yfd4zchaixcrayc5gszlyl2wism5rh4yziw3";
+        version = "2022.2.1010501003";
+        sha256 = "0q90yvc8z2y1sslm41yyp1vmkn4cb4ckhk5bm8xb21102xzvc48k";
+      }
+
+      {
+        name = "remote-containers";
+        publisher = "ms-vscode-remote";
+        version = "0.222.0";
+        sha256 = "0q81cpc2l14v6d5nk1j9lzd290ni15lvdfbqzv8fnmrrwsskray2";
+      }
+
+      {
+        name = "remote-ssh";
+        publisher = "ms-vscode-remote";
+        version = "0.75.2022021903";
+        sha256 = "1kxkkbyjw9b3999fq561c230ymfv7k8i46ccy8gyzz2lpq0nzyib";
       }
 
       {
         name = "azure-account";
         publisher = "ms-vscode";
-        version = "0.9.11";
-        sha256 = "0w389gqy6m35vdvl59x08wk2f63b8wllc8a1aclbs6hj9qrbg5ig";
+        version = "0.10.0";
+        sha256 = "0mh85d8nzzpa1li9mnvj1py4h9igb3fy04lrrzvsp6zydfj03dc2";
+      }
+
+      {
+        name = "cmake-tools";
+        publisher = "ms-vscode";
+        version = "1.9.2";
+        sha256 = "12r360fr38qq1cvssg0ajhhipcaymbdjjd9dncy4fb02ajha823s";
       }
 
       {
         name = "hexeditor";
         publisher = "ms-vscode";
-        version = "1.9.4";
-        sha256 = "0fvfsiqc54b1viy90ylkjb61dq8blpg9s8qvfdh1ng2n5c88wfb7";
+        version = "1.9.5";
+        sha256 = "1wq2wlkwfdd9my3287hm53zi34izsbvv1ichgiprzkahqdxczybs";
       }
 
       {
@@ -270,13 +305,6 @@ with final.pkgs; {
         publisher = "ms-vsliveshare";
         version = "1.0.5330";
         sha256 = "18sdbd1df09q0b6b5nn8vbh2qaa17ngplgq2rbns11lw11m98jyn";
-      }
-
-      {
-        name = "debugger-for-chrome";
-        publisher = "msjsdiag";
-        version = "4.13.0";
-        sha256 = "0r6l804dyinqfk012bmaynv73f07kgnvvxf74nc83pw61vvk5jk9";
       }
 
       {
@@ -387,8 +415,8 @@ with final.pkgs; {
       {
         name = "vscode-wakatime";
         publisher = "WakaTime";
-        version = "18.0.5";
-        sha256 = "0nwc0xrzf73bglqk9pcqzq6i7lv9ib1x52h2a9wafapiqv28csmx";
+        version = "18.0.6";
+        sha256 = "127w3150qgm5wbjrpi4fvs5a3jwhv7kbr3sfm8wf9274zv91mlvs";
       }
     ];
   };
