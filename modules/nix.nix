@@ -2,30 +2,12 @@
 
 with config.nixos; {
   nix = {
-    autoOptimiseStore = true;
-    buildCores = 0;
     distributedBuilds = true;
-    package = pkgs.nixUnstable;
-    requireSignedBinaryCaches = true;
-    useSandbox = true;
-    trustedUsers = [ "root" settings.system.user ];
-    allowedUsers = [ "@wheel" ];
-
-    binaryCaches = [
-      "https://sys.cachix.org/"
-      "https://cache.ngi0.nixos.org/"
-      "https://nix-community.cachix.org/"
-    ];
-
-    binaryCachePublicKeys = [
-      "sys.cachix.org-1:KrERagTDZBL9DkZrQb/+loTtpKBats1MxJ/Q+zmCKrg="
-      "cache.ngi0.nixos.org-1:KqH5CBLNSyX184S9BKZJo1LxrxJ9ltnY2uAs5c/f1MA="
-      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
-    ];
+    package = pkgs.nixVersions.unstable;
 
     extraOptions = ''
       show-trace = true
-      experimental-features = flakes nix-command ca-derivations ca-references
+      experimental-features = flakes nix-command ca-derivations
     '';
 
     nixPath =
@@ -45,6 +27,26 @@ with config.nixos; {
           from = { type = "indirect"; id = "custom"; };
           to = { type = "github"; owner = "eadwu"; repo = "flakes"; };
         };
+      };
+
+    settings =
+      {
+        sandbox = true;
+        trusted-users = [ "root" settings.system.user ];
+        require-sigs = true;
+        cores = 0;
+        substituters = [
+          "https://sys.cachix.org/"
+          "https://cache.ngi0.nixos.org/"
+          "https://nix-community.cachix.org/"
+        ];
+        trusted-public-keys = [
+          "sys.cachix.org-1:KrERagTDZBL9DkZrQb/+loTtpKBats1MxJ/Q+zmCKrg="
+          "cache.ngi0.nixos.org-1:KqH5CBLNSyX184S9BKZJo1LxrxJ9ltnY2uAs5c/f1MA="
+          "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+        ];
+        auto-optimise-store = true;
+        allowed-users = [ "@wheel" ];
       };
   };
 
@@ -75,6 +77,8 @@ with config.nixos; {
 
     config = {
       allowUnfree = true;
+      # Fully content-addressed system by default.
+      # contentAddressedByDefault = true;
       # Ensures no aliases.  Essentially attempt to keep up with the times.
       allowAliases = false;
     };
@@ -84,8 +88,8 @@ with config.nixos; {
   systemd.services.nix-daemon.serviceConfig.Slice = "user-nixbld.slice";
   systemd.slices.user-nixbld.sliceConfig = {
     # 200 * 12 / config.nix.maxJobs / 2
-    CPUWeight = toString (200 * 12 / (config.nix.maxJobs * 2));
+    CPUWeight = toString (200 * 12 / (config.nix.settings.max-jobs * 2));
     # config.nix.maxJobs / 12 / 2 * 1024
-    CPUShares = toString (1024 * config.nix.maxJobs / 24);
+    CPUShares = toString (1024 * config.nix.settings.max-jobs / 24);
   };
 }
