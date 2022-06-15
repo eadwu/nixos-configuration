@@ -2,7 +2,7 @@
 
 {
   systemd.package = pkgs.systemd.override { withOomd = true; };
-  systemd.additionalUpstreamSystemUnits = [ "systemd-oomd.service" ];
+  systemd.additionalUpstreamSystemUnits = [ "systemd-oomd.service" "systemd-oomd.socket" ];
 
   # oomd requires swap to be configured before it can run;
   # need to check for swapDevices mostly so that vm doesn't fail.
