@@ -67,7 +67,6 @@
     ];
     backend = "glx";
     vSync = false;
-    refreshRate = 0;
     settings = {
       # GLX backend
       glx-no-stencil = true;
