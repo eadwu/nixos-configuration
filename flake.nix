@@ -10,8 +10,8 @@
 
   # Nixpkgs Channels
   inputs.nixpkgs = { type = "github"; owner = "eadwu"; repo = "nixpkgs"; ref = "develop"; };
-  inputs.nixos-22_05 = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixos-21.11"; };
-  inputs.nixos-22_05-small = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixos-21.11-small"; };
+  inputs.nixos-22_05 = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixos-22.05"; };
+  inputs.nixos-22_05-small = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixos-22.05-small"; };
   inputs.nixos-unstable = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixos-unstable"; };
   inputs.nixos-unstable-small = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixos-unstable-small"; };
   inputs.nixpkgs-unstable = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixpkgs-unstable"; };
