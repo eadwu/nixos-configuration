@@ -33,14 +33,16 @@
     }
   );
 
+  home.pointerCursor = {
+    x11.enable = true;
+
+    name = "capitaine-cursors";
+    package = pkgs.capitaine-cursors;
+    size = 32 * sysConfig.nixos.settings.xserver.dpiScale;
+  };
+
   xsession = {
     enable = true;
-
-    pointerCursor = {
-      name = "capitaine-cursors";
-      package = pkgs.capitaine-cursors;
-      size = 32 * sysConfig.nixos.settings.xserver.dpiScale;
-    };
 
     profileExtra =
       let
