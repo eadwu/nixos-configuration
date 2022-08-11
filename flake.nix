@@ -128,7 +128,7 @@
           ({ ... }: {
             imports = [ ./machines/terrenus ];
 
-            nixpkgs.overlays = [ inputs.rust-overlay.overlay ];
+            nixpkgs.overlays = [ inputs.rust-overlay.overlays.default ];
 
             system.stateVersion = "20.03";
             system.configurationRevision = mkIf (self ? rev) self.rev;
