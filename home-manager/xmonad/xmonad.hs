@@ -278,6 +278,7 @@ myManageHook = composeAll
     , className =? "Element"             --> (doShift (fromJust $ (myWorkspaces !!! 3)))
     , className =? "Mail"                --> (doShift (fromJust $ (myWorkspaces !!! 4)))
     , className =? "Thunderbird"         --> (doShift (fromJust $ (myWorkspaces !!! 4)))
+    , className =? "thunderbird"         --> (doShift (fromJust $ (myWorkspaces !!! 4)))
     , className =? "Slack"               --> (doShift (fromJust $ (myWorkspaces !!! 5)))
     , title     =? "GLava"               --> doFloat
     , title     =? "Notejot"             --> doFloat
