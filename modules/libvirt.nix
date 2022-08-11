@@ -5,9 +5,9 @@
 
   virtualisation.libvirtd = {
     enable = true;
-    qemuOvmf = true;
     onBoot = "ignore";
     onShutdown = "shutdown";
+    qemu.ovmf.enable = true;
   };
 
   systemd.services.qemu-libvirtd-init = {
