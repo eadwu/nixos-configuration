@@ -16,6 +16,9 @@
   inputs.nixos-unstable-small = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixos-unstable-small"; };
   inputs.nixpkgs-unstable = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixpkgs-unstable"; };
 
+  # WSL2 Support
+  inputs.wsl = { type = "github"; owner = "nix-community"; repo = "NixOS-WSL"; };
+
   outputs = { self, nixpkgs, ... }@inputs: with nixpkgs.lib; let
     baseSystem = { system ? "x86_64-linux", modules ? [ ], includeExternalOverlay ? true }@config: nixosSystem {
       inherit system;
@@ -36,6 +39,8 @@
 
       modules =
         (optional includeExternalOverlay { nixpkgs.overlays = mkBefore (builtins.attrValues inputs.external.overlays); })
+        ++
+        [ inputs.wsl.nixosModules.wsl ]
         ++
         [
           {
