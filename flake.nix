@@ -4,6 +4,7 @@
 
   # Flake Dependencies
   inputs.external = { type = "github"; owner = "eadwu"; repo = "flakes"; inputs.nixpkgs.follows = "/nixpkgs"; };
+  inputs.deploy-rs = { type = "github"; owner = "serokell"; repo = "deploy-rs"; };
   inputs.home-manager = { type = "github"; owner = "nix-community"; repo = "home-manager"; inputs.nixpkgs.follows = "/nixpkgs"; };
   inputs.impermanence = { type = "github"; owner = "nix-community"; repo = "impermanence"; };
   inputs.rust-overlay = { type = "github"; owner = "oxalica"; repo = "rust-overlay"; inputs.nixpkgs.follows = "/nixpkgs"; };
