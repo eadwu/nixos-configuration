@@ -18,7 +18,7 @@
   inputs.nixpkgs-unstable = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixpkgs-unstable"; };
 
   # WSL2 Support
-  inputs.wsl = { type = "github"; owner = "nix-community"; repo = "NixOS-WSL"; };
+  inputs.wsl = { type = "github"; owner = "eadwu"; repo = "NixOS-WSL"; inputs.nixpkgs.follows = "/nixpkgs"; };
 
   outputs = { self, nixpkgs, ... }@inputs: with nixpkgs.lib; let
     baseSystem = { system ? "x86_64-linux", modules ? [ ], includeExternalOverlay ? true }@config: nixosSystem {
