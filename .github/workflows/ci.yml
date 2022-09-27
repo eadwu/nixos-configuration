@@ -1,4 +1,4 @@
-name: nixos-configuration
+name: Installation ISO
 
 on:
   push:
@@ -48,7 +48,7 @@ jobs:
             experimental-features = nix-command flakes
       - name: Nix build
         run: |
-          nix-shell -p nixFlakes --run \
+          nix-shell -p nixVersions.stable --run \
             'nix build --print-build-logs --recreate-lock-file "$(pwd)#${{ matrix.attr }}"'
       - uses: actions/upload-artifact@v2.0.1
         continue-on-error: true
