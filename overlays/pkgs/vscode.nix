@@ -65,15 +65,15 @@ with final.pkgs; {
       {
         name = "githistory";
         publisher = "donjayamanne";
-        version = "0.6.19";
-        sha256 = "15s2mva9hg2pw499g890v3jycncdps2dmmrmrkj3rns8fkhjn8b3";
+        version = "0.6.20";
+        sha256 = "0x9q7sh5l1frpvfss32ypxk03d73v9npnqxif4fjwcfwvx5mhiww";
       }
       
       {
         name = "gitlens";
         publisher = "eamodio";
-        version = "2023.2.2411";
-        sha256 = "1sb2gcv5simc4rm8fx0zyryz7nsbmm9jbxzrh2n4x8852db1cjvf";
+        version = "2023.3.504";
+        sha256 = "03g6pjf20aybmxadqwdamfnav92a76yw2ln6g6m673i7b5ggsjkp";
       }
       
       {
@@ -86,8 +86,8 @@ with final.pkgs; {
       {
         name = "vsc-material-theme-icons";
         publisher = "equinusocio";
-        version = "2.5.0";
-        sha256 = "1cfrdadwcvkdb4mxkfiqpsq19kngnk98cm3qanv494vr2rrfbbar";
+        version = "2.6.1";
+        sha256 = "1gg122sm82s7ci4zry0k6cwfi8qh8fcs3k3xk7fpnxl5cyrcf38m";
       }
       
       {
@@ -100,22 +100,22 @@ with final.pkgs; {
       {
         name = "copilot";
         publisher = "GitHub";
-        version = "1.75.8985";
-        sha256 = "1lf37d4vqq0sidv10cyanlnd1dyr7finyarkw56wlip338jdrba5";
+        version = "1.77.9225";
+        sha256 = "1awqw7bpyvw72hnj9l1hx21djgjpjl15h5pq5la408ll4rd2645m";
       }
       
       {
         name = "vscode-pull-request-github";
         publisher = "GitHub";
-        version = "0.59.2023022411";
-        sha256 = "1k793nf639dc55n4p99gslzwn0y5f2rzjzbqq60sgbxwpzky61kz";
+        version = "0.59.2023030209";
+        sha256 = "0y5hm52w71j8jya9m78278c4x7qa6z1c8cfm2mymg5f3s7daqj9z";
       }
       
       {
         name = "go";
         publisher = "golang";
-        version = "0.37.1";
-        sha256 = "0z81mi7x3w1pd4n7prnzm3dy05s2fx8crkc7il60k0qw95aqrs64";
+        version = "0.38.0";
+        sha256 = "0i2kmlabpsvrb02ljy9asdlhqssm6as3h438rq0lx67qbjwsirf0";
       }
       
       {
@@ -184,8 +184,8 @@ with final.pkgs; {
       {
         name = "magit";
         publisher = "kahole";
-        version = "0.6.36";
-        sha256 = "0fkrjcw3kiggdqd81v03q80mgdv6ykckpi25mcj9jp4vz027dgg3";
+        version = "0.6.39";
+        sha256 = "0ljmrgyd6sxd40gg0l82nxrp90dnaj20r1lc1wgmkv02v9qqrpq7";
       }
       
       {
@@ -205,8 +205,8 @@ with final.pkgs; {
       {
         name = "vscode-language-babel";
         publisher = "mgmcdermott";
-        version = "0.0.36";
-        sha256 = "0v2xqry7pgwnzxi534v2rrbkfz9gvvbyc2px2g0xpbaaz3rrz6kd";
+        version = "0.0.37";
+        sha256 = "0jysd37x6j6r8vagkqqxjrmjda27fv3p8b9f97npifmw3n46p931";
       }
       
       {
@@ -247,8 +247,8 @@ with final.pkgs; {
       {
         name = "dotnet-interactive-vscode";
         publisher = "ms-dotnettools";
-        version = "1.0.4121051";
-        sha256 = "1xgbrzw2r8q97gfc02nn276ghqff2hj2jpryapw8rnwbdj04p7g5";
+        version = "1.0.4153011";
+        sha256 = "0zwy0dsz056pda5yq56qnkqqpdpdcf8cn3s5qhv1vph4qx72ikbp";
       }
       
       {
@@ -261,29 +261,29 @@ with final.pkgs; {
       {
         name = "vscode-pylance";
         publisher = "ms-python";
-        version = "2023.2.43";
-        sha256 = "033lg3rzwpjpq8q131x464vnk8jps5w6hwr1z3lgdkc3ljz755kq";
+        version = "2023.3.11";
+        sha256 = "1cniqhjyzjc9zn9dhr9dnj416f9j5lrd0x6z0clhxa5i0hsc2sb8";
       }
       
       {
         name = "jupyter";
         publisher = "ms-toolsai";
-        version = "2023.2.1000561009";
-        sha256 = "04z4ykkzdnan0dwmbcd8s4snc76asm2y9mzpdamazwhvrw56fwc7";
+        version = "2023.3.1000641008";
+        sha256 = "1xpah1dxzc7bm2w3sv88hxzb51zla8534lb9hq8q5kcc0s6njm83";
       }
       
       {
         name = "remote-containers";
         publisher = "ms-vscode-remote";
-        version = "0.281.0";
-        sha256 = "1n0c7mr9pa5lvsc372vxx8j99ig0i90a56gjal96pqizmfi8ddpp";
+        version = "0.283.0";
+        sha256 = "13b33xymj8ah7v4rmc1swj5w0jwr5ynwxjjbks75c76hnw6779id";
       }
       
       {
         name = "remote-ssh";
         publisher = "ms-vscode-remote";
-        version = "0.97.2023022415";
-        sha256 = "0vrf83vj83wra4zaznx34icgni33bs083cqfr8kq6pw5snrz72sy";
+        version = "0.99.2023030315";
+        sha256 = "08i9zymgxl1ddqkq4gbz7qvbmnaaqf367n8qzc7srix512py669r";
       }
       
       {
@@ -296,8 +296,8 @@ with final.pkgs; {
       {
         name = "cmake-tools";
         publisher = "ms-vscode";
-        version = "1.14.14";
-        sha256 = "1zykdn1vm1pgz842ld5g7jrm2vin9if47ja6xpq2mxn5j6bap1qv";
+        version = "1.14.15";
+        sha256 = "1kils3rjkkl7xdc8wyw0df094syr0g3w8k5yzs4i0rs0n7bqd3hn";
       }
       
       {
@@ -352,8 +352,8 @@ with final.pkgs; {
       {
         name = "java";
         publisher = "redhat";
-        version = "1.16.2023022403";
-        sha256 = "sha256-C5/HyzRIqh4rIaa7llTnjx3xhElZPR/aZm/zYwPmpd4=";
+        version = "1.16.2023030303";
+        sha256 = "sha256-OWnqOiM7Q2FnxIIte7MhZT8n80Ivj35ncIA7eaXidOY=";
       }
       
       {
@@ -366,8 +366,8 @@ with final.pkgs; {
       {
         name = "rust-analyzer";
         publisher = "rust-lang";
-        version = "0.4.1417";
-        sha256 = "01l4j2vhyz7yryb5k6g28xcpaw5mbb06pj01mc8ffyn9m7rvp4l7";
+        version = "0.4.1425";
+        sha256 = "sha256-MCKtZctmR4HZTGOJSty2+nxu0heeIcWjUPz45QyQgUM=";
       }
       
       {
@@ -415,8 +415,8 @@ with final.pkgs; {
       {
         name = "vscode-java-debug";
         publisher = "vscjava";
-        version = "0.48.2023021407";
-        sha256 = "1ihipaacqdymazz8hng55lk8dd32dqy4dvfzdrbnlanj0vx1dzp2";
+        version = "0.49.2023022723";
+        sha256 = "07z14s65ajxax92yxh6i9kd071xf2i51p3mslcn12g9m14nvgq8d";
       }
       
       {
@@ -429,15 +429,15 @@ with final.pkgs; {
       {
         name = "vscode-java-test";
         publisher = "vscjava";
-        version = "0.37.2023021802";
-        sha256 = "0l0r55g2zqf1i3n2i6b152pax1k2macasdn6lv539irv8bkn3lcb";
+        version = "0.38.2023030203";
+        sha256 = "1paya269aypzs13cbvy9ns3mwkvp4vmjhg6yn6lw1iq1p4gqvaxc";
       }
       
       {
         name = "vscode-maven";
         publisher = "vscjava";
-        version = "0.40.2023020103";
-        sha256 = "1dgagzk61i5v6wby673x3wsdm8v803lrifwlpy8dnsmz97gasjvl";
+        version = "0.40.2023030203";
+        sha256 = "1pxjm2wdyss35xx5if5b9a8mcar1fzdy0mr3am2l5sr8qpbx8v2a";
       }
       
       {
