@@ -3,7 +3,7 @@
 {
   imports =
     [
-      ./blender.nix
+      # ./blender.nix
       ./code.nix
       ./clight.nix
       ./dunst.nix
@@ -22,7 +22,7 @@
     ];
 
   home.activation.setXDGbrowser = lib.hm.dag.entryBefore [ "linkGeneration" ] ''
-    xdg-settings set default-web-browser vivaldi-snapshot.desktop
+    ${pkgs.xdg-utils}/bin/xdg-settings set default-web-browser vivaldi-snapshot.desktop
   '';
 
   xdg.mimeApps.defaultApplications =
@@ -49,6 +49,7 @@
     discord-canary
     element-desktop
     evince
+    # eww
     ghidra-bin
     gimp
     gnome.gnome-system-monitor
@@ -56,10 +57,10 @@
     jetbrains.idea-ultimate
     krita
     libreoffice-fresh
-    rstudioWrapper
+    # rstudioWrapper
     slack
     thunderbird
-    typora
+    # typora
     vivaldi-snapshot
     woeusb
     xournalpp
@@ -80,7 +81,10 @@
 
     # Benchmarks
     mprime
-    unigine-valley
+    # unigine-valley
+
+    # Other
+    gephi
   ];
 
   nixpkgs = {
