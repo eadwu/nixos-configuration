@@ -42,7 +42,7 @@ in
   environment.systemPackages = with pkgs; [
     pam_u2f
     yubico-pam
-    yubioath-desktop
+    yubioath-flutter
     yubikey-personalization
   ];
 
