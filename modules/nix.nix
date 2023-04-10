@@ -35,16 +35,6 @@ with config.nixos; {
         trusted-users = [ "root" settings.system.user ];
         require-sigs = true;
         cores = 0;
-        substituters = [
-          "https://sys.cachix.org/"
-          "https://cache.ngi0.nixos.org/"
-          "https://nix-community.cachix.org/"
-        ];
-        trusted-public-keys = [
-          "sys.cachix.org-1:KrERagTDZBL9DkZrQb/+loTtpKBats1MxJ/Q+zmCKrg="
-          "cache.ngi0.nixos.org-1:KqH5CBLNSyX184S9BKZJo1LxrxJ9ltnY2uAs5c/f1MA="
-          "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
-        ];
         auto-optimise-store = true;
         allowed-users = [ "@wheel" ];
       };
