@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: Remove old artifacts
-        uses: c-hive/gha-remove-artifacts@v1.2.0
+        uses: c-hive/gha-remove-artifacts@v1.3.0
         with:
           age: '1 day'
           skip-recent: 4
@@ -38,10 +38,10 @@ jobs:
           sudo apt clean
           docker rmi $(docker image ls -aq)
           df -h
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v3.5.3
         with:
           fetch-depth: 0
-      - uses: cachix/install-nix-action@v17
+      - uses: cachix/install-nix-action@v22
         with:
           nix_path: nixpkgs=https://github.com/eadwu/nixpkgs/archive/develop.tar.gz
           extra_nix_config: |
@@ -50,7 +50,7 @@ jobs:
         run: |
           nix-shell -p nixVersions.stable --run \
             'nix build --print-build-logs --recreate-lock-file "$(pwd)#${{ matrix.attr }}"'
-      - uses: actions/upload-artifact@v2.0.1
+      - uses: actions/upload-artifact@v3.1.2
         continue-on-error: true
         with:
           name: ${{ matrix.attr }}
