@@ -14,7 +14,10 @@
     "i915.enable_guc=-1"
   ];
 
-  environment.systemPackages = with pkgs; [ libva-utils ];
+  environment.systemPackages = with pkgs; [
+    intel-gpu-tools
+    libva-utils
+  ];
   environment.sessionVariables.MESA_LOADER_DRIVER_OVERRIDE = lib.mkDefault "iris";
 
   hardware.opengl.extraPackages = with pkgs; [ vaapiIntel intel-ocl intel-media-driver intel-compute-runtime ];
