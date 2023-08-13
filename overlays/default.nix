@@ -43,10 +43,6 @@ in
       pulseSupport = true;
     };
 
-    typora = prev.typora.override {
-      withPandoc = true;
-    };
-
     intel-vaapi-driver = prev.intel-vaapi-driver.override {
       enableHybridCodec = true;
     };
