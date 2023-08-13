@@ -78,10 +78,20 @@ with config.nixos; {
       mathlibtools
       elan
       ## Rust
-      rust-bin.nightly.latest.cargo
-      rust-bin.nightly.latest.rustc
+      (with fenix; combine [
+        complete.toolchain
+        targets.aarch64-unknown-linux-gnu.latest.rust-std
+        targets.x86_64-apple-darwin.latest.rust-std
+        targets.x86_64-pc-windows-gnu.latest.rust-std
+        targets.x86_64-pc-windows-msvc.latest.rust-std
+        targets.x86_64-unknown-linux-gnu.latest.rust-std
+        targets.aarch64-apple-darwin.latest.rust-std
+        targets.x86_64-unknown-linux-musl.latest.rust-std
+        targets.wasm32-unknown-emscripten.latest.rust-std
+        targets.wasm32-unknown-unknown.latest.rust-std
+        targets.wasm32-wasi.latest.rust-std
+      ])
       rust-analyzer
-      rustfmt
       # Build Tools
       bazel
       bazel-buildtools
@@ -109,7 +119,7 @@ with config.nixos; {
 
     variables = {
       DOCKER_ID_USER = settings.docker.user;
-      RUST_SRC_PATH = pkgs.rust-bin.nightly.latest.rust-src + "/lib/rustlib/src/rust/library";
+      RUST_SRC_PATH = pkgs.fenix.complete.rust-src + "/lib/rustlib/src/rust/library";
     };
   };
 

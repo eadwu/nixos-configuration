@@ -7,7 +7,7 @@
   inputs.deploy-rs = { type = "github"; owner = "serokell"; repo = "deploy-rs"; };
   inputs.home-manager = { type = "github"; owner = "nix-community"; repo = "home-manager"; inputs.nixpkgs.follows = "/nixpkgs"; };
   inputs.impermanence = { type = "github"; owner = "nix-community"; repo = "impermanence"; };
-  inputs.rust-overlay = { type = "github"; owner = "oxalica"; repo = "rust-overlay"; inputs.nixpkgs.follows = "/nixpkgs"; };
+  inputs.fenix = { type = "github"; owner = "nix-community"; repo = "fenix"; inputs.nixpkgs.follows = "/nixpkgs"; };
 
   # Nixpkgs Channels
   inputs.nixpkgs = { type = "github"; owner = "eadwu"; repo = "nixpkgs"; ref = "develop"; };
@@ -42,7 +42,12 @@
       modules =
         (optional includeExternalOverlay { nixpkgs.overlays = mkBefore (builtins.attrValues inputs.external.overlays); })
         ++
-        [ inputs.wsl.nixosModules.wsl ]
+        [
+          inputs.wsl.nixosModules.wsl
+          { nixpkgs.overlays = [
+            inputs.fenix.overlays.default
+          ]; }
+        ]
         ++
         [
           {
