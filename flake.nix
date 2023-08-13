@@ -43,7 +43,6 @@
         (optional includeExternalOverlay { nixpkgs.overlays = mkBefore (builtins.attrValues inputs.external.overlays); })
         ++
         [
-          inputs.wsl.nixosModules.wsl
           { nixpkgs.overlays = [
             inputs.fenix.overlays.default
           ]; }
