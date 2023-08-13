@@ -16,5 +16,7 @@ in
     security.sudo.extraConfig = ''
       ${settings.system.user} ALL=(ALL:ALL) NOPASSWD: ${kbd_backlight}/bin/kbd_backlight
       ${settings.system.user} ALL=(ALL:ALL) NOPASSWD: ${mon_backlight}/bin/mon_backlight
+      ${settings.system.user} ALL=(ALL:ALL) NOPASSWD: /run/current-system/sw/bin/kbd_backlight
+      ${settings.system.user} ALL=(ALL:ALL) NOPASSWD: /run/current-system/sw/bin/mon_backlight
     '';
   }
