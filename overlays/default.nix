@@ -47,7 +47,7 @@ in
       withPandoc = true;
     };
 
-    vaapiIntel = prev.vaapiIntel.override {
+    intel-vaapi-driver = prev.intel-vaapi-driver.override {
       enableHybridCodec = true;
     };
 

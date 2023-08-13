@@ -19,8 +19,14 @@
     libva-utils
   ];
   environment.sessionVariables.MESA_LOADER_DRIVER_OVERRIDE = lib.mkDefault "iris";
+  environment.sessionVariables.VDPAU_DRIVER = lib.mkDefault "va_gl";
 
-  hardware.opengl.extraPackages = with pkgs; [ vaapiIntel intel-ocl intel-media-driver intel-compute-runtime ];
+  hardware.opengl.extraPackages = with pkgs; [
+    intel-vaapi-driver
+    intel-media-driver
+    libvdpau-va-gl
+    intel-compute-runtime
+  ];
 
   services.xserver = {
     useGlamor = true;
