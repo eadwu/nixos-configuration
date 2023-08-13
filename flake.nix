@@ -11,8 +11,8 @@
 
   # Nixpkgs Channels
   inputs.nixpkgs = { type = "github"; owner = "eadwu"; repo = "nixpkgs"; ref = "develop"; };
-  inputs.nixos-22_11 = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixos-22.11"; };
-  inputs.nixos-22_11-small = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixos-22.11-small"; };
+  inputs.nixos-23_05 = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixos-23.05"; };
+  inputs.nixos-23_05-small = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixos-23.05-small"; };
   inputs.nixos-unstable = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixos-unstable"; };
   inputs.nixos-unstable-small = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixos-unstable-small"; };
   inputs.nixpkgs-unstable = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixpkgs-unstable"; };
@@ -51,12 +51,12 @@
           {
             nixpkgs.overlays = mkBefore [
               (final: prev: {
-                inherit (final._channels.nixos-22_11)
+                inherit (final._channels.nixos-23_05)
                   # Broken builds on `nixpkgs`
                   ark buku krita
                   ;
 
-                inherit (final._channels.nixos-22_11-small)
+                inherit (final._channels.nixos-23_05-small)
                   # "Expensive" builds
                   rstudio libreoffice-fresh
                   ;
@@ -88,7 +88,7 @@
                 };
 
                 _channels = genAttrs
-                  [ "nixos-22_11" "nixos-22_11-small" "nixos-unstable" "nixos-unstable-small" "nixpkgs-unstable" "nixpkgs" ]
+                  [ "nixos-23_05" "nixos-23_05-small" "nixos-unstable" "nixos-unstable-small" "nixpkgs-unstable" "nixpkgs" ]
                   (channel: import inputs.${channel} { inherit system; config.allowUnfree = true; });
               })
             ];
