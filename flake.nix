@@ -27,12 +27,13 @@
       specialArgs = rec {
         flakes = genAttrs (builtins.attrNames inputs)
           (flake:
-            (if (inputs.${flake} ? packages && inputs.${flake}.packages ? ${system})
+            inputs.${flake}
+            // (if (inputs.${flake} ? packages && inputs.${flake}.packages ? ${system})
             then inputs.${flake}.packages.${system}
             else { })
             // {
+              version = builtins.substring 0 8 inputs.${flake};
               path = inputs.${flake};
-              nixosModules = inputs.${flake}.nixosModules or { };
             });
 
         nixosModules = foldl recursiveUpdate { } (map (flake: flake.nixosModules or { }) (attrValues flakes));
