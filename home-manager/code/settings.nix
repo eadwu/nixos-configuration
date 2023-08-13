@@ -2,18 +2,14 @@
 
 with pkgs;
 
-let
-  JAVA_HOME = "${openjdk}/lib/openjdk";
-in
 {
   "diffEditor.ignoreTrimWhitespace" = false;
   "editor.cursorBlinking" = "smooth";
-  "editor.cursorSmoothCaretAnimation" = true;
-  "editor.fontFamily" = "'Anonymous Pro', 'Recursive Mono Linear Static', 'Rec Mono Linear', 'IBM Plex Mono'";
-  "editor.fontLigatures" = "'ss01','ss05','ss08','ss09','ss20'";
-  "editor.fontSize" = 13;
+  "editor.cursorSmoothCaretAnimation" = "on";
+  "editor.fontFamily" = "'IntelOne Mono', 'Rec Mono Duotone', 'Cascadia Code', 'Anonymous Pro', 'IBM Plex Mono'";
+  "editor.fontLigatures" = "'calt','ss01','ss03','ss05','ss08','ss09','ss12','ss20'";
+  "editor.fontSize" = 14;
   "editor.fontWeight" = "normal";
-  "editor.lineHeight" = 20;
   "editor.lineNumbers" = "relative";
   "editor.multiCursorModifier" = "ctrlCmd";
   "editor.quickSuggestions" = {
@@ -21,7 +17,6 @@ in
     "comments" = true;
     "strings" = true;
   };
-  "editor.renderIndentGuides" = false;
   "editor.renderWhitespace" = "boundary";
   "editor.rulers" = [
     80
@@ -33,6 +28,7 @@ in
   "editor.tabSize" = 2;
   "editor.wordWrap" = "off";
   "editor.minimap.showSlider" = "always";
+  "telemetry.telemetryLevel" = "off";
   "workbench.colorCustomizations" = {
     "activityBarBadge.background" = "#616161";
     "list.activeSelectionForeground" = "#616161";
@@ -48,11 +44,8 @@ in
     "editorWidget.border" = "#616161";
   };
   "workbench.colorTheme" = "Material Theme Ocean";
-  "workbench.editorAssociations" = {
-    "*.ipynb" = "jupyter-notebook";
-  };
   "workbench.list.smoothScrolling" = true;
-  "workbench.iconTheme" = "vs-seti";
+  "workbench.iconTheme" = "eq-material-theme-icons-darker";
   "workbench.sideBar.location" = "right";
   "workbench.tree.expandMode" = "singleClick";
   "breadcrumbs.enabled" = true;
@@ -61,6 +54,7 @@ in
   "files.associations" = {
     "bspwmrc" = "shellscript";
     "sxhkdrc" = "shellscript";
+    "*.proto" = "go";
     "*.pug" = "jade";
     "*.toml" = "ini";
     "*.conkyrc" = "lua";
@@ -74,6 +68,7 @@ in
     "**/.hg" = true;
     "**/CVS" = true;
     "**/.DS_Store" = false;
+    "**/Thumbs.db" = true;
     "**/*.olean" = true;
   };
   "files.insertFinalNewline" = true;
@@ -93,7 +88,10 @@ in
   "explorer.incrementalNaming" = "smart";
   "explorer.openEditors.visible" = 8;
   "search.smartCase" = true;
-  "terminal.external.linuxExec" = "st";
+  "terminal.external.linuxExec" = "kitty";
+  "terminal.integrated.commandsToSkipShell" = [
+    "language-julia.interrupt"
+  ];
   "scm.defaultViewMode" = "tree";
   "update.mode" = "none";
   "html.format.contentUnformatted" = "pre,code,style,textarea";
@@ -105,6 +103,8 @@ in
   "javascript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBrackets" = true;
   "javascript.format.insertSpaceBeforeFunctionParenthesis" = true;
   "javascript.referencesCodeLens.enabled" = true;
+  "julia.enableTelemetry" = false;
+  "julia.symbolCacheDownload" = true;
   "typescript.format.insertSpaceAfterConstructor" = true;
   "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces" = true;
   "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBrackets" = true;
@@ -122,8 +122,7 @@ in
   "git.showPushSuccessNotification" = true;
   "C_Cpp.clang_format_path" = "${llvmPackages.clang-unwrapped}/bin/clang-format";
   "C_Cpp.clang_format_fallbackStyle" = "LLVM";
-  "C_Cpp.formatting" = "Disabled";
-  "C_Cpp.intelliSenseEngineFallback" = "Enabled";
+  "C_Cpp.formatting" = "disabled";
   "C_Cpp.workspaceParsingPriority" = "medium";
   "clang.executable" = "${clang}/bin/clang";
   "cmake.cmakePath" = "${cmake}/bin/cmake";
@@ -142,20 +141,15 @@ in
     "containers"
     "blocks"
   ];
-  "java.home" = JAVA_HOME;
   "java.implementationsCodeLens.enabled" = true;
   "java.referencesCodeLens.enabled" = true;
   "java.saveActions.organizeImports" = true;
   "jupyter.disableJupyterAutoStart" = true;
-  "jupyter.searchForJupyter" = false;
-  "gopls" = {
-    "expandWorkspaceToModule" = true;
-    "experimentalWorkspaceModule" = true;
-  };
+  "jupyter.experiments.enabled" = false;
+  "gopls.expandWorkspaceToModule" = true;
   "haskell.formattingProvider" = "none";
   "haskell.serverExecutablePath" = "\${workspaceFolder}/hie-wrapper.sh";
-  "latex-workshop.chktex.enabled" = true;
-  "latex-workshop.chktex.path" = "${texlive.combined.scheme-full}/bin/chktex";
+  "latex-workshop.linting.chktex.enabled" = true;
   "latex-workshop.latex.autoClean.run" = "onBuilt";
   "latex-workshop.latex.tools" = [
     {
@@ -201,11 +195,10 @@ in
   "npm.packageManager" = "yarn";
   "path-intellisense.showHiddenFiles" = true;
   "python.analysis.completeFunctionParens" = true;
-  "python.autoComplete.addBrackets" = true;
-  "python.autoUpdateLanguageServer" = false;
   "python.defaultInterpreterPath" = "${python3Packages.python}/bin/python3";
-  "python.formatting.provider" = "yapf";
+  "python.formatting.provider" = "black";
   "python.formatting.yapfPath" = "${python3Packages.yapf}/bin/yapf";
+  "python.formatting.blackPath" = "${python3Packages.black}/bin/black";
   "python.languageServer" = "Pylance";
   "python.linting.flake8Enabled" = true;
   "python.linting.flake8Path" = "${python3Packages.flake8}/bin/flake8";
@@ -224,6 +217,29 @@ in
   "rust-analyzer.server.path" = "${rust-analyzer}/bin/rust-analyzer";
   "sqlite.sqlite3" = "${sqlite}/bin/sqlite3";
   "todo-tree.general.tags" = [ "BUG" "HACK" "FIXME" "TODO" "XXX" "[ ]" "[x]" ];
-  "tslint.packageManager" = "yarn";
-  "tslint.validateWithDefaultConfig" = true;
+  # https://gist.github.com/hyperupcall/99e355405611be6c4e0a38b6e3e8aad0
+  "clangd.checkUpdates" = false;
+  "code-runner.enableAppInsights" = false;
+  "docker-explorer.enableTelemetry" = false;
+  "extensions.ignoreRecommendations" = true;
+  "gitlens.showWelcomeOnInstall" = false;
+  "gitlens.showWhatsNewAfterUpgrades" = false;
+  "java.help.firstView" = "none";
+  "java.help.showReleaseNotes" = false;
+  "kite.showWelcomeNotificationOnStartup" = false;
+  "liveServer.settings.donotShowInfoMsg" = true;
+  "Lua.telemetry.enable" = false;
+  "material-icon-theme.showWelcomeMessage" = false;
+  "pros.showWelcomeOnStartup" = false;
+  "pros.useGoogleAnalytics" = false;
+  "redhat.telemetry.enabled" = false;
+  "rpcServer.showStartupMessage" = false;
+  "shellcheck.disableVersionCheck" = true;
+  "sonarlint.disableTelemetry" = true;
+  "telemetry.enableCrashReporter" = false;
+  "telemetry.enableTelemetry" = false;
+  "terraform.telemetry.enabled" = false;
+  "update.showReleaseNotes" = false;
+  "vsicons.dontShowNewVersionMessage" = true;
+  "workbench.welcomePage.walkthroughs.openOnInstall" = false;
 }
