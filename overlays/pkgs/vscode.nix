@@ -72,8 +72,8 @@ with final.pkgs; {
       {
         name = "gitlens";
         publisher = "eamodio";
-        version = "2023.9.905";
-        sha256 = "1mzyc3sinkg4zmbyh2a85iqdqa7wsnh99hqvk6f8m2jcfhpfrwyb";
+        version = "2023.9.1505";
+        sha256 = "1qqxvavny8q7z7kaif4w91maaq3i747klr48sa6wix9jglc8gmqd";
       }
 
       {
@@ -107,15 +107,15 @@ with final.pkgs; {
       {
         name = "copilot";
         publisher = "GitHub";
-        version = "1.110.397";
-        sha256 = "0a3pklbc7cnv12cmsrnc3rbnp8ji07r8zq0aj4fyn2l0rj08hpi7";
+        version = "1.111.419";
+        sha256 = "0bkcs16px7fynw5k08940gvlgvx1yy870s7spfc13sxpbch3k2mk";
       }
 
       {
         name = "vscode-pull-request-github";
         publisher = "GitHub";
-        version = "0.73.2023090809";
-        sha256 = "15yii6m2waly3zakxz52rz6cflxaz21hfmdms2x2zyd7cmgkx3l0";
+        version = "0.73.2023091409";
+        sha256 = "1bng64kh9is9sy47c3xx2x99qdxn8ljbbisgqljw99yr2l28lf51";
       }
 
       {
@@ -142,8 +142,8 @@ with final.pkgs; {
       {
         name = "Ionide-fsharp";
         publisher = "Ionide";
-        version = "7.11.0";
-        sha256 = "16z5gjakvdyjwcl7dym0kxzpnh1559qrrn8qsqw6m9gglhchgdz7";
+        version = "7.12.0";
+        sha256 = "1021dik62474rj5lyl7yff972sya4fn59qbps12jzydcp3pm6dv7";
       }
 
       {
@@ -205,8 +205,8 @@ with final.pkgs; {
       {
         name = "noctis";
         publisher = "liviuschera";
-        version = "10.40.0";
-        sha256 = "1ry0vkyb92c6p6i8dpjq7sihvbpl45gngb8fym22nylmnfi9dcai";
+        version = "10.41.0";
+        sha256 = "12xp2ms3bix5n6z7nxg57vx66ngck7by5jnrv3m2xdnhf3s2z250";
       }
 
       {
@@ -254,8 +254,8 @@ with final.pkgs; {
       {
         name = "dotnet-interactive-vscode";
         publisher = "ms-dotnettools";
-        version = "1.0.4454011";
-        sha256 = "1jnhzkhszhhq2drnzcfw3ypwwz6n83wvprjg25jwkh05p8s1md7l";
+        version = "1.0.4461041";
+        sha256 = "11v04ll38811x8jkklmamgagyrv18bjcgkcx57k09y6sasrwa4fy";
       }
 
       {
@@ -275,8 +275,8 @@ with final.pkgs; {
       {
         name = "jupyter";
         publisher = "ms-toolsai";
-        version = "2023.8.1002501831";
-        sha256 = "sha256-Kp6tCTmji81cGrCF64NofQr0SqyK84kVr7qkWuV18Ts=";
+        version = "2023.9.1002591100";
+        sha256 = "17mbn9y583q8231w00mrx2qfk2q1d368vlpg5g9fqf33hj2dgm3p";
       }
 
       {
@@ -289,8 +289,8 @@ with final.pkgs; {
       {
         name = "remote-ssh";
         publisher = "ms-vscode-remote";
-        version = "0.107.2023090815";
-        sha256 = "1xj1fafw2743xw1m9ybp2gyc9ygzyiqxd0x3glghziw0m6gmwnzv";
+        version = "0.107.2023091215";
+        sha256 = "1s44hx8dz35741hfi7fyyxq598plb6l5dwzf3pvylrwkimypszz4";
       }
 
       {
@@ -303,8 +303,8 @@ with final.pkgs; {
       {
         name = "cmake-tools";
         publisher = "ms-vscode";
-        version = "1.16.4";
-        sha256 = "1sx7nfbnbl50pw4vj51rk789q2wba1wzbmjdi981jmvjblcry8wy";
+        version = "1.16.5";
+        sha256 = "18fa911q61sv3mqcf56vqkafc5zjccvnibqqb5z2jqhs5i1w066i";
       }
 
       {
@@ -366,8 +366,8 @@ with final.pkgs; {
       {
         name = "java";
         publisher = "redhat";
-        version = "1.22.2023090904";
-        sha256 = "sha256-TF3/DXR5Aj7V6k5QYqWuyCX+tR2LcAI3jdByuc2vM+U=";
+        version = "1.23.2023091604";
+        sha256 = "sha256-PoSGTP4eHSz8f/CvotIWpiIJnUK9U4XrEAvlpNOWBM0=";
       }
 
       {
@@ -380,8 +380,8 @@ with final.pkgs; {
       {
         name = "rust-analyzer";
         publisher = "rust-lang";
-        version = "0.4.1655";
-        sha256 = "sha256-d/P2xrkxe5bXdz1+iuUpU03xruZf/IJWuP6BjOEpOSw=";
+        version = "0.4.1664";
+        sha256 = "sha256-b0c/KJOGbbaoAiYYJsPGUxOZ1ommTE+bewoFBcG6vYA=";
       }
 
       {
@@ -436,8 +436,8 @@ with final.pkgs; {
       {
         name = "vscode-java-pack";
         publisher = "vscjava";
-        version = "0.25.2023090708";
-        sha256 = "12ym6n3fzi1y1cgyzlsslqzz627qclvqlx81a6pzkjv8h2z11kqi";
+        version = "0.25.2023091303";
+        sha256 = "1kxhg416piscpahk8h4l1y8dz4wpjd0v3w5jrlslkqjh07ib9pkv";
       }
 
       {
