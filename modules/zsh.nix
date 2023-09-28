@@ -76,11 +76,6 @@
           nix eval "$@" "$flakePath#${system}.config.$option"
         }
       '';
-
-      shellAliases = {
-        download-audio = "${pkgs.youtube-dl}/bin/youtube-dl --extract-audio --audio-format mp3";
-        emacs-nox = "${pkgs._aliases.emacs}/bin/emacs --no-window-system";
-      };
     };
   };
 }
