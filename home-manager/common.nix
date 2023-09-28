@@ -54,7 +54,7 @@
     gimp
     gnome.gnome-system-monitor
     gnome.simple-scan
-    jetbrains.idea-ultimate
+    jetbrains.idea-community
     krita
     libreoffice-fresh
     # rstudioWrapper
