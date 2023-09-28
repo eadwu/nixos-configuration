@@ -49,7 +49,6 @@
     discord-canary
     element-desktop
     evince
-    # eww
     ghidra-bin
     gimp
     gnome.gnome-system-monitor
