@@ -62,7 +62,7 @@
     thunderbird
     # typora
     vivaldi-snapshot
-    woeusb
+    woeusb-ng
     xournalpp
     ## Console
     bfg-repo-cleaner
