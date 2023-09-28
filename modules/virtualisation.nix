@@ -16,6 +16,7 @@
 
   environment.systemPackages = with pkgs; [
     looking-glass-client
+    virt-viewer
   ];
 
   virtualisation.docker.enable = true;
