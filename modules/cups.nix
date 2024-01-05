@@ -9,7 +9,7 @@
   services = {
     avahi = {
       enable = lib.mkDefault true;
-      nssmdns = true;
+      nssmdns4 = true;
       openFirewall = false;
     };
 
