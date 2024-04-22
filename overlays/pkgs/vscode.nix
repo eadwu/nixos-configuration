@@ -73,8 +73,8 @@ with final.pkgs; {
       {
         name = "gitlens";
         publisher = "eamodio";
-        version = "2024.4.1305";
-        sha256 = "03bjakv8zcnpxgmiv8wkbx7spz9in786cr8m9isi836zy28v3wla";
+        version = "2024.4.2005";
+        sha256 = "0zd8506pkca9dj65310pnlx5p9w8xin3byxspxcac4qw50rja671";
       }
 
       {
@@ -108,15 +108,15 @@ with final.pkgs; {
       {
         name = "copilot";
         publisher = "github";
-        version = "1.180.0";
-        sha256 = "0izxzja04bd3kzg87415ii22khspjgp9r8yf9cj697pjjz6906jg";
+        version = "1.180.827";
+        sha256 = "0b3jc5h9gimyqfq87axhdwdskajqy54b9gmc04i144v8s5mnf38w";
       }
 
       {
         name = "vscode-pull-request-github";
         publisher = "github";
-        version = "0.87.2024041104";
-        sha256 = "1zlls474fcdfn36nbpa1s0942qwp8lap24kaxbs54splr9r07sp4";
+        version = "0.87.2024041804";
+        sha256 = "1pm183vsyqg0gjxcnh5m8mcknx7s357z8hzlzha64i18xsp94yia";
       }
 
       {
@@ -150,15 +150,15 @@ with final.pkgs; {
       {
         name = "latex-workshop";
         publisher = "james-yu";
-        version = "9.19.2";
-        sha256 = "08w3rhrdwabkvbc0bzhz3rj7kwxgpg4gvkip2xvs8imfm6xx51ik";
+        version = "9.20.0";
+        sha256 = "140pyh5alx8nawnqg4bsj2x8hmffywn5v08zq09mm0asbds3ghf5";
       }
 
       {
         name = "better-cpp-syntax";
         publisher = "jeff-hykin";
-        version = "1.21.1";
-        sha256 = "13k0jj4jasq6z4ip9rvzx0g5rkg2fx5p3vl1vnfy3b0v1lz6pryb";
+        version = "1.21.4";
+        sha256 = "0l3ncf585p7bjjvzx82zmnns5z925sf986xs9kgi7sn2f6575a6p";
       }
 
       {
@@ -255,8 +255,8 @@ with final.pkgs; {
       {
         name = "csharp";
         publisher = "ms-dotnettools";
-        version = "2.24.17";
-        sha256 = "1bkd9c16dcii5i3as8ayxdqxvk7ydz9apamsa1cacvzz01s4vn0k";
+        version = "2.26.13";
+        sha256 = "0mjzlvs41hx995gpcvawnlgsvwv6gzmwba3jzrzshmi1gsq6ipa3";
       }
 
       {
@@ -276,8 +276,8 @@ with final.pkgs; {
       {
         name = "vscode-pylance";
         publisher = "ms-python";
-        version = "2024.4.101";
-        sha256 = "13yi6v1l7k1g0r7fhw3gasv7drn03slh0lxp6pcmqlrajkp0cn1n";
+        version = "2024.4.102";
+        sha256 = "0yfcb7cq03cxjz85kys35y16j9x52xrf652c08dfld6z9crv26c0";
       }
 
       {
@@ -290,8 +290,8 @@ with final.pkgs; {
       {
         name = "remote-containers";
         publisher = "ms-vscode-remote";
-        version = "0.357.0";
-        sha256 = "1vlynddqsma2m11s47xh8ykhvv915j6l7hdfqas1vdarr5cqk54l";
+        version = "0.361.0";
+        sha256 = "12rim5w0wla15afks881lxy358ams5ql6pha340c16w14pvygizc";
       }
 
       {
@@ -311,8 +311,8 @@ with final.pkgs; {
       {
         name = "cmake-tools";
         publisher = "ms-vscode";
-        version = "1.17.7";
-        sha256 = "0fvq1vkfb8p91y73kykb41ngwxfvak9g3x8nkffrb7gdfi59m9yn";
+        version = "1.18.27";
+        sha256 = "0z5mpdvm0gxzb2id66h0qyqa38drd0y10b6m29yhls29csa7kvpn";
       }
 
       {
@@ -374,15 +374,15 @@ with final.pkgs; {
       {
         name = "quicktype";
         publisher = "quicktype";
-        version = "23.0.145";
-        sha256 = "0fva5si2qydvssx6iakvwc0bb2hc6v9jcm97mm36fkfrn208644b";
+        version = "23.0.151";
+        sha256 = "1b01bsxbnkma78yaz644dmmqspp9xpki5r88ndyp3y37nmrpkzqs";
       }
 
       {
         name = "java";
         publisher = "redhat";
-        version = "1.30.2024041208";
-        sha256 = "sha256-MGwPZG4o/G49Xah9XfF1huxvVMdFefJndv6ilibg72Q=";
+        version = "1.30.2024041908";
+        sha256 = "sha256-2VaB7duzDmoQYxLHIuC9yghJvmVnWJIBfH75xq5ljPg=";
       }
 
       {
@@ -395,8 +395,8 @@ with final.pkgs; {
       {
         name = "rust-analyzer";
         publisher = "rust-lang";
-        version = "0.4.1922";
-        sha256 = "sha256-2mq2EHBWDtdzOHTQ6NI2LXC/hOsR0qNLW4X1G59SvN0=";
+        version = "0.4.1931";
+        sha256 = "sha256-bNxR1dZ5+M1XS0a3UxxjeOqkRsu0SQuQR7bUORA4FCI=";
       }
 
       {
@@ -493,8 +493,8 @@ with final.pkgs; {
       {
         name = "vscode-zig";
         publisher = "ziglang";
-        version = "0.5.6";
-        sha256 = "0vxsfvrv3l2yvimffdxxk9xp80k759vv894x4dp474c80c3m42db";
+        version = "0.5.7";
+        sha256 = "11kb0f1iwlxrd3iymd3vmlk9imf4inqirlcnsg22x23bfa4xvdb0";
       }
     ];
   };
