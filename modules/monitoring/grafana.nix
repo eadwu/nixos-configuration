@@ -7,7 +7,7 @@
       name = "General";
       type = "file";
       disableDeletion = true;
-      options.path = ./dashboards;
+      options.path = ./dashboards/general;
     })
   ];
 
@@ -31,7 +31,8 @@
     ensureDatabases = [ config.services.grafana.database.name ];
     ensureUsers = [
       { name = config.services.grafana.database.user;
-        ensurePermissions = { "DATABASE ${config.services.grafana.database.name}" = "ALL PRIVILEGES"; };
+        # https://github.com/NixOS/nixpkgs/pull/266270/files
+        ensureDBOwnership = true;
       }
     ];
   };

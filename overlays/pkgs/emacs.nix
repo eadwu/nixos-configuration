@@ -12,6 +12,7 @@ with final.pkgs;
           ]
         ) ++ (
           with epkgs.melpaPackages; [
+            ein
             ccls
             flycheck-inline
             wakatime-mode
@@ -26,7 +27,7 @@ with final.pkgs;
             # cquery # cquery has been removed because it is abandoned by upstream. Consider switching to clangd or ccls instead.
             doom-themes
             diminish # needed for use-package?
-            ein
+            # ein
             elpy
             emmet-mode
             flycheck
@@ -47,8 +48,8 @@ with final.pkgs;
             use-package
           ]
         ) ++ (
-          with epkgs.orgPackages; [
-            org-plus-contrib
+          with epkgs.nongnuPackages; [
+            org-contrib
           ]
         )
       );

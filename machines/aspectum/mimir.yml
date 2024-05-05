@@ -1,0 +1,54 @@
+# Do not use this configuration in production.
+# It is for demonstration purposes only.
+multitenancy_enabled: false
+
+blocks_storage:
+  backend: filesystem
+  bucket_store:
+    sync_dir: /run/grafana-mimir/tsdb-sync
+  filesystem:
+    dir: /run/grafana-mimir/data/tsdb
+  tsdb:
+    dir: /run/grafana-mimir/tsdb
+
+compactor:
+  data_dir: /run/grafana-mimir/compactor
+  sharding_ring:
+    instance_addr: 127.0.0.1
+    kvstore:
+      store: memberlist
+
+distributor:
+  ring:
+    instance_addr: 127.0.0.1
+    kvstore:
+      store: memberlist
+
+ingester:
+  ring:
+    instance_addr: 127.0.0.1
+    kvstore:
+      store: memberlist
+    replication_factor: 1
+
+ruler:
+  rule_path: /run/grafana-mimir/data-ruler
+  ring:
+    instance_addr: 127.0.0.1
+
+ruler_storage:
+  backend: filesystem
+  filesystem:
+    dir: /run/grafana-mimir/rules
+
+server:
+  http_listen_port: 9009
+  log_level: warn
+
+store_gateway:
+  sharding_ring:
+    replication_factor: 1
+    instance_addr: 127.0.0.1
+
+usage_stats:
+  enabled: false

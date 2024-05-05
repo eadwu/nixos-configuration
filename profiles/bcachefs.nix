@@ -13,7 +13,7 @@
     kernelParams = [
       # Only perform slab/slub sanity checks
       # Slab/slub redzoning and poisoning causes I/O errors with bcachefs
-      "slub_debug=F"
+      # "slub_debug=F"
     ];
 
     kernelPatches = [ pkgs.kernelPatches.bcachefs ];

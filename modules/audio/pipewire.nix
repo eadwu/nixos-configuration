@@ -18,21 +18,21 @@
     wireplumber.enable = true;
   };
 
-  environment.etc."pipewire/pipewire.conf.d/99-pipewire.conf".text = builtins.toJSON {
-    "context.properties" = {
-      ## Configure properties in the system.
-      "link.max-buffers" = 64; # version < 3 clients can't handle more than 16
-      "clock.power-of-two-quantum" = true;
+  # environment.etc."pipewire/pipewire.conf.d/99-pipewire.conf".text = builtins.toJSON {
+  #   "context.properties" = {
+  #     ## Configure properties in the system.
+  #     "link.max-buffers" = 64; # version < 3 clients can't handle more than 16
+  #     "clock.power-of-two-quantum" = true;
 
-      ## Properties for the DSP configuration.
-      # "default.clock.rate" = 96000;
-    };
-  };
+  #     ## Properties for the DSP configuration.
+  #     # "default.clock.rate" = 96000;
+  #   };
+  # };
 
   environment.systemPackages = with pkgs; [ pavucontrol pulsemixer pulseaudio ] # for pactl usage and finer output control
     ++ [ carla ] # JACK utilities
     ++ [ lsp-plugins dragonfly-reverb ladspa-bs2b rnnoise-plugin ] # Audio plugins
-    ++ [ distrho swh_lv2 calf ir.lv2 ]
+ #   ++ [ distrho swh_lv2 calf ir.lv2 ]
   ;
 
   environment.variables =

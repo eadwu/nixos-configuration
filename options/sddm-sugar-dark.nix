@@ -3,7 +3,7 @@
 with lib;
 
 let
-  scfg = config.services.xserver.displayManager.sddm;
+  scfg = config.services.displayManager.sddm;
   cfg = scfg.greeters.sugar-dark;
 
   sddm-sugar-dark-custom = pkgs.sddm-sugar-dark.overrideAttrs (
@@ -143,7 +143,7 @@ let
 in
 {
   options = {
-    services.xserver.displayManager.sddm.greeters.sugar-dark = {
+    services.displayManager.sddm.greeters.sugar-dark = {
       background = mkOption {
         type = types.nullOr types.path;
         default = config.nixos.settings.xserver.background;

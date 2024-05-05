@@ -1,17 +1,18 @@
 { pkgs, lib, ... }:
 
 {
+  boot.kernelModules = [
+    # Logitech
+    "hid_logitech_dj"
+    "hid_logitech_hidpp"
+  ];
+
   boot.kernelParams = [
     # https://wiki.archlinux.org/index.php/improving_performance#Changing_I/O_scheduler
     "scsi_mod.use_blk_mq=1"
   ];
 
   environment.systemPackages = with pkgs; [ piper ];
-
-  fileSystems."/".options = [
-    "noatime"
-    "nodiratime"
-  ];
 
   hardware = {
     enableRedistributableFirmware = true;
@@ -29,7 +30,7 @@
   services.ratbagd.enable = true;
   services.udev.extraRules = ''
     # Automatically suspend the system at <5%
-    SUBSYSTEM=="power_supply", ATTR{status}=="Discharging", ATTR{capacity}=="[0-5]", RUN+="${pkgs.systemd}/bin/systemctl suspend"
+    SUBSYSTEM=="power_supply", ATTR{status}=="Discharging", ATTR{capacity}=="[0-4]", RUN+="${pkgs.systemd}/bin/systemctl suspend"
 
     # Set scheduler for NVMe
     ACTION=="add|change", KERNEL=="nvme[0-9]*", ATTR{queue/scheduler}="none"

@@ -2,7 +2,8 @@
 
 {
   services.picom = {
-    experimentalBackends = true;
+    # removed since picom v10
+    # experimentalBackends = true;
 
     fade = true;
     fadeDelta = 5;

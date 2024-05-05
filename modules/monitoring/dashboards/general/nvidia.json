@@ -25,13 +25,13 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 93,
+  "id": 165,
   "links": [],
   "liveNow": true,
   "panels": [
     {
       "datasource": {
-        "type": "influxdb",
+        "type": "prometheus",
         "uid": "${DS_NVIDIA}"
       },
       "fieldConfig": {
@@ -79,9 +79,10 @@
           ],
           "show": false
         },
+        "frameIndex": 0,
         "showHeader": true
       },
-      "pluginVersion": "9.3.1",
+      "pluginVersion": "9.3.6",
       "repeat": "Device",
       "repeatDirection": "v",
       "targets": [
@@ -90,6 +91,10 @@
             "type": "influxdb",
             "uid": "${DS_NVIDIA}"
           },
+          "editorMode": "builder",
+          "exemplar": false,
+          "expr": "{__name__=~\"nvidia_smi_cuda_version|nvidia_smi_driver_version|nvidia_smi_pcie_link_gen_current|nvidia_smi_pcie_link_width_current\"}",
+          "format": "table",
           "groupBy": [
             {
               "params": [
@@ -128,9 +133,12 @@
               "type": "tag"
             }
           ],
+          "instant": true,
+          "legendFormat": "__auto",
           "measurement": "nvidia_smi",
           "orderByTime": "ASC",
           "policy": "default",
+          "range": false,
           "refId": "A",
           "resultFormat": "table",
           "select": [
@@ -217,6 +225,74 @@
         }
       ],
       "title": "Device Information",
+      "transformations": [
+        {
+          "id": "groupBy",
+          "options": {
+            "fields": {
+              "Value": {
+                "aggregations": [
+                  "lastNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "__name__": {
+                "aggregations": [],
+                "operation": "groupby"
+              },
+              "compute_mode": {
+                "aggregations": [
+                  "lastNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "host": {
+                "aggregations": [
+                  "lastNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "index": {
+                "aggregations": [
+                  "lastNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "name": {
+                "aggregations": [
+                  "lastNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "uuid": {
+                "aggregations": [
+                  "lastNotNull"
+                ],
+                "operation": "aggregate"
+              }
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "compute_mode": false,
+              "db": true,
+              "host": false,
+              "index": false,
+              "metric_source": true,
+              "name": false,
+              "pstate": true
+            },
+            "indexByName": {},
+            "renameByName": {
+              "__name__": ""
+            }
+          }
+        }
+      ],
       "transparent": true,
       "type": "table"
     },
@@ -237,8 +313,8 @@
     },
     {
       "datasource": {
-        "type": "influxdb",
-        "uid": "${DS_NVIDIA}"
+        "type": "prometheus",
+        "uid": "PABDA7AB1AD2A1489"
       },
       "fieldConfig": {
         "defaults": {
@@ -316,147 +392,39 @@
       },
       "targets": [
         {
-          "alias": "memory_free",
           "datasource": {
-            "type": "influxdb",
-            "uid": "${DS_NVIDIA}"
+            "type": "prometheus",
+            "uid": "PABDA7AB1AD2A1489"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "nvidia_smi",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "A",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "memory_free"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "name",
-              "operator": "=~",
-              "value": "/^$Device$/"
-            }
-          ]
+          "editorMode": "builder",
+          "expr": "max by(uuid) (nvidia_smi_memory_free{name=\"$Device\"})",
+          "legendFormat": "nvidia_smi_memory_free",
+          "range": true,
+          "refId": "A"
         },
         {
-          "alias": "memory_used",
           "datasource": {
-            "type": "influxdb",
-            "uid": "${DS_NVIDIA}"
+            "type": "prometheus",
+            "uid": "PABDA7AB1AD2A1489"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
+          "editorMode": "builder",
+          "expr": "max by(uuid) (nvidia_smi_memory_total{name=\"$Device\"})",
           "hide": false,
-          "measurement": "nvidia_smi",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "B",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "memory_used"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "name",
-              "operator": "=~",
-              "value": "/^$Device$/"
-            }
-          ]
+          "legendFormat": "nvidia_smi_memory_total",
+          "range": true,
+          "refId": "B"
         },
         {
-          "alias": "memory_total",
           "datasource": {
-            "type": "influxdb",
-            "uid": "${DS_NVIDIA}"
+            "type": "prometheus",
+            "uid": "PABDA7AB1AD2A1489"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
+          "editorMode": "builder",
+          "expr": "max by(uuid) (nvidia_smi_memory_used{name=\"$Device\"})",
           "hide": false,
-          "measurement": "nvidia_smi",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "C",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "memory_total"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "name",
-              "operator": "=~",
-              "value": "/^$Device$/"
-            }
-          ]
+          "legendFormat": "nvidia_smi_memory_used",
+          "range": true,
+          "refId": "C"
         }
       ],
       "title": "Memory Usage",
@@ -465,8 +433,8 @@
     },
     {
       "datasource": {
-        "type": "influxdb",
-        "uid": "${DS_NVIDIA}"
+        "type": "prometheus",
+        "uid": "PABDA7AB1AD2A1489"
       },
       "fieldConfig": {
         "defaults": {
@@ -544,195 +512,53 @@
       },
       "targets": [
         {
-          "alias": "clocks_current_graphics",
           "datasource": {
-            "type": "influxdb",
-            "uid": "${DS_NVIDIA}"
+            "type": "prometheus",
+            "uid": "PABDA7AB1AD2A1489"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "nvidia_smi",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "A",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "clocks_current_graphics"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "name",
-              "operator": "=~",
-              "value": "/^$Device$/"
-            }
-          ]
+          "editorMode": "builder",
+          "expr": "max by(uuid) (nvidia_smi_clocks_current_graphics{name=\"$Device\"})",
+          "legendFormat": "nvidia_smi_clocks_current_graphics",
+          "range": true,
+          "refId": "A"
         },
         {
-          "alias": "clocks_current_memory",
           "datasource": {
-            "type": "influxdb",
-            "uid": "${DS_NVIDIA}"
+            "type": "prometheus",
+            "uid": "PABDA7AB1AD2A1489"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
+          "editorMode": "builder",
+          "expr": "max by(uuid) (nvidia_smi_clocks_current_memory{name=\"$Device\"})",
           "hide": false,
-          "measurement": "nvidia_smi",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "B",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "clocks_current_memory"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "name",
-              "operator": "=~",
-              "value": "/^$Device$/"
-            }
-          ]
+          "legendFormat": "nvidia_smi_clocks_current_memory",
+          "range": true,
+          "refId": "B"
         },
         {
-          "alias": "clocks_current_sm",
           "datasource": {
-            "type": "influxdb",
-            "uid": "${DS_NVIDIA}"
+            "type": "prometheus",
+            "uid": "PABDA7AB1AD2A1489"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
+          "editorMode": "builder",
+          "expr": "max by(uuid) (nvidia_smi_clocks_current_sm{name=\"$Device\"})",
           "hide": false,
-          "measurement": "nvidia_smi",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "C",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "clocks_current_sm"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "name",
-              "operator": "=~",
-              "value": "/^$Device$/"
-            }
-          ]
+          "legendFormat": "nvidia_smi_clocks_current_sm",
+          "range": true,
+          "refId": "C"
         },
         {
-          "alias": "clocks_current_video",
           "datasource": {
-            "type": "influxdb",
-            "uid": "${DS_NVIDIA}"
+            "type": "prometheus",
+            "uid": "PABDA7AB1AD2A1489"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
+          "editorMode": "builder",
+          "exemplar": false,
+          "expr": "max by(uuid) (nvidia_smi_clocks_current_video{name=\"$Device\"})",
           "hide": false,
-          "measurement": "nvidia_smi",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "D",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "clocks_current_video"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "name",
-              "operator": "=~",
-              "value": "/^$Device$/"
-            }
-          ]
+          "instant": false,
+          "legendFormat": "nvidia_smi_clocks_current_video",
+          "range": true,
+          "refId": "D"
         }
       ],
       "title": "Clock Speed",
@@ -741,8 +567,8 @@
     },
     {
       "datasource": {
-        "type": "influxdb",
-        "uid": "${DS_NVIDIA}"
+        "type": "prometheus",
+        "uid": "PABDA7AB1AD2A1489"
       },
       "fieldConfig": {
         "defaults": {
@@ -820,195 +646,51 @@
       },
       "targets": [
         {
-          "alias": "utilization_decoder",
           "datasource": {
-            "type": "influxdb",
-            "uid": "${DS_NVIDIA}"
+            "type": "prometheus",
+            "uid": "PABDA7AB1AD2A1489"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "nvidia_smi",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "A",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "utilization_decoder"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "name",
-              "operator": "=~",
-              "value": "/^$Device$/"
-            }
-          ]
+          "editorMode": "builder",
+          "expr": "max by(uuid) (nvidia_smi_utilization_decoder{name=\"$Device\"})",
+          "legendFormat": "nvidia_smi_utilization_decoder",
+          "range": true,
+          "refId": "A"
         },
         {
-          "alias": "utilization_encoder",
           "datasource": {
-            "type": "influxdb",
-            "uid": "${DS_NVIDIA}"
+            "type": "prometheus",
+            "uid": "PABDA7AB1AD2A1489"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
+          "editorMode": "builder",
+          "expr": "max by(uuid) (nvidia_smi_utilization_encoder{name=\"$Device\"})",
           "hide": false,
-          "measurement": "nvidia_smi",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "B",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "utilization_encoder"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "name",
-              "operator": "=~",
-              "value": "/^$Device$/"
-            }
-          ]
+          "legendFormat": "nvidia_smi_utilization_encoder",
+          "range": true,
+          "refId": "B"
         },
         {
-          "alias": "utilization_gpu",
           "datasource": {
-            "type": "influxdb",
-            "uid": "${DS_NVIDIA}"
+            "type": "prometheus",
+            "uid": "PABDA7AB1AD2A1489"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
+          "editorMode": "builder",
+          "expr": "max by(uuid) (nvidia_smi_utilization_gpu{name=\"$Device\"})",
           "hide": false,
-          "measurement": "nvidia_smi",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "C",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "utilization_gpu"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "name",
-              "operator": "=~",
-              "value": "/^$Device$/"
-            }
-          ]
+          "legendFormat": "nvidia_smi_utilization_gpu",
+          "range": true,
+          "refId": "C"
         },
         {
-          "alias": "utilization_memory",
           "datasource": {
-            "type": "influxdb",
-            "uid": "${DS_NVIDIA}"
+            "type": "prometheus",
+            "uid": "PABDA7AB1AD2A1489"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
+          "editorMode": "builder",
+          "expr": "max by(uuid) (nvidia_smi_utilization_memory{name=\"$Device\"})",
           "hide": false,
-          "measurement": "nvidia_smi",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "D",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "utilization_memory"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "name",
-              "operator": "=~",
-              "value": "/^$Device$/"
-            }
-          ]
+          "legendFormat": "nvidia_smi_utilization_memory",
+          "range": true,
+          "refId": "D"
         }
       ],
       "title": "Utilization",
@@ -1017,8 +699,8 @@
     },
     {
       "datasource": {
-        "type": "influxdb",
-        "uid": "${DS_NVIDIA}"
+        "type": "prometheus",
+        "uid": "PABDA7AB1AD2A1489"
       },
       "fieldConfig": {
         "defaults": {
@@ -1096,51 +778,15 @@
       },
       "targets": [
         {
-          "alias": "power_draw",
           "datasource": {
-            "type": "influxdb",
-            "uid": "${DS_NVIDIA}"
+            "type": "prometheus",
+            "uid": "PABDA7AB1AD2A1489"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "nvidia_smi",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "A",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "power_draw"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "name",
-              "operator": "=~",
-              "value": "/^$Device$/"
-            }
-          ]
+          "editorMode": "builder",
+          "expr": "max by(uuid) (nvidia_smi_power_draw{name=\"$Device\"})",
+          "legendFormat": "nvidia_smi_power_draw",
+          "range": true,
+          "refId": "A"
         }
       ],
       "title": "Power Draw",
@@ -1149,8 +795,8 @@
     },
     {
       "datasource": {
-        "type": "influxdb",
-        "uid": "${DS_NVIDIA}"
+        "type": "prometheus",
+        "uid": "PABDA7AB1AD2A1489"
       },
       "fieldConfig": {
         "defaults": {
@@ -1228,51 +874,15 @@
       },
       "targets": [
         {
-          "alias": "fan_speed",
           "datasource": {
-            "type": "influxdb",
-            "uid": "${DS_NVIDIA}"
+            "type": "prometheus",
+            "uid": "PABDA7AB1AD2A1489"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "nvidia_smi",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "A",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "fan_speed"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "name",
-              "operator": "=~",
-              "value": "/^$Device$/"
-            }
-          ]
+          "editorMode": "builder",
+          "expr": "max by(uuid) (nvidia_smi_fan_speed{name=\"$Device\"})",
+          "legendFormat": "nvidia_smi_fan_speed",
+          "range": true,
+          "refId": "A"
         }
       ],
       "title": "Fan Speed",
@@ -1281,8 +891,8 @@
     },
     {
       "datasource": {
-        "type": "influxdb",
-        "uid": "${DS_NVIDIA}"
+        "type": "prometheus",
+        "uid": "PABDA7AB1AD2A1489"
       },
       "fieldConfig": {
         "defaults": {
@@ -1360,51 +970,15 @@
       },
       "targets": [
         {
-          "alias": "temperature_gpu",
           "datasource": {
-            "type": "influxdb",
-            "uid": "${DS_NVIDIA}"
+            "type": "prometheus",
+            "uid": "PABDA7AB1AD2A1489"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "nvidia_smi",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "A",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "temperature_gpu"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "name",
-              "operator": "=~",
-              "value": "/^$Device$/"
-            }
-          ]
+          "editorMode": "builder",
+          "expr": "max by(uuid) (nvidia_smi_temperature_gpu{name=\"$Device\"})",
+          "legendFormat": "nvidia_smi_temperature_gpu",
+          "range": true,
+          "refId": "A"
         }
       ],
       "title": "Temperature",
@@ -1413,8 +987,8 @@
     },
     {
       "datasource": {
-        "type": "influxdb",
-        "uid": "${DS_NVIDIA}"
+        "type": "prometheus",
+        "uid": "PABDA7AB1AD2A1489"
       },
       "fieldConfig": {
         "defaults": {
@@ -1492,147 +1066,39 @@
       },
       "targets": [
         {
-          "alias": "encoder_stats_average_fps",
           "datasource": {
-            "type": "influxdb",
-            "uid": "${DS_NVIDIA}"
+            "type": "prometheus",
+            "uid": "PABDA7AB1AD2A1489"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "nvidia_smi",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "A",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "encoder_stats_average_fps"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "name",
-              "operator": "=~",
-              "value": "/^$Device$/"
-            }
-          ]
+          "editorMode": "builder",
+          "expr": "max by(uuid) (nvidia_smi_encoder_stats_average_fps{name=\"$Device\"})",
+          "legendFormat": "nvidia_smi_encoder_stats_average_fps",
+          "range": true,
+          "refId": "A"
         },
         {
-          "alias": "encoder_stats_average_latency",
           "datasource": {
-            "type": "influxdb",
-            "uid": "${DS_NVIDIA}"
+            "type": "prometheus",
+            "uid": "PABDA7AB1AD2A1489"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
+          "editorMode": "builder",
+          "expr": "max by(uuid) (nvidia_smi_encoder_stats_average_latency{name=\"$Device\"})",
           "hide": false,
-          "measurement": "nvidia_smi",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "B",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "encoder_stats_average_latency"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "name",
-              "operator": "=~",
-              "value": "/^$Device$/"
-            }
-          ]
+          "legendFormat": "nvidia_smi_encoder_stats_average_latency",
+          "range": true,
+          "refId": "B"
         },
         {
-          "alias": "encoder_stats_average_count",
           "datasource": {
-            "type": "influxdb",
-            "uid": "${DS_NVIDIA}"
+            "type": "prometheus",
+            "uid": "PABDA7AB1AD2A1489"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
+          "editorMode": "builder",
+          "expr": "max by(uuid) (nvidia_smi_encoder_stats_session_count{name=\"$Device\"})",
           "hide": false,
-          "measurement": "nvidia_smi",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "C",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "encoder_stats_session_count"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "name",
-              "operator": "=~",
-              "value": "/^$Device$/"
-            }
-          ]
+          "legendFormat": "nvidia_smi_encoder_stats_session_count",
+          "range": true,
+          "refId": "C"
         }
       ],
       "title": "Encoder Stats",
@@ -1641,8 +1107,8 @@
     },
     {
       "datasource": {
-        "type": "influxdb",
-        "uid": "${DS_NVIDIA}"
+        "type": "prometheus",
+        "uid": "PABDA7AB1AD2A1489"
       },
       "fieldConfig": {
         "defaults": {
@@ -1720,147 +1186,39 @@
       },
       "targets": [
         {
-          "alias": "fbc_stats_average_fps",
           "datasource": {
-            "type": "influxdb",
-            "uid": "${DS_NVIDIA}"
+            "type": "prometheus",
+            "uid": "PABDA7AB1AD2A1489"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "nvidia_smi",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "A",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "fbc_stats_average_fps"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "name",
-              "operator": "=~",
-              "value": "/^$Device$/"
-            }
-          ]
+          "editorMode": "builder",
+          "expr": "max by(uuid) (nvidia_smi_fbc_stats_average_fps{name=\"$Device\"})",
+          "legendFormat": "nvidia_smi_fbc_stats_average_fps",
+          "range": true,
+          "refId": "A"
         },
         {
-          "alias": "fbc_stats_average_latency",
           "datasource": {
-            "type": "influxdb",
-            "uid": "${DS_NVIDIA}"
+            "type": "prometheus",
+            "uid": "PABDA7AB1AD2A1489"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
+          "editorMode": "builder",
+          "expr": "max by(uuid) (nvidia_smi_fbc_stats_average_latency{name=\"$Device\"})",
           "hide": false,
-          "measurement": "nvidia_smi",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "B",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "fbc_stats_average_latency"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "name",
-              "operator": "=~",
-              "value": "/^$Device$/"
-            }
-          ]
+          "legendFormat": "nvidia_smi_fbc_stats_average_latency",
+          "range": true,
+          "refId": "B"
         },
         {
-          "alias": "fbc_stats_average_count",
           "datasource": {
-            "type": "influxdb",
-            "uid": "${DS_NVIDIA}"
+            "type": "prometheus",
+            "uid": "PABDA7AB1AD2A1489"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
+          "editorMode": "builder",
+          "expr": "max by(uuid) (nvidia_smi_fbc_stats_session_count{name=\"$Device\"})",
           "hide": false,
-          "measurement": "nvidia_smi",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "C",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "fbc_stats_session_count"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "name",
-              "operator": "=~",
-              "value": "/^$Device$/"
-            }
-          ]
+          "legendFormat": "nvidia_smi_fbc_stats_session_count",
+          "range": true,
+          "refId": "C"
         }
       ],
       "title": "FBC Stats",
@@ -1877,15 +1235,15 @@
       {
         "current": {
           "selected": false,
-          "text": "wsl_host",
-          "value": "wsl_host"
+          "text": "victoriametrics",
+          "value": "victoriametrics"
         },
         "hide": 0,
         "includeAll": false,
         "multi": false,
         "name": "DS_NVIDIA",
         "options": [],
-        "query": "influxdb",
+        "query": "prometheus",
         "queryValue": "",
         "refresh": 1,
         "regex": "",
@@ -1902,23 +1260,26 @@
           "type": "influxdb",
           "uid": "${DS_NVIDIA}"
         },
-        "definition": "SHOW TAG VALUES FROM \"nvidia_smi\" WITH KEY=\"name\"",
+        "definition": "label_values(nvidia_smi_memory_free, name)",
         "hide": 0,
         "includeAll": false,
         "multi": false,
         "name": "Device",
         "options": [],
-        "query": "SHOW TAG VALUES FROM \"nvidia_smi\" WITH KEY=\"name\"",
-        "refresh": 1,
+        "query": {
+          "query": "label_values(nvidia_smi_memory_free, name)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
-        "sort": 0,
+        "sort": 2,
         "type": "query"
       }
     ]
   },
   "time": {
-    "from": "now-6h",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {},

@@ -1,0 +1,70 @@
+name: WSL2 Kernel
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 0 * * MON'
+
+jobs:
+  remove-old-artifacts:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Remove old artifacts
+        uses: c-hive/gha-remove-artifacts@v1.2.0
+        with:
+          age: '1 day'
+          skip-recent: 4
+          GITHUB_TOKEN: ${{ github.token }}
+
+  images:
+    needs: remove-old-artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 720
+    strategy:
+      fail-fast: false
+
+    steps:
+      # Maximum storage with Nix
+      - run: sudo rm -rf /opt /usr/local || true
+      # WARNING: Needed due to GitHub Actions disk space regression on Linux runners
+      - name: Obtain maximum storage
+        run: |
+          sudo swapoff -a
+          sudo rm -f /swapfile
+          sudo apt clean
+          docker rmi $(docker image ls -aq)
+          df -h
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          repository: microsoft/WSL2-Linux-Kernel
+      - uses: cachix/install-nix-action@v17
+        with:
+          nix_path: nixpkgs=https://github.com/eadwu/nixpkgs/archive/develop.tar.gz
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+      - name: Custom build configuration
+        run: |
+          sed -i 's@# CONFIG_AUDIT.*@CONFIG_AUDIT=y@' Microsoft/config-wsl
+          sed -i 's@# CONFIG_NO_HZ.*@CONFIG_NO_HZ=y@' Microsoft/config-wsl
+          sed -i 's@CONFIG_MODULES=y@CONFIG_MODULES=n@' Microsoft/config-wsl
+          sed -i 's@# CONFIG_MPTCP.*@CONFIG_MPTCP=y@' Microsoft/config-wsl
+          sed -i 's@# (CONFIG_NETFILTER_XT_.*) is not set@\1=y@g' Microsoft/config-wsl
+          sed -i 's@# CONFIG_EXFAT_FS.*@CONFIG_EXFAT_FS=y@' Microsoft/config-wsl
+          sed -i 's@# CONFIG_NTFS3_FS.*@CONFIG_NTFS3_FS=y@' Microsoft/config-wsl
+          sed -i 's@# CONFIG_SECURITY_APPARMOR.*@CONFIG_SECURITY_APPARMOR=y@' Microsoft/config-wsl
+          sed -i 's@# CONFIG_SECURITY_YAMA.*@CONFIG_SECURITY_YAMA=y@' Microsoft/config-wsl
+          sed -i 's@# CONFIG_STRICT_DEVMEM.*@CONFIG_STRICT_DEVMEM=y@' Microsoft/config-wsl
+
+          cp -f Microsoft/config-wsl .config
+      - name: Build kernel
+        run: |
+          nix-shell -E 'with import <nixpkgs> {}; linux_latest.overrideAttrs (o: {nativeBuildInputs=o.nativeBuildInputs ++ [ pkg-config ncurses ];})' --run 'make olddefconfig'
+          nix-shell -E 'with import <nixpkgs> {}; linux_latest.overrideAttrs (o: {nativeBuildInputs=o.nativeBuildInputs ++ [ pkg-config ncurses ];})' --run 'make -j$[$(nproc+1]'
+      - uses: actions/upload-artifact@v2.0.1
+        continue-on-error: true
+        with:
+          name: kernel
+          path: arch/x86/boot/bzImage

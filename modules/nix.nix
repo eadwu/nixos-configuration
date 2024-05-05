@@ -3,7 +3,7 @@
 with config.nixos; {
   nix = {
     distributedBuilds = true;
-    package = pkgs.nixVersions.unstable;
+    package = pkgs.nixVersions.latest;
 
     extraOptions = ''
       show-trace = true
@@ -52,13 +52,13 @@ with config.nixos; {
             nix = config.nix.package;
           };
 
-          nix-prefetch-scripts = prev.nix-prefetch-scripts.override {
-            nix = config.nix.package;
-          };
+          # nix-prefetch-scripts = prev.nix-prefetch-scripts.override {
+          #   nix = config.nix.package;
+          # };
 
-          nixos-option = prev.nixos-option.override {
-            nix = config.nix.package;
-          };
+          # nixos-option = prev.nixos-option.override {
+          #   nix = config.nix.package;
+          # };
         }
       )
     ] ++ map

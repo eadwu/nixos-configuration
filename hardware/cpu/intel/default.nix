@@ -32,10 +32,13 @@
     cpufreq.schedutil.rate_limit_us = 0;
   };
 
-  environment.systemPackages = with pkgs; [ pcm config.boot.kernelPackages.intel-speed-select ];
+  environment.systemPackages = with pkgs; [
+    pcm
+    # config.boot.kernelPackages.intel-speed-select
+  ];
 
   hardware.cpu.intel.updateMicrocode = true;
   hardware.opengl.extraPackages = with pkgs; [ intel-ocl ];
 
-  services.throttled.enable = lib.mkDefault true;
+  # services.throttled.enable = lib.mkDefault true;
 }

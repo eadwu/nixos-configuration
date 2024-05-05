@@ -13,8 +13,8 @@ let
 in
 {
   home.file = {
-    ".vim/colors/faded_material.vim".source = fadedMaterial;
-    ".vim/autoload/airline/themes/wal.vim".source = walAirline;
+#    ".vim/colors/faded_material.vim".source = fadedMaterial;
+#    ".vim/autoload/airline/themes/wal.vim".source = walAirline;
   };
 
   programs.vim = {
@@ -27,9 +27,6 @@ in
       set softtabstop=2
       set timeoutlen=1000
       set ttimeoutlen=0
-
-      let g:airline_theme='wal'
-      colorscheme faded_material
     '';
 
     plugins = with pkgs.vimPlugins; [ vim-airline ];

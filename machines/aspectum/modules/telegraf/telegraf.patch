@@ -1,0 +1,50 @@
+diff --git a/internal/internal.go b/internal/internal.go
+index 5b38efd3a..e04875f8c 100644
+--- a/internal/internal.go
++++ b/internal/internal.go
+@@ -254,12 +254,25 @@ func CompressWithGzip(data io.Reader) io.ReadCloser {
+ // UTC location.
+ func ParseTimestamp(format string, timestamp interface{}, location string, separator ...string) (time.Time, error) {
+ 	switch format {
+-	case "unix", "unix_ms", "unix_us", "unix_ns":
++	case "unix", "unix_ms", "unix_us", "unix_ns", "sec", "ms", "us", "ns":
+ 		sep := []string{",", "."}
+ 		if len(separator) > 0 {
+ 			sep = separator
+ 		}
+-		return parseUnix(format, timestamp, sep)
++
++		t, err := parseUnix(format, timestamp, sep)
++		if err != nil {
++			return t, err
++		}
++
++		switch format {
++		case "sec", "ms", "us", "ns":
++			// Get rid of timezone information to normalize with respect to another timezone
++			const format = "2006-01-02 15:04:05.999999999"
++			return parseTime(format, t.Format(format), location)
++		default:
++			return t, err
++		}
+ 	default:
+ 		v, ok := timestamp.(string)
+ 		if !ok {
+@@ -274,13 +287,13 @@ func parseUnix(format string, timestamp interface{}, separator []string) (time.T
+ 	// Extract the scaling factor to nanoseconds from "format"
+ 	var factor int64
+ 	switch format {
+-	case "unix":
++	case "unix", "sec":
+ 		factor = int64(time.Second)
+-	case "unix_ms":
++	case "unix_ms", "ms":
+ 		factor = int64(time.Millisecond)
+-	case "unix_us":
++	case "unix_us", "us":
+ 		factor = int64(time.Microsecond)
+-	case "unix_ns":
++	case "unix_ns", "ns":
+ 		factor = int64(time.Nanosecond)
+ 	}
+ 

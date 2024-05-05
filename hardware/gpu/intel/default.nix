@@ -11,15 +11,15 @@
     # Display power wells are always on
     "i915.disable_power_well=0"
     # Enable GuC load for GuC submission and/or HuC load
-    "i915.enable_guc=-1"
+    # "i915.enable_guc=-1"
   ];
 
   environment.systemPackages = with pkgs; [
     intel-gpu-tools
     libva-utils
   ];
-  environment.sessionVariables.MESA_LOADER_DRIVER_OVERRIDE = lib.mkDefault "iris";
-  environment.sessionVariables.VDPAU_DRIVER = lib.mkDefault "va_gl";
+  # environment.sessionVariables.MESA_LOADER_DRIVER_OVERRIDE = lib.mkDefault "iris";
+  # environment.sessionVariables.VDPAU_DRIVER = lib.mkDefault "va_gl";
 
   hardware.opengl.extraPackages = with pkgs; [
     intel-vaapi-driver
@@ -29,7 +29,7 @@
   ];
 
   services.xserver = {
-    useGlamor = true;
+    # useGlamor = true;
     videoDrivers = lib.mkDefault [ "modesetting" ];
   };
 }

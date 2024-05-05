@@ -1,0 +1,12 @@
+diff --git a/src/ldcache.c b/src/ldcache.c
+index 38bab05..ebbab2d 100644
+--- a/src/ldcache.c
++++ b/src/ldcache.c
+@@ -126,6 +126,7 @@ ldcache_resolve(struct ldcache *ctx, uint32_t arch, const char *root, const char
+                         continue;
+ 
+                 for (size_t j = 0; j < size; ++j) {
++                        log_infof("[DEBUG]: %s", path);
+                         if (!str_has_prefix(key, libs[j]))
+                                 continue;
+                         if (path_resolve(ctx->err, path, root, value) < 0)

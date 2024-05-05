@@ -10,24 +10,27 @@ with config.nixos; {
       ../modules/clight.nix
       ../modules/picom.nix
       ../modules/cups.nix
-      ../modules/emacs.nix
+      # ../modules/emacs.nix
       ../modules/i3color.nix
       ../modules/logind
       ../modules/lorri.nix
-      ../modules/monitoring
+      # ../modules/monitoring
       ../modules/network
-      ../modules/oomd.nix
+      # ../modules/oomd.nix
       ../modules/tlp.nix
       ../modules/users.nix
       ../modules/virtualisation.nix
       ../modules/watchman.nix
-      ../modules/xserver
       ../modules/zsh.nix
     ];
 
-  boot = {
-    cleanTmpDir = true;
-    supportedFilesystems = [ "ntfs" ];
+  # boot.kernelPackages = lib.mkOverride (-1000) pkgs.linuxPackages_latest;
+
+  boot.supportedFilesystems = [ "ntfs" ];
+
+  boot.tmp = {
+    cleanOnBoot = true;
+    useTmpfs = true;
   };
 
   environment = {
@@ -49,23 +52,25 @@ with config.nixos; {
       gcc
       gdb
       go
-      julia-stable-bin
-      llvmPackages.clang-unwrapped
-      mongodb
+      # julia-stable-bin
+      llvmPackages.clang
+      # mongodb
       mariadb
       nasm
       nodejs
+      corepack
       openjdk
       python3
       multimarkdown
-      rWrapper
+      # rWrapper
+      R
       sass
       sbt
       scala
       sqlite
       texlive.combined.scheme-full
       ## Go
-      delve
+      # delve
       golint
       gopls
       gopkgs
@@ -78,20 +83,25 @@ with config.nixos; {
       mathlibtools
       elan
       ## Rust
+      cargo-edit
       (with fenix; combine [
-        complete.toolchain
-        targets.aarch64-unknown-linux-gnu.latest.rust-std
-        targets.x86_64-apple-darwin.latest.rust-std
-        targets.x86_64-pc-windows-gnu.latest.rust-std
-        targets.x86_64-pc-windows-msvc.latest.rust-std
-        targets.x86_64-unknown-linux-gnu.latest.rust-std
-        targets.aarch64-apple-darwin.latest.rust-std
-        targets.x86_64-unknown-linux-musl.latest.rust-std
-        targets.wasm32-unknown-emscripten.latest.rust-std
-        targets.wasm32-unknown-unknown.latest.rust-std
-        targets.wasm32-wasi.latest.rust-std
+        stable.toolchain
+        targets.aarch64-unknown-linux-gnu.stable.rust-std
+        targets.x86_64-apple-darwin.stable.rust-std
+        targets.x86_64-pc-windows-gnu.stable.rust-std
+        targets.x86_64-pc-windows-msvc.stable.rust-std
+        targets.x86_64-unknown-linux-gnu.stable.rust-std
+        targets.aarch64-apple-darwin.stable.rust-std
+        targets.x86_64-unknown-linux-musl.stable.rust-std
+        targets.wasm32-unknown-emscripten.stable.rust-std
+        targets.wasm32-unknown-unknown.stable.rust-std
+        targets.wasm32-wasi.stable.rust-std
       ])
       rust-analyzer
+      ## Zig
+      zls
+      # zig
+      # zigpkgs.latest
       # Build Tools
       bazel
       bazel-buildtools
@@ -114,12 +124,16 @@ with config.nixos; {
       scrot
       st
       wakatime
+      wget2
       xorg.xsetroot
     ];
 
     variables = {
+      JAVA_HOME = "${pkgs.openjdk}/lib/openjdk";
       DOCKER_ID_USER = settings.docker.user;
       RUST_SRC_PATH = pkgs.fenix.complete.rust-src + "/lib/rustlib/src/rust/library";
+      LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
+      NIX_HARDENING_ENABLE = "";
     };
   };
 
@@ -132,29 +146,40 @@ with config.nixos; {
       serif = [ "Liberation Serif" ];
       emoji = [ "Unifont" ] ++ options.fonts.fontconfig.defaultFonts.emoji.default;
     };
-  fonts.fonts = with pkgs;
+  fonts.packages = with pkgs;
     [
       anonymousPro
       eb-garamond
       cascadia-code
       comfortaa
       corefonts
+      font-awesome_6
       font-awesome_5
       ibm-plex
       lato
       liberation_ttf
-      noto-fonts-cjk
+      nerdfonts
+      noto-fonts-cjk-sans
+      noto-fonts-cjk-serif
       recursive
       unifont
       weather-icons
+
+      intel-one-mono
+
+      comic-mono
+      ludusavi
+      material-icons
+      material-design-icons
     ];
 
   programs.dconf.enable = true;
 
-  programs.gnupg.agent = {
-    enable = true;
-    pinentryFlavor = "qt";
-  };
+  programs.gnupg.agent.enable = true;
+  # programs.gnupg.agent.pinentryFlavor = "qt";
+  programs.gnupg.agent.pinentryPackage = pkgs.pinentry-all;
+
+  # services.gnome.gnome-keyring.enable = true;
 
   programs.zsh = {
     interactiveShellInit = let

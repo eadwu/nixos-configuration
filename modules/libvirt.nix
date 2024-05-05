@@ -1,6 +1,8 @@
 { pkgs, ... }:
 
 {
+  environment.systemPackages = with pkgs; [ virtiofsd ];
+
   networking.firewall.checkReversePath = false;
 
   virtualisation.libvirtd = {

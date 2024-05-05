@@ -6,11 +6,11 @@
 
     zsh = {
       enable = true;
-
       interactiveShellInit = let
         system = "nixosConfigurations.${config.networking.hostName}";
       in ''
         setopt histignorespace
+
         source ${pkgs.nix-index}/etc/profile.d/command-not-found.sh
         # Use emacs key bindings
         bindkey -e

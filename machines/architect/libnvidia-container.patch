@@ -1,0 +1,409 @@
+diff --git a/src/nvc_info.c b/src/nvc_info.c
+index 9e27c3c..226dc80 100644
+--- a/src/nvc_info.c
++++ b/src/nvc_info.c
+@@ -66,29 +66,138 @@ static const char * const utility_bins[] = {
+         //"nvidia-modprobe",                /* Kernel module loader */
+         //"nvidia-settings",                /* X server settings */
+         //"nvidia-xconfig",                 /* X xorg.conf editor */
++
++        "libcuda.so.1.1",                   /* Core library for cuda support */
++        "libcuda_loader.so",                /* Core library for cuda support on WSL */
++        "libnvidia-ptxjitcompiler.so.1",    /* Core library for PTX Jit support */
++        "libnvidia-ml.so.1",                /* Core library for nvml */
++        "libnvidia-ml_loader.so",           /* Core library for nvml on WSL */
++        "nvidia-smi",                       /* nvidia-smi binary*/
++        "nvcubins.bin",                     /* Binary containing GPU code for cuda */
++
++        "libcuda.so",
++        "libcuda.so.1",
++        "libcuda.so.1.1",
++        "libd3d12.so",
++        "libd3d12core.so",
++        "libdxcore.so",
++        "libnvcuvid.so",
++        "libnvcuvid.so.1",
++        "libnvdxdlkernels.so",
++        "libnvidia-encode.so",
++        "libnvidia-encode.so.1",
++        "libnvidia-ml.so.1",
++        "libnvidia-opticalflow.so",
++        "libnvidia-opticalflow.so.1",
++        "libnvoptix.so.1",
++        "libnvoptix_loader.so.1",
++        "libnvwgf2umx.so",
+ };
+ 
+ static const char * const compute_bins[] = {
+         "nvidia-cuda-mps-control",          /* Multi process service CLI */
+         "nvidia-cuda-mps-server",           /* Multi process service server */
++
++        "libcuda.so.1.1",                   /* Core library for cuda support */
++        "libcuda_loader.so",                /* Core library for cuda support on WSL */
++        "libnvidia-ptxjitcompiler.so.1",    /* Core library for PTX Jit support */
++        "libnvidia-ml.so.1",                /* Core library for nvml */
++        "libnvidia-ml_loader.so",           /* Core library for nvml on WSL */
++        "nvidia-smi",                       /* nvidia-smi binary*/
++        "nvcubins.bin",                     /* Binary containing GPU code for cuda */
++
++        "libcuda.so",
++        "libcuda.so.1",
++        "libcuda.so.1.1",
++        "libd3d12.so",
++        "libd3d12core.so",
++        "libdxcore.so",
++        "libnvcuvid.so",
++        "libnvcuvid.so.1",
++        "libnvdxdlkernels.so",
++        "libnvidia-encode.so",
++        "libnvidia-encode.so.1",
++        "libnvidia-ml.so.1",
++        "libnvidia-opticalflow.so",
++        "libnvidia-opticalflow.so.1",
++        "libnvoptix.so.1",
++        "libnvoptix_loader.so.1",
++        "libnvwgf2umx.so",
+ };
+ 
+ static const char * const utility_libs[] = {
+         "libnvidia-ml.so",                  /* Management library */
+         "libnvidia-cfg.so",                 /* GPU configuration */
+         "libnvidia-nscq.so",                /* Topology info for NVSwitches and GPUs */
++        "libnvidia-ml.so.1",                /* Core library for nvml */
++        "libnvidia-ml_loader.so",           /* Core library for nvml on WSL */
++
++        "libcuda.so.1.1",                   /* Core library for cuda support */
++        "libcuda_loader.so",                /* Core library for cuda support on WSL */
++        "libnvidia-ptxjitcompiler.so.1",    /* Core library for PTX Jit support */
++        "libnvidia-ml.so.1",                /* Core library for nvml */
++        "libnvidia-ml_loader.so",           /* Core library for nvml on WSL */
++        "nvidia-smi",                       /* nvidia-smi binary*/
++        "nvcubins.bin",                     /* Binary containing GPU code for cuda */
++
++        "libcuda.so",
++        "libcuda.so.1",
++        "libcuda.so.1.1",
++        "libd3d12.so",
++        "libd3d12core.so",
++        "libdxcore.so",
++        "libnvcuvid.so",
++        "libnvcuvid.so.1",
++        "libnvdxdlkernels.so",
++        "libnvidia-encode.so",
++        "libnvidia-encode.so.1",
++        "libnvidia-ml.so.1",
++        "libnvidia-opticalflow.so",
++        "libnvidia-opticalflow.so.1",
++        "libnvoptix.so.1",
++        "libnvoptix_loader.so.1",
++        "libnvwgf2umx.so",
+ };
+ 
+ static const char * const compute_libs[] = {
+         "libcuda.so",                       /* CUDA driver library */
+         "libcudadebugger.so",               /* CUDA Debugger Library */
++        "libcuda.so.1.1",                   /* Core library for cuda support */
++        "libcuda_loader.so",                /* Core library for cuda support on WSL */
+         "libnvidia-opencl.so",              /* NVIDIA OpenCL ICD */
+         "libnvidia-ptxjitcompiler.so",      /* PTX-SASS JIT compiler (used by libcuda) */
++        "libnvidia-ptxjitcompiler.so.1",    /* Core library for PTX Jit support */
+         "libnvidia-fatbinaryloader.so",     /* fatbin loader (used by libcuda) */
+         "libnvidia-allocator.so",           /* NVIDIA allocator runtime library */
+         "libnvidia-compiler.so",            /* NVVM-PTX compiler for OpenCL (used by libnvidia-opencl) */
+         "libnvidia-pkcs11.so",              /* Encrypt/Decrypt library */
+         "libnvidia-nvvm.so",                /* The NVVM Compiler library */
++
++        "libcuda.so.1.1",                   /* Core library for cuda support */
++        "libcuda_loader.so",                /* Core library for cuda support on WSL */
++        "libnvidia-ptxjitcompiler.so.1",    /* Core library for PTX Jit support */
++        "libnvidia-ml.so.1",                /* Core library for nvml */
++        "libnvidia-ml_loader.so",           /* Core library for nvml on WSL */
++        "nvidia-smi",                       /* nvidia-smi binary*/
++        "nvcubins.bin",                     /* Binary containing GPU code for cuda */
++
++        "libcuda.so",
++        "libcuda.so.1",
++        "libcuda.so.1.1",
++        "libd3d12.so",
++        "libd3d12core.so",
++        "libdxcore.so",
++        "libnvcuvid.so",
++        "libnvcuvid.so.1",
++        "libnvdxdlkernels.so",
++        "libnvidia-encode.so",
++        "libnvidia-encode.so.1",
++        "libnvidia-ml.so.1",
++        "libnvidia-opticalflow.so",
++        "libnvidia-opticalflow.so.1",
++        "libnvoptix.so.1",
++        "libnvoptix_loader.so.1",
++        "libnvwgf2umx.so",
+ };
+ 
+ static const char * const video_libs[] = {
+@@ -96,6 +205,32 @@ static const char * const video_libs[] = {
+         "libnvidia-encode.so",              /* Video encoder */
+         "libnvidia-opticalflow.so",         /* NVIDIA Opticalflow library */
+         "libnvcuvid.so",                    /* Video decoder */
++
++        "libcuda.so.1.1",                   /* Core library for cuda support */
++        "libcuda_loader.so",                /* Core library for cuda support on WSL */
++        "libnvidia-ptxjitcompiler.so.1",    /* Core library for PTX Jit support */
++        "libnvidia-ml.so.1",                /* Core library for nvml */
++        "libnvidia-ml_loader.so",           /* Core library for nvml on WSL */
++        "nvidia-smi",                       /* nvidia-smi binary*/
++        "nvcubins.bin",                     /* Binary containing GPU code for cuda */
++
++        "libcuda.so",
++        "libcuda.so.1",
++        "libcuda.so.1.1",
++        "libd3d12.so",
++        "libd3d12core.so",
++        "libdxcore.so",
++        "libnvcuvid.so",
++        "libnvcuvid.so.1",
++        "libnvdxdlkernels.so",
++        "libnvidia-encode.so",
++        "libnvidia-encode.so.1",
++        "libnvidia-ml.so.1",
++        "libnvidia-opticalflow.so",
++        "libnvidia-opticalflow.so.1",
++        "libnvoptix.so.1",
++        "libnvoptix_loader.so.1",
++        "libnvwgf2umx.so",
+ };
+ 
+ static const char * const graphics_libs[] = {
+@@ -108,6 +243,32 @@ static const char * const graphics_libs[] = {
+         "libnvidia-ifr.so",                 /* OpenGL framebuffer capture */
+         "libnvidia-rtcore.so",              /* Optix */
+         "libnvoptix.so",                    /* Optix */
++
++        "libcuda.so.1.1",                   /* Core library for cuda support */
++        "libcuda_loader.so",                /* Core library for cuda support on WSL */
++        "libnvidia-ptxjitcompiler.so.1",    /* Core library for PTX Jit support */
++        "libnvidia-ml.so.1",                /* Core library for nvml */
++        "libnvidia-ml_loader.so",           /* Core library for nvml on WSL */
++        "nvidia-smi",                       /* nvidia-smi binary*/
++        "nvcubins.bin",                     /* Binary containing GPU code for cuda */
++
++        "libcuda.so",
++        "libcuda.so.1",
++        "libcuda.so.1.1",
++        "libd3d12.so",
++        "libd3d12core.so",
++        "libdxcore.so",
++        "libnvcuvid.so",
++        "libnvcuvid.so.1",
++        "libnvdxdlkernels.so",
++        "libnvidia-encode.so",
++        "libnvidia-encode.so.1",
++        "libnvidia-ml.so.1",
++        "libnvidia-opticalflow.so",
++        "libnvidia-opticalflow.so.1",
++        "libnvoptix.so.1",
++        "libnvoptix_loader.so.1",
++        "libnvwgf2umx.so",
+ };
+ 
+ static const char * const graphics_libs_glvnd[] = {
+@@ -120,6 +281,32 @@ static const char * const graphics_libs_glvnd[] = {
+         "libGLESv1_CM_nvidia.so",           /* OpenGL ES v1 common profile ICD */
+         "libnvidia-glvkspirv.so",           /* SPIR-V Lib for Vulkan */
+         "libnvidia-cbl.so",                 /* VK_NV_ray_tracing */
++
++        "libcuda.so.1.1",                   /* Core library for cuda support */
++        "libcuda_loader.so",                /* Core library for cuda support on WSL */
++        "libnvidia-ptxjitcompiler.so.1",    /* Core library for PTX Jit support */
++        "libnvidia-ml.so.1",                /* Core library for nvml */
++        "libnvidia-ml_loader.so",           /* Core library for nvml on WSL */
++        "nvidia-smi",                       /* nvidia-smi binary*/
++        "nvcubins.bin",                     /* Binary containing GPU code for cuda */
++
++        "libcuda.so",
++        "libcuda.so.1",
++        "libcuda.so.1.1",
++        "libd3d12.so",
++        "libd3d12core.so",
++        "libdxcore.so",
++        "libnvcuvid.so",
++        "libnvcuvid.so.1",
++        "libnvdxdlkernels.so",
++        "libnvidia-encode.so",
++        "libnvidia-encode.so.1",
++        "libnvidia-ml.so.1",
++        "libnvidia-opticalflow.so",
++        "libnvidia-opticalflow.so.1",
++        "libnvoptix.so.1",
++        "libnvoptix_loader.so.1",
++        "libnvwgf2umx.so",
+ };
+ 
+ static const char * const graphics_libs_compat[] = {
+@@ -127,14 +314,92 @@ static const char * const graphics_libs_compat[] = {
+         "libEGL.so",                        /* EGL legacy _or_ ICD loader (GLVND) */
+         "libGLESv1_CM.so",                  /* OpenGL ES v1 common profile legacy _or_ ICD loader (GLVND) */
+         "libGLESv2.so",                     /* OpenGL ES v2 legacy _or_ ICD loader (GLVND) */
++
++        "libcuda.so.1.1",                   /* Core library for cuda support */
++        "libcuda_loader.so",                /* Core library for cuda support on WSL */
++        "libnvidia-ptxjitcompiler.so.1",    /* Core library for PTX Jit support */
++        "libnvidia-ml.so.1",                /* Core library for nvml */
++        "libnvidia-ml_loader.so",           /* Core library for nvml on WSL */
++        "nvidia-smi",                       /* nvidia-smi binary*/
++        "nvcubins.bin",                     /* Binary containing GPU code for cuda */
++
++        "libcuda.so",
++        "libcuda.so.1",
++        "libcuda.so.1.1",
++        "libd3d12.so",
++        "libd3d12core.so",
++        "libdxcore.so",
++        "libnvcuvid.so",
++        "libnvcuvid.so.1",
++        "libnvdxdlkernels.so",
++        "libnvidia-encode.so",
++        "libnvidia-encode.so.1",
++        "libnvidia-ml.so.1",
++        "libnvidia-opticalflow.so",
++        "libnvidia-opticalflow.so.1",
++        "libnvoptix.so.1",
++        "libnvoptix_loader.so.1",
++        "libnvwgf2umx.so",
+ };
+ 
+ static const char * const ngx_libs[] = {
+         "libnvidia-ngx.so",                 /* NGX library */
++
++        "libcuda.so.1.1",                   /* Core library for cuda support */
++        "libcuda_loader.so",                /* Core library for cuda support on WSL */
++        "libnvidia-ptxjitcompiler.so.1",    /* Core library for PTX Jit support */
++        "libnvidia-ml.so.1",                /* Core library for nvml */
++        "libnvidia-ml_loader.so",           /* Core library for nvml on WSL */
++        "nvidia-smi",                       /* nvidia-smi binary*/
++        "nvcubins.bin",                     /* Binary containing GPU code for cuda */
++
++        "libcuda.so",
++        "libcuda.so.1",
++        "libcuda.so.1.1",
++        "libd3d12.so",
++        "libd3d12core.so",
++        "libdxcore.so",
++        "libnvcuvid.so",
++        "libnvcuvid.so.1",
++        "libnvdxdlkernels.so",
++        "libnvidia-encode.so",
++        "libnvidia-encode.so.1",
++        "libnvidia-ml.so.1",
++        "libnvidia-opticalflow.so",
++        "libnvidia-opticalflow.so.1",
++        "libnvoptix.so.1",
++        "libnvoptix_loader.so.1",
++        "libnvwgf2umx.so",
+ };
+ 
+ static const char * const dxcore_libs[] = {
+         "libdxcore.so",                     /* Core library for dxcore support */
++
++        "libcuda.so.1.1",                   /* Core library for cuda support */
++        "libcuda_loader.so",                /* Core library for cuda support on WSL */
++        "libnvidia-ptxjitcompiler.so.1",    /* Core library for PTX Jit support */
++        "libnvidia-ml.so.1",                /* Core library for nvml */
++        "libnvidia-ml_loader.so",           /* Core library for nvml on WSL */
++        "nvidia-smi",                       /* nvidia-smi binary*/
++        "nvcubins.bin",                     /* Binary containing GPU code for cuda */
++
++        "libcuda.so",
++        "libcuda.so.1",
++        "libcuda.so.1.1",
++        "libd3d12.so",
++        "libd3d12core.so",
++        "libdxcore.so",
++        "libnvcuvid.so",
++        "libnvcuvid.so.1",
++        "libnvdxdlkernels.so",
++        "libnvidia-encode.so",
++        "libnvidia-encode.so.1",
++        "libnvidia-ml.so.1",
++        "libnvidia-opticalflow.so",
++        "libnvidia-opticalflow.so.1",
++        "libnvoptix.so.1",
++        "libnvoptix_loader.so.1",
++        "libnvwgf2umx.so",
+ };
+ 
+ static int
+@@ -207,38 +472,61 @@ static int
+ find_library_paths(struct error *err, struct dxcore_context *dxcore, struct nvc_driver_info *info,
+                    const char *root, const char *ldcache, const char * const libs[], size_t size)
+ {
++        char *env, *ptr;
++        const char *dir;
++        char tmp[PATH_MAX];
+         char path[PATH_MAX];
+-        struct ldcache ld;
+         int rv = -1;
+ 
+         ldcache_select_fn select_libraries_fn = dxcore->initialized ? select_wsl_libraries : select_libraries;
+ 
+-        if (path_resolve_full(err, path, root, ldcache) < 0)
++        if ((env = secure_getenv("LD_LIBRARY_PATH")) == NULL) {
++                error_setx(err, "environment variable LD_LIBRARY_PATH not found");
+                 return (-1);
+-        ldcache_init(&ld, err, path);
+-        if (ldcache_open(&ld) < 0)
++        }
++        if ((env = ptr = xstrdup(err, env)) == NULL)
+                 return (-1);
+ 
+         info->nlibs = size;
+         info->libs = array_new(err, size);
+         if (info->libs == NULL)
+                 goto fail;
+-        if (ldcache_resolve(&ld, LIB_ARCH, root, libs,
+-            info->libs, info->nlibs, select_libraries_fn, info) < 0)
+-                goto fail;
+ 
+         info->nlibs32 = size;
+         info->libs32 = array_new(err, size);
+         if (info->libs32 == NULL)
+                 goto fail;
+-        if (ldcache_resolve(&ld, LIB32_ARCH, root, libs,
+-            info->libs32, info->nlibs32, select_libraries_fn, info) < 0)
+-                goto fail;
++
++        while ((dir = strsep(&ptr, ":")) != NULL) {
++                if (*dir == '\0')
++                        dir = ".";
++                for (size_t i = 0; i < size; ++i) {
++                        if (info->libs[i] != NULL) {
++                                // Override?
++                                if ((override = select(err, info, root, info->libs[j], path)) < 0)
++                                        return (-1);
++                                if (override)
++                                        goto override;
++                                continue;
++                        }
++                        if (path_join(NULL, tmp, dir, libs[i]) < 0)
++                                continue;
++                        if (path_resolve(NULL, path, root, tmp) < 0)
++                                continue;
++                        if (file_exists_at(NULL, root, path) == true) {
++override:
++                                info->libs[i] = xstrdup(err, path);
++                                info->libs32[i] = xstrdup(err, path);
++                                if (info->libs[i] == NULL || info->libs32[i])
++                                        goto fail;
++                                log_infof("selecting %s", path);
++                        }
++                }
++        }
+         rv = 0;
+ 
+  fail:
+-        if (ldcache_close(&ld) < 0)
+-                return (-1);
++        free(env);
+         return (rv);
+ }
+ 

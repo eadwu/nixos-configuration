@@ -26,14 +26,14 @@
   "fiscalYearStartMonth": 0,
   "gnetId": 6122,
   "graphTooltip": 0,
-  "id": 123,
+  "id": 171,
   "links": [],
   "liveNow": true,
   "panels": [
     {
       "datasource": {
-        "type": "influxdb",
-        "uid": "PB7312326C90BED1E"
+        "type": "prometheus",
+        "uid": "${DS}"
       },
       "description": "Frequency - The ‘frequency’ is the rate by which the system’s clock would be wrong if chronyd was not correcting it. It is expressed in ppm (parts per million). For example, a value of 1ppm would mean that when the system’s clock thinks it has advanced 1 second, it has actually advanced by 1.000001 seconds relative to true time.\n\nResidual freq - This shows the ‘residual frequency’ for the currently selected reference source. This reflects any difference between what the measurements from the reference source indicate the frequency should be and the frequency currently being used. The reason this is not always zero is that a smoothing procedure is applied to the frequency. Each time a measurement from the reference source is obtained and a new residual frequency computed, the estimated accuracy of this residual is compared with the estimated accuracy (see ‘skew’ next) of the existing frequency value. A weighted average is computed for the new frequency, with weights depending on these accuracies. If the measurements from the reference source follow a consistent trend, the residual will be driven to zero over time.\n\nSkew - This is the estimated error bound on the frequency.\n\nhttps://chrony.tuxfamily.org/doc/3.3/chronyc.html#_system_clock",
       "fieldConfig": {
@@ -207,137 +207,50 @@
       "pluginVersion": "9.3.1",
       "targets": [
         {
-          "alias": "Frequency",
           "datasource": {
-            "type": "influxdb",
-            "uid": "PB7312326C90BED1E"
+            "type": "prometheus",
+            "uid": "${DS}"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "none"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "chrony",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "A",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "frequency"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": []
+          "editorMode": "builder",
+          "expr": "max by() (chrony_frequency)",
+          "legendFormat": "Frequency",
+          "range": true,
+          "refId": "A"
         },
         {
-          "alias": "Residual Frequency",
           "datasource": {
-            "type": "influxdb",
-            "uid": "PB7312326C90BED1E"
+            "type": "prometheus",
+            "uid": "${DS}"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "none"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "chrony",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "C",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "residual_freq"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": []
+          "editorMode": "builder",
+          "expr": "max(chrony_residual_freq)",
+          "hide": false,
+          "legendFormat": "Residual Frequency",
+          "range": true,
+          "refId": "B"
         },
         {
-          "alias": "Skew (estimated error)",
           "datasource": {
-            "type": "influxdb",
-            "uid": "PB7312326C90BED1E"
+            "type": "prometheus",
+            "uid": "${DS}"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "none"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "chrony",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "D",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "skew"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": []
+          "editorMode": "builder",
+          "expr": "max(chrony_skew)",
+          "hide": false,
+          "legendFormat": "Skew (estimated error)",
+          "range": true,
+          "refId": "C"
         }
       ],
       "title": "Frequency",
+      "transformations": [],
       "transparent": true,
       "type": "timeseries"
     },
     {
       "datasource": {
-        "type": "influxdb",
-        "uid": "PB7312326C90BED1E"
+        "type": "prometheus",
+        "uid": "${DS}"
       },
       "description": "System time - In normal operation, chronyd never steps the system clock, because any jump in the timescale can have adverse consequences for certain application programs. Instead, any error in the system clock is corrected by slightly speeding up or slowing down the system clock until the error has been removed, and then returning to the system clock’s normal speed. A consequence of this is that there will be a period when the system clock (as read by other programs using the gettimeofday() system call, or by the date command in the shell) will be different from chronyd's estimate of the current true time (which it reports to NTP clients when it is operating in server mode). The value reported on this line is the difference due to this effect.\n\nLast offset - This is the estimated local offset on the last clock update.\n\nRMS offset - This is a long-term average of the offset value.",
       "fieldConfig": {
@@ -449,128 +362,40 @@
       "pluginVersion": "9.3.1",
       "targets": [
         {
-          "alias": "Last Offset",
           "datasource": {
-            "type": "influxdb",
-            "uid": "PB7312326C90BED1E"
+            "type": "prometheus",
+            "uid": "${DS}"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "none"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "chrony",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "A",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "last_offset"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": []
+          "editorMode": "builder",
+          "expr": "max(chrony_last_offset)",
+          "interval": "",
+          "legendFormat": "Last Offset",
+          "range": true,
+          "refId": "A"
         },
         {
-          "alias": "RMS Offset (long term avarage)",
           "datasource": {
-            "type": "influxdb",
-            "uid": "PB7312326C90BED1E"
+            "type": "prometheus",
+            "uid": "${DS}"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "none"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "chrony",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "B",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "rms_offset"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": []
+          "editorMode": "builder",
+          "expr": "max(chrony_rms_offset)",
+          "hide": false,
+          "legendFormat": "RMS Offset (long term avarage)",
+          "range": true,
+          "refId": "B"
         },
         {
-          "alias": "System Time",
           "datasource": {
-            "type": "influxdb",
-            "uid": "PB7312326C90BED1E"
+            "type": "prometheus",
+            "uid": "${DS}"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "none"
-              ],
-              "type": "fill"
-            }
-          ],
-          "hide": true,
-          "measurement": "chrony",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "C",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "system_time"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": []
+          "editorMode": "builder",
+          "expr": "max(chrony_system_time)",
+          "hide": false,
+          "legendFormat": "System Time",
+          "range": true,
+          "refId": "C"
         }
       ],
       "title": "Offset",
@@ -579,8 +404,8 @@
     },
     {
       "datasource": {
-        "type": "influxdb",
-        "uid": "PB7312326C90BED1E"
+        "type": "prometheus",
+        "uid": "${DS}"
       },
       "description": "Root delay - This is the total of the network path delays to the stratum-1 computer from which the computer is ultimately synchronised. In certain extreme situations, this value can be negative. (This can arise in a symmetric peer arrangement where the computers’ frequencies are not tracking each other and the network delay is very short relative to the turn-around time at each computer.)\n\nRoot dispersion - This is the total dispersion accumulated through all the computers back to the stratum-1 computer from which the computer is ultimately synchronised. Dispersion is due to system clock resolution, statistical measurement variations etc. An absolute bound on the computer’s clock accuracy. (The estimate of the total amount of error/variance between that server and the correct time.)",
       "fieldConfig": {
@@ -692,211 +517,27 @@
       "pluginVersion": "9.3.1",
       "targets": [
         {
-          "alias": "Root delay",
           "datasource": {
-            "type": "influxdb",
-            "uid": "PB7312326C90BED1E"
+            "type": "prometheus",
+            "uid": "${DS}"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "none"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "chrony",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "A",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "root_delay"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": []
+          "editorMode": "builder",
+          "expr": "max(chrony_root_delay)",
+          "legendFormat": "Root Delay",
+          "range": true,
+          "refId": "A"
         },
         {
-          "alias": "Root dispersion",
           "datasource": {
-            "type": "influxdb",
-            "uid": "PB7312326C90BED1E"
+            "type": "prometheus",
+            "uid": "${DS}"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "none"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "chrony",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "B",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "root_dispersion"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": []
-        },
-        {
-          "alias": "System Time",
-          "datasource": {
-            "type": "influxdb",
-            "uid": "PB7312326C90BED1E"
-          },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "none"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "chrony",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "C",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "system_time"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": []
-        },
-        {
-          "alias": "Last offset",
-          "datasource": {
-            "type": "influxdb",
-            "uid": "PB7312326C90BED1E"
-          },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "none"
-              ],
-              "type": "fill"
-            }
-          ],
-          "hide": true,
-          "measurement": "chrony",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "D",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "last_offset"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": []
-        },
-        {
-          "alias": "RMS offset (long time average)",
-          "datasource": {
-            "type": "influxdb",
-            "uid": "PB7312326C90BED1E"
-          },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "none"
-              ],
-              "type": "fill"
-            }
-          ],
-          "hide": true,
-          "measurement": "chrony",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "E",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "rms_offset"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": []
+          "editorMode": "builder",
+          "expr": "max(chrony_root_dispersion)",
+          "hide": false,
+          "legendFormat": "Root Dispersion",
+          "range": true,
+          "refId": "B"
         }
       ],
       "title": "Sources",
@@ -909,7 +550,26 @@
   "style": "dark",
   "tags": [],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": "victoriametrics",
+          "value": "victoriametrics"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "DS",
+        "options": [],
+        "query": "prometheus",
+        "queryValue": "",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      }
+    ]
   },
   "time": {
     "from": "now-6h",

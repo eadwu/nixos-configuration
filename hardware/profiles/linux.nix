@@ -3,8 +3,10 @@
 {
   imports =
     [
-      nixosModules.custom
-      nixosModules.sysfs
+      # nixosModules.custom
+      # nixosModules.sysfs
+
+      ./hardened.nix
       "${modulesPath}/profiles/hardened.nix"
     ];
 
@@ -18,14 +20,9 @@
     ];
 
     kernel.sysctl = {
-      "vm.swappiness" = 10;
-
       # Upstream systemd defaults to only sync
       # https://github.com/NixOS/nixpkgs/issues/83694#issuecomment-605657381
-      "kernel.sysrq" = 438;
-
-      # Turn off kexec, even if it's built in.
-      "kernel.kexec_load_disabled" = 1;
+      # "kernel.sysrq" = 438;
 
       # https://github.com/NixOS/nixpkgs/pull/84522/commits/b7638115f6e8b73915809bf46acf08f114bbbbd5
       "kernel.unprivileged_userns_clone" = true;
@@ -34,6 +31,7 @@
     kernelModules = [
       # Filesystem support
       "ext4"
+      "ntfs3"
       # Explicitly load these for usb read/write support
       "bfq" # Register io scheduler for usb
       "uas"
@@ -70,14 +68,8 @@
     ];
 
     kernelParams = [
-      "lockdown=confidentiality"
-
       # Increasing the virtual memory dirty writeback time helps to aggregate disk I/O together
       "vm.dirty_writeback_centisecs=6000"
-
-      # Wipe slab and page allocations (supersedes "slub_debug=P" and "page_poison=1" above, since v5.3)
-      "init_on_alloc=1"
-      "init_on_free=1"
 
       # Use TEO as CPUIdle Governor
       "cpuidle.governor=teo"

@@ -1,700 +1,1296 @@
 {
-    "annotations": {
-      "list": [
-        {
-          "builtIn": 1,
-          "datasource": {
-            "type": "grafana",
-            "uid": "-- Grafana --"
-          },
-          "enable": true,
-          "hide": true,
-          "iconColor": "rgba(0, 211, 255, 1)",
-          "name": "Annotations & Alerts",
-          "target": {
-            "limit": 100,
-            "matchAny": false,
-            "tags": [],
-            "type": "dashboard"
-          },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "target": {
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
           "type": "dashboard"
-        }
-      ]
-    },
-    "editable": true,
-    "fiscalYearStartMonth": 0,
-    "graphTooltip": 0,
-    "id": 129,
-    "links": [],
-    "liveNow": true,
-    "panels": [
-      {
-        "collapsed": false,
-        "gridPos": {
-          "h": 1,
-          "w": 24,
-          "x": 0,
-          "y": 0
         },
-        "id": 7,
-        "panels": [],
-        "title": "Stock Information",
-        "type": "row"
-      },
-      {
-        "datasource": {
-          "type": "prometheus",
-          "uid": "${DS}"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "palette-classic"
-            },
-            "custom": {
-              "axisCenteredZero": false,
-              "axisColorMode": "text",
-              "axisLabel": "",
-              "axisPlacement": "auto",
-              "barAlignment": 0,
-              "drawStyle": "line",
-              "fillOpacity": 0,
-              "gradientMode": "none",
-              "hideFrom": {
-                "legend": false,
-                "tooltip": false,
-                "viz": false
-              },
-              "lineInterpolation": "linear",
-              "lineStyle": {
-                "fill": "solid"
-              },
-              "lineWidth": 1,
-              "pointSize": 5,
-              "scaleDistribution": {
-                "type": "linear"
-              },
-              "showPoints": "never",
-              "spanNulls": false,
-              "stacking": {
-                "group": "A",
-                "mode": "none"
-              },
-              "thresholdsStyle": {
-                "mode": "off"
-              }
-            },
-            "mappings": [],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "red",
-                  "value": 80
-                }
-              ]
-            }
-          },
-          "overrides": []
-        },
-        "gridPos": {
-          "h": 9,
-          "w": 12,
-          "x": 0,
-          "y": 1
-        },
-        "id": 2,
-        "options": {
-          "legend": {
-            "calcs": [],
-            "displayMode": "list",
-            "placement": "bottom",
-            "showLegend": true
-          },
-          "tooltip": {
-            "mode": "single",
-            "sort": "none"
-          }
-        },
-        "targets": [
-          {
-            "alias": "$col",
-            "datasource": {
-              "type": "prometheus",
-              "uid": "${DS}"
-            },
-            "editorMode": "builder",
-            "expr": "nasdaq_stock_Value{companyName=\"$Company\", collapse=\"minute\"}",
-            "groupBy": [],
-            "legendFormat": "__auto",
-            "measurement": "nasdaq_stock",
-            "orderByTime": "ASC",
-            "policy": "default",
-            "range": true,
-            "refId": "A",
-            "resultFormat": "time_series",
-            "select": [
-              [
-                {
-                  "params": [
-                    "Value"
-                  ],
-                  "type": "field"
-                }
-              ]
-            ],
-            "tags": [
-              {
-                "key": "companyName",
-                "operator": "=~",
-                "value": "/^$Company$/"
-              },
-              {
-                "condition": "AND",
-                "key": "collapse",
-                "operator": "=",
-                "value": "minute"
-              }
-            ]
-          }
-        ],
-        "title": "Intraday Stock Price",
-        "transparent": true,
-        "type": "timeseries"
-      },
-      {
-        "datasource": {
-          "type": "prometheus",
-          "uid": "${DS}"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "palette-classic"
-            },
-            "custom": {
-              "axisCenteredZero": false,
-              "axisColorMode": "text",
-              "axisLabel": "",
-              "axisPlacement": "auto",
-              "barAlignment": 0,
-              "drawStyle": "line",
-              "fillOpacity": 0,
-              "gradientMode": "none",
-              "hideFrom": {
-                "legend": false,
-                "tooltip": false,
-                "viz": false
-              },
-              "lineInterpolation": "linear",
-              "lineStyle": {
-                "fill": "solid"
-              },
-              "lineWidth": 1,
-              "pointSize": 5,
-              "scaleDistribution": {
-                "type": "linear"
-              },
-              "showPoints": "never",
-              "spanNulls": false,
-              "stacking": {
-                "group": "A",
-                "mode": "none"
-              },
-              "thresholdsStyle": {
-                "mode": "off"
-              }
-            },
-            "mappings": [],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "red",
-                  "value": 80
-                }
-              ]
-            }
-          },
-          "overrides": []
-        },
-        "gridPos": {
-          "h": 9,
-          "w": 12,
-          "x": 12,
-          "y": 1
-        },
-        "id": 3,
-        "options": {
-          "legend": {
-            "calcs": [],
-            "displayMode": "list",
-            "placement": "bottom",
-            "showLegend": true
-          },
-          "tooltip": {
-            "mode": "single",
-            "sort": "none"
-          }
-        },
-        "targets": [
-          {
-            "alias": "$col",
-            "datasource": {
-              "type": "prometheus",
-              "uid": "${DS}"
-            },
-            "editorMode": "builder",
-            "expr": "nasdaq_stock_Volume{companyName=\"$Company\", collapse=\"minute\"}",
-            "groupBy": [],
-            "legendFormat": "__auto",
-            "measurement": "nasdaq_stock",
-            "orderByTime": "ASC",
-            "policy": "default",
-            "range": true,
-            "refId": "A",
-            "resultFormat": "time_series",
-            "select": [
-              [
-                {
-                  "params": [
-                    "Volume"
-                  ],
-                  "type": "field"
-                }
-              ]
-            ],
-            "tags": [
-              {
-                "key": "companyName",
-                "operator": "=~",
-                "value": "/^$Company$/"
-              },
-              {
-                "condition": "AND",
-                "key": "collapse",
-                "operator": "=",
-                "value": "minute"
-              }
-            ]
-          }
-        ],
-        "title": "Intraday Stock Volume",
-        "transparent": true,
-        "type": "timeseries"
-      },
-      {
-        "datasource": {
-          "type": "prometheus",
-          "uid": "${DS}"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "palette-classic"
-            },
-            "custom": {
-              "axisCenteredZero": false,
-              "axisColorMode": "text",
-              "axisLabel": "",
-              "axisPlacement": "auto",
-              "barAlignment": 0,
-              "drawStyle": "line",
-              "fillOpacity": 0,
-              "gradientMode": "none",
-              "hideFrom": {
-                "legend": false,
-                "tooltip": false,
-                "viz": false
-              },
-              "lineInterpolation": "linear",
-              "lineStyle": {
-                "fill": "solid"
-              },
-              "lineWidth": 1,
-              "pointSize": 5,
-              "scaleDistribution": {
-                "type": "linear"
-              },
-              "showPoints": "never",
-              "spanNulls": false,
-              "stacking": {
-                "group": "A",
-                "mode": "none"
-              },
-              "thresholdsStyle": {
-                "mode": "off"
-              }
-            },
-            "mappings": [],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "red",
-                  "value": 80
-                }
-              ]
-            }
-          },
-          "overrides": []
-        },
-        "gridPos": {
-          "h": 9,
-          "w": 12,
-          "x": 0,
-          "y": 10
-        },
-        "id": 4,
-        "options": {
-          "legend": {
-            "calcs": [],
-            "displayMode": "list",
-            "placement": "bottom",
-            "showLegend": true
-          },
-          "tooltip": {
-            "mode": "single",
-            "sort": "none"
-          }
-        },
-        "targets": [
-          {
-            "alias": "$col ($tag_collapse)",
-            "datasource": {
-              "type": "prometheus",
-              "uid": "${DS}"
-            },
-            "editorMode": "builder",
-            "expr": "nasdaq_stock_Open{companyName=\"$Company\"}",
-            "groupBy": [
-              {
-                "params": [
-                  "collapse"
-                ],
-                "type": "tag"
-              }
-            ],
-            "legendFormat": "__auto",
-            "measurement": "nasdaq_stock",
-            "orderByTime": "ASC",
-            "policy": "default",
-            "range": true,
-            "refId": "A",
-            "resultFormat": "time_series",
-            "select": [
-              [
-                {
-                  "params": [
-                    "Value"
-                  ],
-                  "type": "field"
-                }
-              ],
-              [
-                {
-                  "params": [
-                    "Close"
-                  ],
-                  "type": "field"
-                }
-              ],
-              [
-                {
-                  "params": [
-                    "High"
-                  ],
-                  "type": "field"
-                }
-              ],
-              [
-                {
-                  "params": [
-                    "Low"
-                  ],
-                  "type": "field"
-                }
-              ],
-              [
-                {
-                  "params": [
-                    "Open"
-                  ],
-                  "type": "field"
-                }
-              ]
-            ],
-            "tags": [
-              {
-                "key": "companyName",
-                "operator": "=~",
-                "value": "/^$Company$/"
-              },
-              {
-                "condition": "AND",
-                "key": "collapse",
-                "operator": "!=",
-                "value": "minute"
-              }
-            ]
-          },
-          {
-            "datasource": {
-              "type": "prometheus",
-              "uid": "${DS}"
-            },
-            "editorMode": "builder",
-            "expr": "nasdaq_stock_Close{companyName=\"$Company\"}",
-            "hide": false,
-            "legendFormat": "__auto",
-            "range": true,
-            "refId": "B"
-          },
-          {
-            "datasource": {
-              "type": "prometheus",
-              "uid": "${DS}"
-            },
-            "editorMode": "builder",
-            "expr": "nasdaq_stock_Low{companyName=\"$Company\"}",
-            "hide": false,
-            "legendFormat": "__auto",
-            "range": true,
-            "refId": "C"
-          },
-          {
-            "datasource": {
-              "type": "prometheus",
-              "uid": "${DS}"
-            },
-            "editorMode": "builder",
-            "expr": "nasdaq_stock_High{companyName=\"$Company\"}",
-            "hide": false,
-            "legendFormat": "__auto",
-            "range": true,
-            "refId": "D"
-          }
-        ],
-        "title": "Historical Stock Price",
-        "transparent": true,
-        "type": "timeseries"
-      },
-      {
-        "datasource": {
-          "type": "prometheus",
-          "uid": "${DS}"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "palette-classic"
-            },
-            "custom": {
-              "axisCenteredZero": false,
-              "axisColorMode": "text",
-              "axisLabel": "",
-              "axisPlacement": "auto",
-              "barAlignment": 0,
-              "drawStyle": "line",
-              "fillOpacity": 0,
-              "gradientMode": "none",
-              "hideFrom": {
-                "legend": false,
-                "tooltip": false,
-                "viz": false
-              },
-              "lineInterpolation": "linear",
-              "lineStyle": {
-                "fill": "solid"
-              },
-              "lineWidth": 1,
-              "pointSize": 5,
-              "scaleDistribution": {
-                "type": "linear"
-              },
-              "showPoints": "never",
-              "spanNulls": false,
-              "stacking": {
-                "group": "A",
-                "mode": "none"
-              },
-              "thresholdsStyle": {
-                "mode": "off"
-              }
-            },
-            "mappings": [],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "red",
-                  "value": 80
-                }
-              ]
-            }
-          },
-          "overrides": []
-        },
-        "gridPos": {
-          "h": 9,
-          "w": 12,
-          "x": 12,
-          "y": 10
-        },
-        "id": 5,
-        "options": {
-          "legend": {
-            "calcs": [],
-            "displayMode": "list",
-            "placement": "bottom",
-            "showLegend": true
-          },
-          "tooltip": {
-            "mode": "single",
-            "sort": "none"
-          }
-        },
-        "targets": [
-          {
-            "alias": "$col ($tag_collapse)",
-            "datasource": {
-              "type": "prometheus",
-              "uid": "${DS}"
-            },
-            "editorMode": "builder",
-            "expr": "nasdaq_stock_Volume{companyName=\"$Company\", collapse!=\"minute\"}",
-            "groupBy": [
-              {
-                "params": [
-                  "collapse"
-                ],
-                "type": "tag"
-              }
-            ],
-            "legendFormat": "__auto",
-            "measurement": "nasdaq_stock",
-            "orderByTime": "ASC",
-            "policy": "default",
-            "range": true,
-            "refId": "A",
-            "resultFormat": "time_series",
-            "select": [
-              [
-                {
-                  "params": [
-                    "Volume"
-                  ],
-                  "type": "field"
-                }
-              ]
-            ],
-            "tags": [
-              {
-                "key": "companyName",
-                "operator": "=~",
-                "value": "/^$Company$/"
-              },
-              {
-                "condition": "AND",
-                "key": "collapse",
-                "operator": "!=",
-                "value": "minute"
-              }
-            ]
-          }
-        ],
-        "title": "Historical Stock Volume",
-        "transparent": true,
-        "type": "timeseries"
+        "type": "dashboard"
       }
-    ],
-    "refresh": false,
-    "schemaVersion": 37,
-    "style": "dark",
-    "tags": [],
-    "templating": {
-      "list": [
-        {
-          "current": {
-            "selected": true,
-            "text": "victoriametrics",
-            "value": "victoriametrics"
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 231,
+  "links": [],
+  "liveNow": true,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 7,
+      "panels": [],
+      "title": "Intraday Stock Information",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
           },
-          "hide": 0,
-          "includeAll": false,
-          "multi": false,
-          "name": "DS",
-          "options": [],
-          "query": "prometheus",
-          "queryValue": "",
-          "refresh": 1,
-          "regex": "",
-          "skipUrlSync": false,
-          "type": "datasource"
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 4,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
         },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 1
+      },
+      "id": 2,
+      "options": {
+        "candleStyle": "candles",
+        "colorStrategy": "open-close",
+        "colors": {
+          "down": "red",
+          "up": "green"
+        },
+        "fields": {
+          "close": "security_Close",
+          "high": "security_High",
+          "low": "security_Low",
+          "open": "security_Open",
+          "volume": "{__name__=\"security_Volume\", collapse=\"minute\", db=\"telegraf\", host=\"aspectum\", metric_source=\"alphavantage\", security=\"stock\", symbol=\"NVDA\", url=\"https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&interval=1min&outputsize=full&datatype=csv&symbol=NVDA&apikey=50Y9NPX28OW72QZM\"}"
+        },
+        "includeAllFields": false,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "mode": "candles"
+      },
+      "targets": [
         {
-          "current": {
-            "selected": true,
-            "text": "ADVANCED MICRO DEVICES INC",
-            "value": "ADVANCED MICRO DEVICES INC"
-          },
+          "alias": "$col",
           "datasource": {
             "type": "prometheus",
             "uid": "${DS}"
           },
-          "definition": "label_values(nasdaq_stock_Value, companyName)",
-          "hide": 0,
-          "includeAll": false,
-          "multi": false,
-          "name": "Company",
-          "options": [],
-          "query": {
-            "query": "label_values(nasdaq_stock_Value, companyName)",
-            "refId": "StandardVariableQuery"
+          "editorMode": "builder",
+          "exemplar": false,
+          "expr": "security_Value{symbol=~\"$Symbol\", collapse=\"minute\", metric_source=~\"$Intraday_Source\"}",
+          "groupBy": [],
+          "instant": false,
+          "interval": "",
+          "legendFormat": "Value",
+          "measurement": "nasdaq_stock",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "range": true,
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "Value"
+                ],
+                "type": "field"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "companyName",
+              "operator": "=~",
+              "value": "/^$Company$/"
+            },
+            {
+              "condition": "AND",
+              "key": "collapse",
+              "operator": "=",
+              "value": "minute"
+            }
+          ]
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS}"
           },
-          "refresh": 1,
-          "regex": "",
-          "skipUrlSync": false,
-          "sort": 2,
-          "type": "query"
+          "editorMode": "builder",
+          "expr": "security_Close{symbol=~\"$Symbol\", collapse=\"minute\", metric_source=~\"$Intraday_Source\"}",
+          "hide": false,
+          "legendFormat": "security_Close",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS}"
+          },
+          "editorMode": "builder",
+          "expr": "security_High{symbol=~\"$Symbol\", collapse=\"minute\", metric_source=~\"$Intraday_Source\"}",
+          "hide": false,
+          "legendFormat": "security_High",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS}"
+          },
+          "editorMode": "builder",
+          "expr": "security_Low{symbol=~\"$Symbol\", collapse=\"minute\", metric_source=~\"$Intraday_Source\"}",
+          "hide": false,
+          "legendFormat": "security_Low",
+          "range": true,
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS}"
+          },
+          "editorMode": "builder",
+          "expr": "security_Open{symbol=~\"$Symbol\", collapse=\"minute\", metric_source=~\"$Intraday_Source\"}",
+          "hide": false,
+          "legendFormat": "security_Open",
+          "range": true,
+          "refId": "E"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS}"
+          },
+          "editorMode": "builder",
+          "expr": "security_Volume{symbol=~\"$Symbol\", collapse=\"minute\", metric_source=~\"$Intraday_Source\"}",
+          "hide": false,
+          "legendFormat": "security_Volume",
+          "range": true,
+          "refId": "F"
         }
-      ]
+      ],
+      "title": "Intraday Stock Price",
+      "transparent": true,
+      "type": "candlestick"
     },
-    "time": {
-      "from": "now-24h",
-      "to": "now"
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 1
+      },
+      "id": 3,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "alias": "$col",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS}"
+          },
+          "editorMode": "builder",
+          "exemplar": false,
+          "expr": "security_Volume{symbol=~\"$Symbol\", collapse=\"minute\", metric_source=~\"$Intraday_Source\"}",
+          "groupBy": [],
+          "instant": false,
+          "legendFormat": "[{{metric_source}}] Volume",
+          "measurement": "nasdaq_stock",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "range": true,
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "Volume"
+                ],
+                "type": "field"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "companyName",
+              "operator": "=~",
+              "value": "/^$Company$/"
+            },
+            {
+              "condition": "AND",
+              "key": "collapse",
+              "operator": "=",
+              "value": "minute"
+            }
+          ]
+        }
+      ],
+      "title": "Intraday Stock Volume",
+      "transparent": true,
+      "type": "timeseries"
     },
-    "timepicker": {
-      "refresh_intervals": [
-        "30s",
-        "1m",
-        "5m",
-        "15m",
-        "30m",
-        "1h",
-        "2h",
-        "1d"
-      ]
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 10
+      },
+      "id": 17,
+      "panels": [],
+      "title": "Historical Differential",
+      "type": "row"
     },
-    "timezone": "",
-    "title": "Stonk",
-    "uid": "6",
-    "version": 1,
-    "weekStart": ""
-  }
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": true,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "decimals": 4,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 11
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS}"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "running_sum((max by(symbol, collapse) (security_Close{companyName=\"$Company\", symbol=~\"$Symbol\"})) - on(symbol, collapse) (max by(symbol, collapse) (security_Open{companyName=\"$Company\", symbol=~\"$Symbol\"})))",
+          "hide": false,
+          "instant": false,
+          "interval": "",
+          "legendFormat": "{{collapse}}",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Cumulative Historical Differential",
+      "transformations": [],
+      "transparent": true,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": true,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": 3600000,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "decimals": 4,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 20
+      },
+      "id": 9,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "variance",
+            "stdDev"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS}"
+          },
+          "editorMode": "code",
+          "expr": "(max by(symbol, collapse) (security_Close{companyName=\"$Company\", symbol=~\"$Symbol\"})) - on(symbol, collapse) (max by(symbol, collapse) (security_Open{companyName=\"$Company\", symbol=~\"$Symbol\"}))",
+          "hide": false,
+          "legendFormat": "{{collapse}}",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Historical Differential",
+      "transformations": [],
+      "transparent": true,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": true,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": 3600000,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "decimals": 4,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 20
+      },
+      "id": 39,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "variance",
+            "stdDev"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS}"
+          },
+          "editorMode": "code",
+          "expr": "((max by(symbol, collapse) (security_Close{companyName=\"$Company\", symbol=~\"$Symbol\"})) - on(symbol, collapse) (max by(symbol, collapse) (security_Open{companyName=\"$Company\", symbol=~\"$Symbol\"}))) / (max by(symbol, collapse) (security_Open{companyName=\"$Company\", symbol=~\"$Symbol\"}))",
+          "hide": false,
+          "legendFormat": "{{collapse}}",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Historical Differential (Open-Relative)",
+      "transformations": [],
+      "transparent": true,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 4,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 0,
+        "y": 29
+      },
+      "id": 4,
+      "options": {
+        "candleStyle": "ohlcbars",
+        "colorStrategy": "open-close",
+        "colors": {
+          "down": "red",
+          "up": "green"
+        },
+        "fields": {
+          "close": "Close",
+          "high": "High",
+          "low": "Low",
+          "open": "Open",
+          "volume": "Volume"
+        },
+        "includeAllFields": false,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "mode": "candles"
+      },
+      "repeat": "Historic_Collapse",
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "alias": "$col ($tag_collapse)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS}"
+          },
+          "editorMode": "builder",
+          "expr": "max by(ticker) (security_Open{companyName=\"$Company\", symbol=~\"$Symbol\", collapse=\"$Historic_Collapse\"})",
+          "groupBy": [
+            {
+              "params": [
+                "collapse"
+              ],
+              "type": "tag"
+            }
+          ],
+          "legendFormat": "Open",
+          "measurement": "nasdaq_stock",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "range": true,
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "Value"
+                ],
+                "type": "field"
+              }
+            ],
+            [
+              {
+                "params": [
+                  "Close"
+                ],
+                "type": "field"
+              }
+            ],
+            [
+              {
+                "params": [
+                  "High"
+                ],
+                "type": "field"
+              }
+            ],
+            [
+              {
+                "params": [
+                  "Low"
+                ],
+                "type": "field"
+              }
+            ],
+            [
+              {
+                "params": [
+                  "Open"
+                ],
+                "type": "field"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "companyName",
+              "operator": "=~",
+              "value": "/^$Company$/"
+            },
+            {
+              "condition": "AND",
+              "key": "collapse",
+              "operator": "!=",
+              "value": "minute"
+            }
+          ]
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS}"
+          },
+          "editorMode": "builder",
+          "expr": "max by(ticker) (security_Close{companyName=\"$Company\", symbol=~\"$Symbol\", collapse=\"$Historic_Collapse\"})",
+          "hide": false,
+          "legendFormat": "Close",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS}"
+          },
+          "editorMode": "builder",
+          "expr": "max by(ticker) (security_Low{companyName=\"$Company\", symbol=~\"$Symbol\", collapse=\"$Historic_Collapse\"})",
+          "hide": false,
+          "legendFormat": "Low",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS}"
+          },
+          "editorMode": "builder",
+          "expr": "max by(ticker) (security_High{companyName=\"$Company\", symbol=~\"$Symbol\", collapse=\"$Historic_Collapse\"})",
+          "hide": false,
+          "legendFormat": "High",
+          "range": true,
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS}"
+          },
+          "editorMode": "builder",
+          "expr": "max by(ticker) (nasdaq_stock_Volume{companyName=\"$Company\", symbol=~\"$Symbol\", collapse=\"$Historic_Collapse\"})",
+          "hide": false,
+          "legendFormat": "Volume",
+          "range": true,
+          "refId": "E"
+        }
+      ],
+      "title": "Historical Stock Price ($Historic_Collapse)",
+      "transparent": true,
+      "type": "candlestick"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 0,
+        "y": 38
+      },
+      "id": 34,
+      "options": {
+        "candleStyle": "ohlcbars",
+        "colorStrategy": "open-close",
+        "colors": {
+          "down": "red",
+          "up": "green"
+        },
+        "fields": {
+          "close": "Close",
+          "high": "High",
+          "low": "Low",
+          "open": "Open",
+          "volume": "Volume"
+        },
+        "includeAllFields": false,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "mode": "volume"
+      },
+      "repeat": "Historic_Collapse",
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "alias": "$col ($tag_collapse)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS}"
+          },
+          "editorMode": "builder",
+          "expr": "max by(ticker) (security_Open{companyName=\"$Company\", symbol=~\"$Symbol\", collapse=\"$Historic_Collapse\"})",
+          "groupBy": [
+            {
+              "params": [
+                "collapse"
+              ],
+              "type": "tag"
+            }
+          ],
+          "legendFormat": "Open",
+          "measurement": "nasdaq_stock",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "range": true,
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "Value"
+                ],
+                "type": "field"
+              }
+            ],
+            [
+              {
+                "params": [
+                  "Close"
+                ],
+                "type": "field"
+              }
+            ],
+            [
+              {
+                "params": [
+                  "High"
+                ],
+                "type": "field"
+              }
+            ],
+            [
+              {
+                "params": [
+                  "Low"
+                ],
+                "type": "field"
+              }
+            ],
+            [
+              {
+                "params": [
+                  "Open"
+                ],
+                "type": "field"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "companyName",
+              "operator": "=~",
+              "value": "/^$Company$/"
+            },
+            {
+              "condition": "AND",
+              "key": "collapse",
+              "operator": "!=",
+              "value": "minute"
+            }
+          ]
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS}"
+          },
+          "editorMode": "builder",
+          "expr": "max by(ticker) (security_Close{companyName=\"$Company\", symbol=~\"$Symbol\", collapse=\"$Historic_Collapse\"})",
+          "hide": false,
+          "legendFormat": "Close",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS}"
+          },
+          "editorMode": "builder",
+          "expr": "max by(ticker) (security_Low{companyName=\"$Company\", symbol=~\"$Symbol\", collapse=\"$Historic_Collapse\"})",
+          "hide": false,
+          "legendFormat": "Low",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS}"
+          },
+          "editorMode": "builder",
+          "expr": "max by(ticker) (security_High{companyName=\"$Company\", symbol=~\"$Symbol\", collapse=\"$Historic_Collapse\"})",
+          "hide": false,
+          "legendFormat": "High",
+          "range": true,
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS}"
+          },
+          "editorMode": "builder",
+          "expr": "max by(ticker) (security_Volume{companyName=\"$Company\", symbol=~\"$Symbol\", collapse=\"$Historic_Collapse\"})",
+          "hide": false,
+          "legendFormat": "Volume",
+          "range": true,
+          "refId": "E"
+        }
+      ],
+      "title": "Historical Stock Volume ($Historic_Collapse)",
+      "transparent": true,
+      "type": "candlestick"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 37,
+  "style": "dark",
+  "tags": [],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": "victoriametrics",
+          "value": "victoriametrics"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "DS",
+        "options": [],
+        "query": "prometheus",
+        "queryValue": "",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "NVIDIA CORPORATION",
+          "value": "NVIDIA CORPORATION"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS}"
+        },
+        "definition": "label_values(security_Value, companyName)",
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "Company",
+        "options": [],
+        "query": {
+          "query": "label_values(security_Value, companyName)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "NVDA",
+          "value": "NVDA"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS}"
+        },
+        "definition": "label_values(security_Value{companyName=\"$Company\"}, symbol)",
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "Symbol",
+        "options": [],
+        "query": {
+          "query": "label_values(security_Value{companyName=\"$Company\"}, symbol)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "hide": 2,
+        "includeAll": true,
+        "multi": true,
+        "name": "Historic_Collapse",
+        "options": [
+          {
+            "selected": true,
+            "text": "All",
+            "value": "$__all"
+          },
+          {
+            "selected": false,
+            "text": "day",
+            "value": "day"
+          },
+          {
+            "selected": false,
+            "text": "week",
+            "value": "week"
+          },
+          {
+            "selected": false,
+            "text": "month",
+            "value": "month"
+          }
+        ],
+        "query": "day, week, month",
+        "queryValue": "",
+        "skipUrlSync": false,
+        "type": "custom"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "nasdaq",
+          "value": "nasdaq"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Intraday Source",
+        "multi": false,
+        "name": "Intraday_Source",
+        "options": [
+          {
+            "selected": true,
+            "text": "nasdaq",
+            "value": "nasdaq"
+          },
+          {
+            "selected": false,
+            "text": "alphavantage",
+            "value": "alphavantage"
+          }
+        ],
+        "query": "nasdaq, alphavantage",
+        "queryValue": "",
+        "skipUrlSync": false,
+        "type": "custom"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "2h",
+      "1d"
+    ]
+  },
+  "timezone": "America/New_York",
+  "title": "Stonk",
+  "uid": "6",
+  "version": 1,
+  "weekStart": ""
+}

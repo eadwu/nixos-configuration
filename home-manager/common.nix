@@ -5,9 +5,9 @@
     [
       # ./blender.nix
       ./code.nix
-      ./clight.nix
+      # ./clight.nix
       ./dunst.nix
-      ./emacs.nix
+      # ./emacs.nix
       ./glava.nix
       ./git.nix
       ./gtk.nix
@@ -25,13 +25,9 @@
     ${pkgs.xdg-utils}/bin/xdg-settings set default-web-browser vivaldi-snapshot.desktop
   '';
 
-  xdg.mimeApps.defaultApplications =
-    let
-      web_browser = [ "vivaldi-snapshot.desktop" "vivaldi-stable.desktop" "chromium.desktop" ];
-    in
-    {
-      "default-web-browser" = web_browser;
-    };
+  xdg.mimeApps.defaultApplications."default-web-browser" = [
+    "vivaldi-snapshot.desktop" "vivaldi-stable.desktop" "chromium.desktop"
+  ];
 
   home.packages = with pkgs; [
     # Environment
@@ -53,7 +49,7 @@
     gimp
     gnome.gnome-system-monitor
     gnome.simple-scan
-    jetbrains.idea-community
+    # jetbrains.idea-community
     krita
     libreoffice-fresh
     # rstudioWrapper
@@ -83,12 +79,19 @@
     # unigine-valley
 
     # Other
-    gephi
+    # gephi
+
+    ranger
   ];
 
-  nixpkgs = {
-    inherit (sysConfig.nixpkgs) config overlays;
-  };
+  home.file.".config/ranger/rc.conf".text = ''
+    set preview_images true
+    set preview_images_method kitty
+  '';
+
+  # nixpkgs = {
+  #   inherit (sysConfig.nixpkgs) config overlays;
+  # };
 
   xdg.enable = true;
   xdg.configFile."nixpkgs/config.nix".text =

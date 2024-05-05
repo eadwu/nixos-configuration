@@ -9,14 +9,28 @@ in
   options.nixos.settings.machine.cpu = {
 
     tdp = {
-      nominal = mkOption {
-        type = types.int;
-        default = 0;
+      p1 = {
+        watts = mkOption {
+          type = types.int;
+          default = 0;
+        };
+
+        duration = mkOption {
+          type = types.float;
+          default = 0.0;
+        };
       };
 
-      up = mkOption {
-        type = types.int;
-        default = 0;
+      p2 = {
+        watts = mkOption {
+          type = types.int;
+          default = 0;
+        };
+
+        duration = mkOption {
+          type = types.float;
+          default = 0.0;
+        };
       };
     };
 
@@ -51,7 +65,7 @@ in
   };
 
   config = {
-    nixos.settings.machine.cpu.undervolt.cache = cfg.undervolt.core;
+    nixos.settings.machine.cpu.undervolt.cache = lib.mkDefault cfg.undervolt.core;
 
     # Compatibility with intel-undervolt
     services.undervolt = with cfg.undervolt; {
@@ -76,27 +90,31 @@ in
           GENERAL = {
             Enabled = true;
             Sysfs_Power_Path = "/sys/class/power_supply/AC*/online";
+            Autoreload = false;
           };
 
           BATTERY = {
-            Update_Rate_s = 30;
-            PL1_Tdp_W = cfg.tdp.nominal - 5;
-            PL1_Duration_s = 30;
-            PL2_Tdp_W = cfg.tdp.nominal + 5;
-            PL2_Duration_S = 0.005;
+            Update_Rate_s = 32;
+            PL1_Tdp_W = cfg.tdp.p1.watts;
+            PL1_Duration_s = cfg.tdp.p1.duration;
+            PL2_Tdp_W = cfg.tdp.p2.watts;
+            PL2_Duration_S = cfg.tdp.p2.duration;
             Trip_Temp_C = 80;
+            # Set cTDP to normal=0, down=1 or up=2 (EXPERIMENTAL)
             cTDP = 0;
+            # Disable BDPROCHOT (EXPERIMENTAL)
             Disable_BDPROCHOT = false;
           };
 
           AC = {
-            Update_Rate_s = 5;
-            PL1_Tdp_W = cfg.tdp.up - 5;
-            PL1_Duration_s = 45;
-            PL2_Tdp_W = cfg.tdp.up + 5;
-            PL2_Duration_S = 0.007;
+            Update_Rate_s = 8;
+            PL1_Tdp_W = cfg.tdp.p1.watts;
+            PL1_Duration_s = cfg.tdp.p1.duration;
+            PL2_Tdp_W = cfg.tdp.p2.watts;
+            PL2_Duration_S = cfg.tdp.p2.duration;
             Trip_Temp_C = 95;
-            HWP_Mode = true;
+            # Set HWP energy performance hints to 'performance' on high load (EXPERIMENTAL)
+            # HWP_Mode = true;
             cTDP = 0;
             Disable_BDPROCHOT = false;
           };

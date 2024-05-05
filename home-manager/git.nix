@@ -19,18 +19,18 @@ in
     userEmail = "fangkazuto@gmail.com";
 
     signing = {
-      key = "364D57EF5774BC6D";
+      key = "4A6F332C9B2B57DA";
       signByDefault = true;
     };
 
     extraConfig = {
-      alias.plfs = "!git -c filter.lfs.smudge= -c filter.lfs.required=false pull && git lfs pull";
+      # alias.plfs = "!git -c filter.lfs.smudge= -c filter.lfs.required=false pull && git lfs pull";
 
       core = {
         autocrlf = "input";
         editor = "vim";
         excludesfile = pkgs._srcs + "/srcs/default-gitignore";
-        fsmonitor = queryWatchman.outPath;
+        # fsmonitor = queryWatchman.outPath;
       };
 
       format = {
@@ -42,16 +42,16 @@ in
       # Don't break existing branch names, may cause problems
       init.defaultBranch = "master";
 
-      lfs.pruneverifyremotealways = true;
+      # lfs.pruneverifyremotealways = true;
 
       protocol.version = 2;
 
-      "filter \"lfs\"" = {
-        clean = "${pkgs.git-lfs}/bin/git-lfs clean -- %f";
-        smudge = "${pkgs.git-lfs}/bin/git-lfs smudge -- %f";
-        process = "${pkgs.git-lfs}/bin/git-lfs filter-process";
-        required = true;
-      };
+      # "filter \"lfs\"" = {
+      #   clean = "${pkgs.git-lfs}/bin/git-lfs clean -- %f";
+      #   smudge = "${pkgs.git-lfs}/bin/git-lfs smudge -- %f";
+      #   process = "${pkgs.git-lfs}/bin/git-lfs filter-process";
+      #   required = true;
+      # };
     };
   };
 }

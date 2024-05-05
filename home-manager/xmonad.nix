@@ -52,7 +52,7 @@ assert builtins.pathExists ./xmonad/xmonad.hs;
 
       "section/universal" = rec {
         width = "100%";
-        height = 20 * sysConfig.nixos.settings.xserver.dpiScale;
+        height = 40 * sysConfig.nixos.settings.xserver.dpiScale;
         offset-x = 0;
         offset-y = 0;
         enable-ipc = true;
@@ -307,8 +307,10 @@ assert builtins.pathExists ./xmonad/xmonad.hs;
       "module/battery" = {
         type = "internal/battery";
         full-at = 99;
-        adapter = "ADP1";
-        battery = "BAT0";
+        # adapter = "ADP1";
+        adapter = "ACAD";
+        # battery = "BAT0";
+        battery = "BAT1";
         time-format = "%H:%M";
         poll-interval = 1;
 

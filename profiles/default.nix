@@ -59,7 +59,14 @@
 
   services.fstrim.enable = lib.mkDefault true;
 
+  #services.tzupdate.enable = true;
+  #systemd.services.tzupdate = {
+  #  wants = ["nss-lookup.target"];
+  #  after = ["nss-lookup.target"];
+  #};
+
   time = {
     timeZone = "America/New_York";
+    # timeZone = "America/Los_Angeles";
   };
 }

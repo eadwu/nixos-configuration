@@ -3,16 +3,17 @@
 with config.nixos; {
   imports =
     [
-      ./kresd.nix
+      # ../../machines/caelus/modules/kresd.nix
       # ./openvpn.nix
     ];
 
   # University network configuration files
-  systemd.tmpfiles.rules = [
-    "C /var/lib/iwd/eduroam.8021x   - - - - ${./templates/eduroam.8021x}"
+  systemd.tmpfiles.rules = lib.optionals (config.networking.wireless.iwd.enable) [
+    "C /var/lib/iwd/eduroam.8021x    - - - - ${./templates/eduroam.8021x}"
+    "C /var/lib/iwd/ATTXqKaTna.psk   - - - - ${./templates/ATTXqKaTna.psk}"
   ];
 
-  boot.kernelModules = [
+  boot.kernelModules = lib.optionals (config.networking.wireless.iwd.enable) [
     # iwd crypto modules
     "algif_skcipher"
     "ecb"
@@ -21,9 +22,12 @@ with config.nixos; {
     "arc4"
   ];
 
+  # systemd.services.iwd.serviceConfig.Environment = "IWD_TLS_DEBUG=TRUE";
+
   networking = {
-    hostName = settings.machine.hostname;
+    hostName = lib.mkDefault settings.machine.hostname;
     enableIPv6 = true;
+    useNetworkd = true;
     dhcpcd.enable = lib.mkDefault false;
 
     timeServers = [
@@ -42,11 +46,7 @@ with config.nixos; {
     };
   };
 
-  services.chrony.enable = true;
   services.chrony.servers = lib.mkForce [];
-  # Needs DNS resolution
-  systemd.services.chronyd.after = lib.optionals (config.services.kresd.enable) [ "kresd.target" ];
-  systemd.services.chronyd.requires = lib.optionals (config.services.kresd.enable) [ "kresd.target" ];
   services.chrony.extraConfig = ''
     pool time.nist.gov iburst
 
@@ -59,26 +59,23 @@ with config.nixos; {
     initstepslew ${toString config.services.chrony.initstepslew.threshold} ${lib.concatStringsSep " " config.networking.timeServers}
 
     # Enable kernel synchronization of the real-time clock (RTC).
-    rtcsync
+    # rtcsync
 
     ntsdumpdir /var/lib/chrony/nts
   '';
 
   services.resolved = {
-    enable = false;
-    llmnr = "resolve";
-    dnssec = "false";
+    llmnr = "false";  # "resolve"
+    # dnssec = "allow-upgrade";
     extraConfig = ''
       DNSOverTLS=opportunistic
-      MulticastDNS=resolve
     '';
+  #     MulticastDNS=resolve
   };
 
   systemd.network = {
-    enable = true;
-
     links.default = {
-      matchConfig.OriginalName = "!docker0* virbr0*";
+      matchConfig.OriginalName = "!docker* virbr* tun* cni* flannel* veth*";
 
       linkConfig = {
         MACAddressPolicy = "random";
@@ -86,9 +83,18 @@ with config.nixos; {
       };
     };
 
+    links = {
+      # https://wiki.archlinux.org/title/Kubernetes#Pods_cannot_communicate_when_using_Flannel_CNI_and_systemd-networkd
+      # TLDR: Let Flannel assign MAC address
+      flannel = {
+        matchConfig.OriginalName = "flannel*";
+        linkConfig.MACAddressPolicy = "none";
+      };
+    };
+
     networks.default = rec {
       DHCP = "yes";
-      matchConfig.Name = "!docker* virbr* tun*";
+      matchConfig.Name = "!docker* virbr* tun* cni* flannel* veth* wg*";
 
       dhcpV4Config = {
         Anonymize = true;
@@ -102,6 +108,8 @@ with config.nixos; {
       networkConfig = {
         IPv6AcceptRA = true;
         IPv6PrivacyExtensions = "yes";
+
+        # DNSSEC = "no";
       };
 
       extraConfig = ''
@@ -121,8 +129,33 @@ with config.nixos; {
         dhcpV4Config.RouteMetric = 20;
       };
 
+      docker = {
+        matchConfig.Name = "docker*";
+        linkConfig.Unmanaged = true;
+      };
+
+      virbr = {
+        matchConfig.Name = "virbr*";
+        linkConfig.Unmanaged = true;
+      };
+
       tun = {
         matchConfig.Name = "tun*";
+        linkConfig.Unmanaged = true;
+      };
+
+      cni = {
+        matchConfig.Name = "cni*";
+        linkConfig.Unmanaged = true;
+      };
+
+      flannel = {
+        matchConfig.Name = "flannel*";
+        linkConfig.Unmanaged = true;
+      };
+
+      veth = {
+        matchConfig.Name = "veth*";
         linkConfig.Unmanaged = true;
       };
     };

@@ -13,6 +13,8 @@
     "acpi_rev_override=5"
     "mem_sleep_default=deep"
     "psmouse.synaptics_intertouch=0"
+
+    "i915.enable_gvt=1"
   ];
 
   environment.sessionVariables = {

@@ -1,11 +1,16 @@
-{ config, pkgs, ... }:
+{ nixosModules, config, pkgs, lib, ... }:
 
 {
-  boot.kernelModules = [
+  boot.initrd.availableKernelModules = [
     "nvidia"
     "nvidia_drm"
     "nvidia_uvm"
     "nvidia_modeset"
+  ];
+
+  boot.blacklistedKernelModules = [
+    "nouveau"
+    "nvidiafb"
   ];
 
   environment.variables = {
@@ -17,22 +22,26 @@
   };
 
   environment.systemPackages = with pkgs; [
+    nvtopPackages.full
+
     glxinfo
-    cudnn
-    cudatoolkit
+    cudaPackages_12_1.cudnn
+    cudaPackages_12_1.cudatoolkit
     vdpauinfo
   ];
 
+  # hardware.nvidia.enable = true;
+  hardware.nvidia.open = lib.mkDefault true; # Open GPU Modules
   hardware.nvidia.package = config.boot.kernelPackages.nvidiaPackages.beta;
   hardware.nvidia.nvidiaPersistenced = true;
-  hardware.nvidia.powerManagement.enable = true;
-  hardware.nvidia.powerManagement.finegrained = true;
+  hardware.nvidia.powerManagement.enable = lib.mkDefault true;
+  # hardware.nvidia.powerManagement.finegrained = true;
   hardware.opengl.extraPackages = with pkgs; [
     vaapiVdpau
     libvdpau-va-gl
   ];
 
-  services.xserver.useGlamor = true;
+  # services.xserver.useGlamor = true;
   services.xserver.videoDrivers = [ "nvidia" ];
 
   boot.kernelParams = [
@@ -40,10 +49,10 @@
     # NVreg_CheckPCIConfigSpace kernel module parameter to 0. This will disable the NVIDIA driver's
     # sanity checks of GPU PCI config space at various entry points, which were originally required
     # to detect and correct config space manipulation done by X server versions prior to 1.7.
-    "nvidia.NVreg_CheckPCIConfigSpace=0"
+    # "nvidia.NVreg_CheckPCIConfigSpace=0"
     # Enable the PAT feature [5], which affects how memory is allocated. PAT was first introduced in
     # Pentium III [6] and is supported by most newer CPUs (see wikipedia:Page attribute table#Processors).
     # If your system can support this feature, it should improve performance.
-    "nvidia.NVreg_UsePageAttributeTable=1"
+    # "nvidia.NVreg_UsePageAttributeTable=1"
   ];
 }

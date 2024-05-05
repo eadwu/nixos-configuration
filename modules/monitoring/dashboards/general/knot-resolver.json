@@ -25,13 +25,13 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 91,
+  "id": 138,
   "links": [],
   "liveNow": true,
   "panels": [
     {
       "datasource": {
-        "type": "influxdb",
+        "type": "prometheus",
         "uid": "${DS_KRESD}"
       },
       "description": "Global request counters",
@@ -75,7 +75,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -110,320 +111,86 @@
       "targets": [
         {
           "datasource": {
+            "type": "prometheus",
             "uid": "${DS_KRESD}"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "request.total",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "A",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
+          "editorMode": "builder",
+          "expr": "sum(request.doh_value)",
+          "legendFormat": "request.doh",
+          "range": true,
+          "refId": "A"
         },
         {
           "datasource": {
+            "type": "prometheus",
             "uid": "${DS_KRESD}"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "request.internal",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "B",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
-        },
-        {
-          "datasource": {
-            "uid": "${DS_KRESD}"
-          },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "request.udp",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "C",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
-        },
-        {
-          "datasource": {
-            "uid": "${DS_KRESD}"
-          },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "request.tcp",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "D",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
-        },
-        {
-          "datasource": {
-            "uid": "${DS_KRESD}"
-          },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "request.dot",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "E",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
-        },
-        {
-          "datasource": {
-            "uid": "${DS_KRESD}"
-          },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
+          "editorMode": "builder",
+          "expr": "sum(request.dot_value)",
           "hide": false,
-          "measurement": "request.doh",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "F",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
+          "legendFormat": "request.dot",
+          "range": true,
+          "refId": "B"
         },
         {
           "datasource": {
+            "type": "prometheus",
             "uid": "${DS_KRESD}"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
+          "editorMode": "builder",
+          "expr": "sum(request.internal_value)",
           "hide": false,
-          "measurement": "request.xdp",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "G",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
+          "legendFormat": "request.internal",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_KRESD}"
+          },
+          "editorMode": "builder",
+          "expr": "sum(request.tcp_value)",
+          "hide": false,
+          "legendFormat": "request.tcp",
+          "range": true,
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_KRESD}"
+          },
+          "editorMode": "builder",
+          "expr": "sum(request.total_value)",
+          "hide": false,
+          "legendFormat": "request.total",
+          "range": true,
+          "refId": "E"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_KRESD}"
+          },
+          "editorMode": "builder",
+          "expr": "sum(request.udp_value)",
+          "hide": false,
+          "legendFormat": "request.udp",
+          "range": true,
+          "refId": "F"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_KRESD}"
+          },
+          "editorMode": "builder",
+          "expr": "sum(request.xdp_value)",
+          "hide": false,
+          "legendFormat": "request.xdp",
+          "range": true,
+          "refId": "G"
         }
       ],
       "title": "request.count",
@@ -432,7 +199,7 @@
     },
     {
       "datasource": {
-        "type": "influxdb",
+        "type": "prometheus",
         "uid": "${DS_KRESD}"
       },
       "description": "Answer latency",
@@ -476,7 +243,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -511,409 +279,110 @@
       "targets": [
         {
           "datasource": {
+            "type": "prometheus",
             "uid": "${DS_KRESD}"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "answer.1ms",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "A",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
+          "editorMode": "builder",
+          "expr": "sum(answer.1ms_value)",
+          "legendFormat": "answer.1ms",
+          "range": true,
+          "refId": "A"
         },
         {
           "datasource": {
+            "type": "prometheus",
             "uid": "${DS_KRESD}"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "answer.10ms",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "B",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
-        },
-        {
-          "datasource": {
-            "uid": "${DS_KRESD}"
-          },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "answer.50ms",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "C",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
-        },
-        {
-          "datasource": {
-            "uid": "${DS_KRESD}"
-          },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "answer.100ms",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "D",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
-        },
-        {
-          "datasource": {
-            "uid": "${DS_KRESD}"
-          },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "answer.250ms",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "E",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
-        },
-        {
-          "datasource": {
-            "uid": "${DS_KRESD}"
-          },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "answer.500ms",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "F",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
-        },
-        {
-          "datasource": {
-            "uid": "${DS_KRESD}"
-          },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "answer.1000ms",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "G",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
-        },
-        {
-          "datasource": {
-            "uid": "${DS_KRESD}"
-          },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "answer.1500ms",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "H",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
-        },
-        {
-          "datasource": {
-            "uid": "${DS_KRESD}"
-          },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
+          "editorMode": "builder",
+          "expr": "sum(answer.10ms_value)",
           "hide": false,
-          "measurement": "answer.slow",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "I",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
+          "legendFormat": "answer.10ms",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_KRESD}"
+          },
+          "editorMode": "builder",
+          "expr": "sum(answer.50ms_value)",
+          "hide": false,
+          "legendFormat": "answer.50ms",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_KRESD}"
+          },
+          "editorMode": "builder",
+          "expr": "sum(answer.100ms_value)",
+          "hide": false,
+          "legendFormat": "answer.100ms",
+          "range": true,
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_KRESD}"
+          },
+          "editorMode": "builder",
+          "expr": "sum(answer.250ms_value)",
+          "hide": false,
+          "legendFormat": "answer.250ms",
+          "range": true,
+          "refId": "E"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_KRESD}"
+          },
+          "editorMode": "builder",
+          "expr": "sum(answer.500ms_value)",
+          "hide": false,
+          "legendFormat": "answer.500ms",
+          "range": true,
+          "refId": "F"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_KRESD}"
+          },
+          "editorMode": "builder",
+          "expr": "sum(answer.1000ms_value)",
+          "hide": false,
+          "legendFormat": "answer.1000ms",
+          "range": true,
+          "refId": "G"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_KRESD}"
+          },
+          "editorMode": "builder",
+          "expr": "sum(answer.1500ms_value)",
+          "hide": false,
+          "legendFormat": "answer.1500ms",
+          "range": true,
+          "refId": "H"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_KRESD}"
+          },
+          "editorMode": "builder",
+          "expr": "sum(answer.slow_value)",
+          "hide": false,
+          "legendFormat": "answer.slow",
+          "range": true,
+          "refId": "I"
         }
       ],
       "title": "answer.latency",
@@ -922,6 +391,7 @@
     },
     {
       "datasource": {
+        "type": "prometheus",
         "uid": "${DS_KRESD}"
       },
       "fieldConfig": {
@@ -964,7 +434,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -999,138 +470,38 @@
       "targets": [
         {
           "datasource": {
+            "type": "prometheus",
             "uid": "${DS_KRESD}"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "predict.epoch",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "A",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
+          "editorMode": "builder",
+          "expr": "sum(predict.epoch_value)",
+          "legendFormat": "predict.epoch",
+          "range": true,
+          "refId": "A"
         },
         {
           "datasource": {
+            "type": "prometheus",
             "uid": "${DS_KRESD}"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "predict.learned",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "B",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
+          "editorMode": "builder",
+          "expr": "sum(predict.learned_value)",
+          "hide": false,
+          "legendFormat": "predict.learned",
+          "range": true,
+          "refId": "B"
         },
         {
           "datasource": {
+            "type": "prometheus",
             "uid": "${DS_KRESD}"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "predict.queue",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "C",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
+          "editorMode": "builder",
+          "expr": "sum(predict.queue_value)",
+          "hide": false,
+          "legendFormat": "predict.queue",
+          "range": true,
+          "refId": "C"
         }
       ],
       "title": "predict",
@@ -1139,7 +510,7 @@
     },
     {
       "datasource": {
-        "type": "influxdb",
+        "type": "prometheus",
         "uid": "${DS_KRESD}"
       },
       "description": "Global answer counters",
@@ -1219,93 +590,26 @@
       "targets": [
         {
           "datasource": {
+            "type": "prometheus",
             "uid": "${DS_KRESD}"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "answer.total",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "A",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
+          "editorMode": "builder",
+          "expr": "sum(answer.total_value)",
+          "legendFormat": "answer.total",
+          "range": true,
+          "refId": "A"
         },
         {
           "datasource": {
+            "type": "prometheus",
             "uid": "${DS_KRESD}"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "answer.cached",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "B",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
+          "editorMode": "builder",
+          "expr": "sum(answer.cached_value)",
+          "hide": false,
+          "legendFormat": "answer.cached",
+          "range": true,
+          "refId": "B"
         }
       ],
       "title": "answer.counter",
@@ -1314,7 +618,7 @@
     },
     {
       "datasource": {
-        "type": "influxdb",
+        "type": "prometheus",
         "uid": "${DS_KRESD}"
       },
       "description": "Answers categorized by RCODE",
@@ -1394,183 +698,50 @@
       "targets": [
         {
           "datasource": {
+            "type": "prometheus",
             "uid": "${DS_KRESD}"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "answer.noerror",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "A",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
+          "editorMode": "builder",
+          "expr": "sum(answer.noerror_value)",
+          "legendFormat": "answer.noerror",
+          "range": true,
+          "refId": "A"
         },
         {
           "datasource": {
+            "type": "prometheus",
             "uid": "${DS_KRESD}"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "answer.nodata",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "B",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
+          "editorMode": "builder",
+          "expr": "sum(answer.nodata_value)",
+          "hide": false,
+          "legendFormat": "answer.nodata",
+          "range": true,
+          "refId": "B"
         },
         {
           "datasource": {
+            "type": "prometheus",
             "uid": "${DS_KRESD}"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "answer.nxdomain",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "C",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
+          "editorMode": "builder",
+          "expr": "sum(answer.nxdomain_value)",
+          "hide": false,
+          "legendFormat": "answer.nxdomain",
+          "range": true,
+          "refId": "C"
         },
         {
           "datasource": {
+            "type": "prometheus",
             "uid": "${DS_KRESD}"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "answer.servfail",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "D",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
+          "editorMode": "builder",
+          "expr": "sum(answer.servfail_value)",
+          "hide": false,
+          "legendFormat": "answer.servfail",
+          "range": true,
+          "refId": "D"
         }
       ],
       "title": "answer.rcode",
@@ -1579,7 +750,7 @@
     },
     {
       "datasource": {
-        "type": "influxdb",
+        "type": "prometheus",
         "uid": "${DS_KRESD}"
       },
       "description": "Query flags",
@@ -1659,93 +830,26 @@
       "targets": [
         {
           "datasource": {
+            "type": "prometheus",
             "uid": "${DS_KRESD}"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "query.edns",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "A",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
+          "editorMode": "builder",
+          "expr": "sum(query.dnssec_value)",
+          "legendFormat": "query.dnssec",
+          "range": true,
+          "refId": "A"
         },
         {
           "datasource": {
+            "type": "prometheus",
             "uid": "${DS_KRESD}"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "query.dnssec",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "B",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
+          "editorMode": "builder",
+          "expr": "sum(query.edns_value)",
+          "hide": false,
+          "legendFormat": "query.edns",
+          "range": true,
+          "refId": "B"
         }
       ],
       "title": "query.flags",
@@ -1754,7 +858,7 @@
     },
     {
       "datasource": {
-        "type": "influxdb",
+        "type": "prometheus",
         "uid": "${DS_KRESD}"
       },
       "description": "Answer flags",
@@ -1834,363 +938,98 @@
       "targets": [
         {
           "datasource": {
+            "type": "prometheus",
             "uid": "${DS_KRESD}"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "answer.aa",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "A",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
+          "editorMode": "builder",
+          "expr": "sum(answer.aa_value)",
+          "legendFormat": "answer.aa",
+          "range": true,
+          "refId": "A"
         },
         {
           "datasource": {
+            "type": "prometheus",
             "uid": "${DS_KRESD}"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "answer.tc",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "B",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
+          "editorMode": "builder",
+          "expr": "sum(answer.ad_value)",
+          "hide": false,
+          "legendFormat": "answer.ad",
+          "range": true,
+          "refId": "B"
         },
         {
           "datasource": {
+            "type": "prometheus",
             "uid": "${DS_KRESD}"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "answer.ra",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "C",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
+          "editorMode": "builder",
+          "expr": "sum(answer.cd_value)",
+          "hide": false,
+          "legendFormat": "answer.cd",
+          "range": true,
+          "refId": "C"
         },
         {
           "datasource": {
+            "type": "prometheus",
             "uid": "${DS_KRESD}"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "answer.rd",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "D",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
+          "editorMode": "builder",
+          "expr": "sum(answer.do_value)",
+          "hide": false,
+          "legendFormat": "answer.do",
+          "range": true,
+          "refId": "D"
         },
         {
           "datasource": {
+            "type": "prometheus",
             "uid": "${DS_KRESD}"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "answer.ad",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "E",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
+          "editorMode": "builder",
+          "expr": "sum(answer.ra_value)",
+          "hide": false,
+          "legendFormat": "answer.ra",
+          "range": true,
+          "refId": "E"
         },
         {
           "datasource": {
+            "type": "prometheus",
             "uid": "${DS_KRESD}"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "answer.cd",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "F",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
+          "editorMode": "builder",
+          "expr": "sum(answer.rd_value)",
+          "hide": false,
+          "legendFormat": "answer.rd",
+          "range": true,
+          "refId": "F"
         },
         {
           "datasource": {
+            "type": "prometheus",
             "uid": "${DS_KRESD}"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "answer.do",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "G",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
+          "editorMode": "builder",
+          "expr": "sum(answer.tc_value)",
+          "hide": false,
+          "legendFormat": "answer.tc",
+          "range": true,
+          "refId": "G"
         },
         {
           "datasource": {
+            "type": "prometheus",
             "uid": "${DS_KRESD}"
           },
-          "groupBy": [
-            {
-              "params": [
-                "$__interval"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "answer.edns0",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "H",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
+          "editorMode": "builder",
+          "expr": "sum(answer.edns0_value)",
+          "hide": false,
+          "legendFormat": "answer.edns0",
+          "range": true,
+          "refId": "H"
         }
       ],
       "title": "answer.flags",
@@ -2206,9 +1045,9 @@
     "list": [
       {
         "current": {
-          "selected": false,
-          "text": "knot-resolver",
-          "value": "knot-resolver"
+          "selected": true,
+          "text": "victoriametrics",
+          "value": "victoriametrics"
         },
         "hide": 0,
         "includeAll": false,
@@ -2216,10 +1055,10 @@
         "multi": false,
         "name": "DS_KRESD",
         "options": [],
-        "query": "influxdb",
+        "query": "prometheus",
         "queryValue": "",
         "refresh": 1,
-        "regex": "/knot-resolver/",
+        "regex": "",
         "skipUrlSync": false,
         "type": "datasource"
       },
@@ -2232,14 +1071,17 @@
         "datasource": {
           "uid": "${DS_KRESD}"
         },
-        "definition": "SHOW TAG VALUES FROM \"answer.100ms\" WITH KEY=\"host\"",
+        "definition": "label_values(answer.100ms_value, host)",
         "hide": 0,
         "includeAll": false,
         "label": "Host",
         "multi": false,
         "name": "host",
         "options": [],
-        "query": "SHOW TAG VALUES FROM \"answer.100ms\" WITH KEY=\"host\"",
+        "query": {
+          "query": "label_values(answer.100ms_value, host)",
+          "refId": "StandardVariableQuery"
+        },
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,

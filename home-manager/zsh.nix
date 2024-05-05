@@ -5,6 +5,13 @@
     zsh = {
       enable = true;
       enableCompletion = false;
+      history.size = 1000000000;
+      history.ignoreDups = true;
+      history.ignoreAllDups = false;
+      history.ignoreSpace = true;
+      history.expireDuplicatesFirst = false;
+      history.share = false; # true
+      history.extended = false;
 
       plugins = [
         { name = "powerline10k";

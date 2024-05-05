@@ -6,7 +6,7 @@ let
     showtext
     rmarkdown
     languageserver
-    RDocumentation
+    # RDocumentation
   ];
 in
 {

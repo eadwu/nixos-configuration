@@ -1,0 +1,5 @@
+#! /usr/bin/env zsh
+brightness="$(cat /sys/class/backlight/intel_backlight/brightness)"
+max_brightness="$(cat /sys/class/backlight/intel_backlight/max_brightness)"
+
+printf '%d' $(( $brightness * 1.0 / $max_brightness * 100 ))
