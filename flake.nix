@@ -38,6 +38,8 @@
       };
 
       modules = [
+        { nixpkgs.overlays = mkBefore [ (final: prev: { inherit system; }) ]; }
+
         inputs.external.nixosModules.adblock
         inputs.external.nixosModules.sysfs
         { nixpkgs.overlays = [ inputs.fenix.overlays.default ]; }
