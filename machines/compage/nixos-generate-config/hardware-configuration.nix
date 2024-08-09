@@ -13,24 +13,38 @@
   boot.kernelModules = [ "kvm-intel" ];
   boot.extraModulePackages = [ ];
 
+  boot.loader.systemd-boot.enable = true;
+  boot.initrd.luks.devices."cryptswap" = {
+    gracePeriod = 0;
+    device = "/dev/disk/by-uuid/5571a019-9326-46a4-b5eb-146ce772ae90";
+  };
+  boot.initrd.luks.devices."cryptfs" = {
+    gracePeriod = 0;
+    device = "/dev/disk/by-uuid/3ec97390-a378-40a6-9442-25a4dd196571";
+  };
+
   fileSystems."/" =
     { device = "none";
       fsType = "tmpfs";
+      options = [ "noatime" "nodiratime" ];
     };
 
   fileSystems."/cache" =
     { device = "rpool/ephemeral/cache";
       fsType = "zfs";
+      neededForBoot = true;
     };
 
   fileSystems."/persist" =
     { device = "rpool/subvolume/persist";
       fsType = "zfs";
+      neededForBoot = true;
     };
 
   fileSystems."/nix" =
     { device = "rpool/ephemeral/nix";
       fsType = "zfs";
+      neededForBoot = true;
     };
 
   fileSystems."/boot" =
@@ -46,7 +60,7 @@
   # (the default) this is the recommended approach. When using systemd-networkd it's
   # still possible to use this option, but it's recommended to use it in conjunction
   # with explicit per-interface declarations with `networking.interfaces.<interface>.useDHCP`.
-  networking.useDHCP = lib.mkDefault true;
+  # networking.useDHCP = lib.mkDefault true;
   # networking.interfaces.docker0.useDHCP = lib.mkDefault true;
   # networking.interfaces.wlan0.useDHCP = lib.mkDefault true;
 
