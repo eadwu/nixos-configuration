@@ -14,6 +14,12 @@
 
   imports = [
     {
+      programs.zsh.interactiveShellInit = ''
+        alias s_ssh="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeychecking=no"
+      '';
+    }
+
+    {
       programs.zsh.interactiveShellInit =
         let
           system = "nixosConfigurations.${config.networking.hostName}";
