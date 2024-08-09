@@ -1,0 +1,25 @@
+# USAGE:
+#   sudo $PATH/bin/mon_backlight {-|+}
+
+bl_intel=/sys/class/backlight/intel_backlight
+steps=15
+tick=1
+
+case $1 in
+  -)
+    new=$(( $(cat $bl_intel/brightness) - $(cat $bl_intel/max_brightness) / ( $steps * $tick ) ))
+    if (( $new < 0 )); then
+      echo "0" | tee $bl_intel/brightness
+      exit 1
+    fi
+    ;;
+  +)
+    new=$(( $(cat $bl_intel/brightness) + $(cat $bl_intel/max_brightness) / ( $steps * $tick ) ))
+    if (( $new > $(cat $bl_intel/max_brightness) )); then
+      echo "$(cat $bl_intel/max_brightness)" | tee $bl_intel/brightness
+      exit 1
+    fi
+    ;;
+esac
+
+echo "$new" | tee $bl_intel/brightness
