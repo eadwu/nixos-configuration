@@ -1,0 +1,155 @@
+/* Created   by https://github.com/rxyhn
+   Designed  by https://github.com/rxyhn
+   Maintaned by https://github.com/rxyhn
+*/
+
+// Global
+* {
+  all: unset;
+}
+
+@import "theme/tokyo.scss";
+
+.hyprland-workspaces {
+  font-family: "Font Awesome 6 Free Solid";
+  font-size: 0.8rem;
+  background-color: $black;
+  border-radius: 5px;
+  padding: 0.2rem;
+}
+
+.hyprland-workspaces .workspace {
+  padding: 0.2rem 0.4rem;
+  color: #382e37;
+}
+
+.hyprland-workspaces .workspace.current {
+  color: #c3e88d;
+}
+
+.hyprland-workspaces .workspace.occupied {
+}
+
+.hyprland-workspaces .workspace.empty {
+}
+
+.eww_bar {
+  background-color: $background;
+  padding: 0.2rem;
+}
+
+// Launcher
+.launcher_icon {
+  color: $cyan;
+  font-family: "Font Awesome 6 Free";
+  font-size: 0.8rem;
+  padding: .2rem 0 .2rem 0;
+}
+
+// Control Panel
+.control {
+  padding: 0.2rem;
+  font-family: Lato, 'Material Icons';
+  font-size: 0.8rem;
+  background-color: $black;
+  border-radius: 5px;
+}
+
+.bat {
+  font-family: Lato, 'JetBrainsMono Nerd Font';
+  margin: .2rem 0 .2rem 0;
+  color: $blue;
+}
+
+.wifi-icon {
+  margin: .2rem 0 .2rem 0;
+  color: $magenta;
+}
+
+.brightness-icon {
+  margin: .2rem 0 .2rem 0;
+  color: $yellow;
+}
+
+.volume-icon {
+  margin: .2rem 0 .2rem 0;
+  color: $green;
+}
+
+scale trough {
+  all: unset;
+  background-color: $background;
+  border-radius: 5px;
+  min-height: 80px;
+  min-width: 10px;
+  margin: .3rem 0 .3rem 0;
+}
+
+.membar trough highlight {
+  background-color: $red;
+  border-radius: 5px;
+}
+
+.batbar trough highlight {
+  background-color: $green;
+  border-radius: 5px;
+}
+
+.bribar trough highlight {
+  background-color: $yellow;
+  border-radius: 5px;
+}
+
+.volbar trough highlight {
+  background-color: $green;
+  border-radius: 5px;
+}
+
+// Clock
+.time {
+  font-family: Comic Mono;
+  font-weight: bold;
+  font-size: 0.8rem;
+  background-color: $black;
+  color: $white;
+  border-radius: 5px;
+  padding: .7rem 0 .5rem 0;
+  margin: .2rem 0 .2rem 0;
+}
+
+// Powermenu
+.powermenu {
+  background: $black;
+  font-family: 'Font Awesome 6 Free';
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+.button-bspres,
+.button-reb,
+.button-lock,
+.button-quit,
+.button-off {
+  padding: .5rem .2rem .3rem .2rem;
+}
+
+.button-quit {
+  margin-bottom: .5rem;
+  color: $red;
+}
+
+.button-bspres {
+  color: $green;
+}
+
+.button-reb {
+  color: $yellow
+}
+
+.button-quit {
+  color: $magenta;
+}
+
+.button-lock {
+  color: $blue;
+}

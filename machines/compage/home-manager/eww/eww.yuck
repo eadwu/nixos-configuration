@@ -1,0 +1,488 @@
+;; Created   by https://github.com/rxyhn
+;; Designed  by https://github.com/rxyhn
+;; Maintaned by https://github.com/rxyhn
+
+(defvar powerline_font_family "LiterationSans Nerd Font Mono")
+(defvar powerline_right_bottom "")
+(defvar powerline_left_bottom "")
+(defvar powerline_right_top "")
+(defvar powerline_left_top "")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;                Widget Section's                ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Launcher Widgets ;;
+(defwidget launcher []
+  (box
+    :orientation "v"
+    :space-evenly "false"
+    :spacing -15
+    (button
+      :class "launcher_icon"
+      ; faPaperPlane
+      "")))
+
+;; Workspaces Widgets ;;
+;; Hyprland ;;
+(deflisten window_title :initial "..." "scripts/hyprland/get-active-window-title")
+(defwidget active_window_title []
+  (eventbox
+    :class "hyprland-active-window-title"
+    ; :onhover "${EWW_CMD} update visible_workspaces=false"
+    ; :onhoverlost "${EWW_CMD} update visible_workspaces=true"
+    :visible "${!visible_workspaces}"
+    (box
+      (label
+        :angle "270"
+        :text "${window_title}"))))
+
+(defvar visible_workspaces true)
+(deflisten workspaces :initial "[]" "scripts/hyprland/get-workspaces")
+(deflisten current_workspace :initial "1" "scripts/hyprland/get-active-workspace")
+(defwidget workspaces []
+  (eventbox
+    :class "hyprland-workspaces"
+    :onscroll "scripts/hyprland/change-active-workspace {} ${current_workspace}"
+    (box
+      :orientation "v"
+      :halign "center"
+      :valign "start"
+      ; Dummy listener to ensure variables update
+      (label
+        :text "${workspaces}${current_workspace}"
+        :visible false)
+      ; In the event where the workspaces can be slid up to make for more room
+      (label
+        :class "toggle"
+        :text ""
+        :visible false)
+      ; Workspaces
+      (revealer
+        :transition "slidedown"
+        :reveal visible_workspaces
+        :duration "400ms"
+        (box
+          :orientation "v"
+          :halign "center"
+          :valign "start"
+          (for workspace in workspaces
+            (eventbox
+              :visible "${workspace.windows > 0 || workspace.id == current_workspace}"
+              :onclick "hyprctl dispatch workspace ${workspace.id}"
+              (box
+                :class "workspace ${workspace.id == current_workspace ? "current" : ""} ${workspace.windows > 0 ? "occupied" : "empty"}"
+                (label
+                  :text "")))))))))
+
+;; Battery Widgets ;;
+(defwidget bat []
+  (eventbox
+    :onhover "${EWW_CMD} update bat=true"
+    :onhoverlost "${EWW_CMD} update bat=false"
+    (box
+      :orientation "v"
+      :space-evenly "false"
+      :spacing 2
+      (revealer
+        :transition "slideup"
+        :reveal bat
+        :duration "400ms"
+        (scale
+          :class "batbar"
+          :value {EWW_BATTERY['BAT1'].capacity}
+          ; :value "${EWW_BATTERY.total_avg}"
+          :orientation "v"
+          :flipped true
+          :max 100
+          :min 0))
+      (label
+        :class "bat"
+        ; :halign "end"
+        :text "${bat == 'true' ? '${EWW_BATTERY.BAT1.capacity}' : '${battery}'}"))))
+(defvar bat false)
+(defpoll battery
+  :interval "1s"
+  "scripts/battery icon")
+
+;; Wifi Widgets ;;
+(defwidget wifi []
+  (eventbox
+    :onhover "${EWW_CMD} update wireless=true"
+    :onhoverlost "${EWW_CMD} update wireless=false"
+    (box
+      :orientation "v"
+      :space-evenly "false"
+      :spacing 2
+      ; Hidden because icky
+      (revealer
+        :visible false
+        :transition "slideup"
+        :reveal wireless
+        :duration "400ms"
+        ; bytes -> kilobytes (1024)
+        (box
+          :orientation "v"
+          (label :text "${EWW_NET['wlan0'].NET_DOWN / 1024}")
+          (label :text "${EWW_NET['wlan0'].NET_UP / 1024}")
+        )
+      )
+      (label
+        :class "wifi-icon"
+        :text "${wifi-icon}"))))
+(defvar wireless false)
+(defpoll wifi-icon :interval "1s" "scripts/wifi icon")
+(defpoll wifi-name :interval "1s" "scripts/wifi name")
+
+;; Brightness Widgets ;;
+(defvar brightness_text_icon "")
+(defwidget bright []
+  (eventbox
+    :onhover "${EWW_CMD} update bright=true"
+    :onhoverlost "${EWW_CMD} update bright=false"
+    (box
+      :orientation "v"
+      :space-evenly "false"
+      :spacing 2
+      (revealer
+        :transition "slideup"
+        :reveal bright
+        :duration "400ms"
+        (scale
+          :class "bribar"
+          :value current_brightness
+          :orientation "v"
+          :flipped true
+          :max 100
+          :min 0))
+      (label
+        :class "brightness-icon"
+        :text "${bright == 'true' ? '${current_brightness}' : brightness_text_icon}"))))
+(defpoll current_brightness :interval "1s" "scripts/backlight")
+(defvar bright false)
+
+;; Volume Widgets ;;
+(defwidget volum []
+  (eventbox
+    :onhover "${EWW_CMD} update volum=true"
+    :onhoverlost "${EWW_CMD} update volum=false"
+    (box
+      :orientation "v"
+      :space-evenly "false"
+      :spacing "2"
+      (revealer
+        :transition "slideup"
+        :reveal volum
+        :duration "400ms"
+        (scale
+          :class "volbar"
+          :value current-volume
+          :orientation "v"
+          :flipped true
+          :max 100
+          :min 0
+          :onchange "pactl set-sink-volume @DEFAULT_SINK@ {}%"))
+      (label
+        :class "volume-icon"
+        :text "${volum == 'true' ? '${current-volume}' : ''}"))))
+(defpoll current-volume :interval "1s" "pactl get-sink-volume @DEFAULT_SINK@ | awk '{print $5}' | tr -d '%'")
+(defvar volum false)
+
+;; Clock Widgets ;;
+(defwidget time []
+  (box
+    :orientation "v"
+    :class "time"
+    :valign "end"
+    (label
+      :class "time-hour"
+      :text hour)
+    (label
+      :class "time-min"
+      :text min)
+    (label
+      :class "time-sec"
+      :text sec)
+    (label
+      :text "")
+    (label
+      :class "time-month"
+      :text month)
+    (label
+      :class "time-day"
+      :text day)
+    (label
+      :class "time-year"
+      :text year)))
+(defpoll hour :interval "1s" "date '+%H'")
+(defpoll min :interval "1s" "date '+%M'")
+(defpoll sec :interval "1s" "date '+%S'")
+(defpoll month :interval "1s" "date '+%m'")
+(defpoll day :interval "1s" "date '+%d'")
+(defpoll year :interval "1s" "date '+%y'")
+
+;; Powermenu Widgets ;;
+(defwidget power []
+  (eventbox
+    :onhover "${EWW_CMD} update power=true"
+    :onhoverlost "${EWW_CMD} update power=false"
+    (box
+      :orientation "v"
+      :space-evenly "false"
+      :vexpand "false"
+      :class "powermenu"
+      (revealer
+        :transition "slideup"
+        :reveal power
+        :duration "400ms"
+        (box
+          :orientation "v"
+          :space-evenly "false"
+
+          ; (button
+          ;   :class "button-bspres"
+          ;   :tooltip "BSPWM Restart"
+          ;   ; fa-solid fa-arrow-rotate-right
+          ;   :onclick "bspc wm -r" "" )
+
+          (button
+            :class "button-reb"
+            :tooltip "Reboot"
+            ; fa-solid fa-rotate
+            :onclick "reboot"
+            "")
+
+          (button
+            :class "button-off"
+            :tooltip "Shutdown"
+            ; fa-solid fa-power-off
+            :onclick "shutdown now"
+            "")
+
+          ; (button
+          ;   :class "button-lock"
+          ;   :tooltip "Lock Screen"
+          ;   ; fa-solid fa-lock
+          ;   :onclick ""
+          ;   "")
+        ))
+      (button
+        :class "button-quit"
+        :tooltip "Logout"
+        ; fa-solid fa-right-from-bracket
+        :onclick "pkill -KILL -u $USER"
+        ""))))
+(defvar power false)
+
+;; Top Widgets ;;
+(defwidget top []
+  (box
+    :orientation "v"
+    :space-evenly "false"
+    :valign "start"
+    :vexpand true
+    ; (launcher)
+    (workspaces)))
+
+(defvar cpu false)
+(defwidget cpu []
+  (box
+    :class "overlay cpu"
+    (eventbox
+      :onhover "${EWW_CMD} update cpu=true"
+      :onhoverlost "${EWW_CMD} update cpu=false"
+      (box
+        :orientation "v"
+        :space-evenly "false"
+        :spacing "2"
+        ; (revealer
+        ;   :transition "slideup"
+        ;   :reveal cpu
+        ;   :duration "400ms"
+        ;   (box
+        ;     :orientation "v"
+        ;     :space-evenly "false"
+        ;     :spacing 4
+        ;     (for cpu in {EWW_CPU['cores']}
+        ;       (box
+        ;         ; :space-evenly true
+        ;         (circular-progress
+        ;           :class "core progress"
+        ;           ; :thickness 8
+        ;           :clockwise true
+        ;           :start-at 25
+        ;           :value {cpu.usage}
+        ;           (label
+        ;             :class "usage"
+        ;             :text {cpu.usage}))))))
+        (label
+          ; :visible "${cpu == true} ? "false" : "true"}"
+          :text "${cpu == "true" ? "" : ""}")))))
+
+(defvar mem false)
+(defwidget memory []
+  (eventbox
+    :onhover "${EWW_CMD} update mem=true"
+    :onhoverlost "${EWW_CMD} update mem=false"
+    (box
+      :orientation "v"
+      :space-evenly "false"
+      :spacing "2"
+      (revealer
+        :transition "slideup"
+        :reveal mem
+        :duration "400ms"
+        (scale
+          :class "membar"
+          :value "${EWW_RAM.used_mem_perc}"
+          :orientation "v"
+          :flipped true
+          :max 100
+          :min 0))
+      (label
+        :text "${mem == "true" ? '${EWW_RAM.used_mem_perc}' : ''}"))))
+
+;; End Widgets ;;
+(defwidget end []
+  (box
+    :orientation "v"
+    :vexpand "true"
+    :space-evenly "false"
+    :valign "end"
+    :spacing 5
+
+    (box
+      :orientation "v"
+      :class "control"
+      :space-evenly "false"
+      (cpu))
+
+    (box
+      :orientation "v"
+      :class "control"
+      :space-evenly "false"
+      (memory))
+
+    (box
+      :orientation "v"
+      :class "control"
+      :space-evenly "false"
+      (box
+        (label :text "")
+      ))
+
+    (box
+      :orientation "v"
+      :class "control"
+      :space-evenly "false"
+      (bat))
+
+    (box
+      :orientation "v"
+      :class "control"
+      :space-evenly "false"
+      (wifi))
+
+    (box
+      :orientation "v"
+      :class "control"
+      :space-evenly "false"
+      (bright))
+
+    (box
+      :orientation "v"
+      :class "control"
+      :space-evenly "false"
+      (volum))
+
+    (box
+      :orientation "v"
+      :space-evenly false
+      (time)
+      (power))))
+
+
+;; Bar Widgets ;;
+(defwidget bar []
+  (box
+    :class "eww_bar top_bar"
+    :orientation "v"
+    :vexpand "false"
+    :hexpand "false"
+    :space-evenly "false"
+    (top)
+    ; (active_window_title)
+    (end)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;                Window Section's                ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Bar Windows ;;
+(defwindow side-bar
+  :monitor 0
+  :geometry (geometry
+    :x "0"
+    :y "0"
+    :height "125%"
+    :width "44px"
+    :anchor "center right")
+  :hexpand "false"
+  :vexpand "false"
+
+  ; :stacking "overlay"
+  :stacking "fg"
+
+  ; Wayland
+  :exclusive "true"
+  ; :focusable "true"
+  ; :namespace ""
+
+  ; X11
+  :reserve (struts :distance "44px"
+           :side "right")
+  :windowtype "dock"
+  :wm-ignore false
+
+  (bar))
+
+
+(defwindow bottom-bar
+  :monitor 0
+  :geometry (geometry :x "0"
+            :y "0"
+            :height "24px"
+            :width "100%"
+            :anchor "center bottom")
+  :hexpand "false"
+  :vexpand "false"
+
+  ; :stacking "overlay"
+  :stacking "fg"
+
+  ; Wayland
+  :exclusive "true"
+  ; :focusable "true"
+  ; :namespace ""
+
+  ; X11
+  :reserve (struts :distance "40px"
+            :side "bottom")
+  :windowtype "dock"
+  :wm-ignore false
+
+  (box
+    :class "eww_bar bottom_bar"
+    (box
+      :orientation "v"
+      :halign "start"
+      (box
+        (circular-progress
+          :value {round(EWW_CPU.avg, 0)}
+          :clockwise true
+          :start-at 25
+          (label
+            :text "${round(EWW_CPU.avg, 0)}")))
+      (label :text "${EWW_TEMPS}")
+      (label :text "${EWW_CPU["avg"]}")
+      (label :text "${EWW_CPU["cores"]}")
+    )
+  ))

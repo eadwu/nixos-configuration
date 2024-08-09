@@ -1,0 +1,13 @@
+#! /usr/bin/env sh
+
+symbol() {
+  [ $(cat /sys/class/net/w*/operstate) = down ] && echo  && exit
+  echo 
+}
+
+name() {
+  echo $(iwctl station wlan0 show | grep 'Connected' | awk '{print $3}')
+}
+
+[ "$1" = "icon" ] && symbol && exit
+[ "$1" = "name" ] && name && exit
