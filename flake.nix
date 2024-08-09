@@ -44,6 +44,10 @@
         { nixpkgs.overlays = [ inputs.zig-overlay.overlays.default ]; }
         { nixpkgs.overlays = mkBefore (builtins.attrValues inputs.external.overlays); }
 
+        {
+          nix.nixPath = [ "nixpkgs-overlays=${builtins.toString ./overlays}" ];
+          nixpkgs.overlays = [ (import ./overlays) ];
+        }
         ({ config, ... }: {
           nixpkgs.overlays = [
             (final: prev: {
