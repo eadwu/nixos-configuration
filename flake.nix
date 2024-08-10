@@ -5,6 +5,7 @@
   # External Modules
   inputs.home-manager = { type = "github"; owner = "nix-community"; repo = "home-manager"; inputs.nixpkgs.follows = "/nixpkgs"; };
   inputs.impermanence = { type = "github"; owner = "nix-community"; repo = "impermanence"; };
+  inputs.microvm = { type = "github"; owner = "astro"; repo = "microvm.nix"; inputs.nixpkgs.follows = "/nixpkgs"; };
 
   # Package Set Modifiers
   inputs.external = { type = "github"; owner = "eadwu"; repo = "flakes"; inputs.nixpkgs.follows = "/nixpkgs"; };
