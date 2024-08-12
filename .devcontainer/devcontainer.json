@@ -1,0 +1,98 @@
+{
+  "name": "Ubuntu",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "forwardPorts": [],
+  "runArgs": [
+    "--userns=keep-id"
+  ],
+  "containerEnv": {
+    "HOME": "/home/vscode"
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/nix:1": {
+      "multiUser": true,
+      "version": "latest"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "aaron-bond.better-comments",
+        "alefragnani.bookmarks",
+        "alexcvzz.vscode-sqlite",
+        "bazelbuild.vscode-bazel",
+        "castwide.solargraph",
+        "christian-kohler.path-intellisense",
+        "cschlosser.doxdocgen",
+        "dbaeumer.vscode-eslint",
+        "donjayamanne.githistory",
+        "eamodio.gitlens",
+        "equinusocio.vsc-material-theme",
+        "equinusocio.vsc-material-theme-icons",
+        "eww-yuck.yuck",
+        "formulahendry.auto-rename-tag",
+        "github.copilot",
+        "github.vscode-pull-request-github",
+        "golang.go",
+        "gruntfuggly.todo-tree",
+        "haskell.haskell",
+        "ionide.ionide-fsharp",
+        "james-yu.latex-workshop",
+        "jeff-hykin.better-cpp-syntax",
+        "jnoortheen.nix-ide",
+        "jroesch.lean",
+        "julialang.language-julia",
+        "justusadam.language-haskell",
+        "kahole.magit",
+        "kdarkhan.mips",
+        "liviuschera.noctis",
+        "mgmcdermott.vscode-language-babel",
+        "mhutchie.git-graph",
+        "mitaki28.vscode-clang",
+        "mkxml.vscode-filesize",
+        "modular-mojotools.vscode-mojo",
+        "ms-azuretools.vscode-docker",
+        "ms-dotnettools.csharp",
+        "ms-dotnettools.dotnet-interactive-vscode",
+        "ms-dotnettools.vscode-dotnet-pack",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-toolsai.jupyter",
+        "ms-toolsai.jupyter-renderers",
+        "ms-vscode-remote.remote-containers",
+        "ms-vscode-remote.remote-ssh",
+        "ms-vscode.azure-account",
+        "ms-vscode.cmake-tools",
+        "ms-vscode.cpptools",
+        "ms-vscode.hexeditor",
+        "ms-vscode.live-server",
+        "ms-vscode.vs-keybindings",
+        "ms-vsliveshare.vsliveshare",
+        "nhoizey.gremlins",
+        "nvarner.typst-lsp",
+        "peterschmalfeldt.explorer-exclude",
+        "polymeilex.wgsl",
+        "quicktype.quicktype",
+        "redhat.java",
+        "reditorsupport.r",
+        "rust-lang.rust-analyzer",
+        "samuelcolvin.jinjahtml",
+        "scala-lang.scala",
+        "shopify.ruby-lsp",
+        "slevesque.shader",
+        "stylelint.vscode-stylelint",
+        "svelte.svelte-vscode",
+        "twxs.cmake",
+        "usernamehw.errorlens",
+        "vscjava.vscode-java-debug",
+        "vscjava.vscode-java-pack",
+        "vscjava.vscode-java-test",
+        "vscjava.vscode-maven",
+        "wakatime.vscode-wakatime",
+        "ziglang.vscode-zig"
+      ]
+    }
+  }
+}

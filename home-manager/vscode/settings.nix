@@ -103,8 +103,6 @@ with pkgs;
   "javascript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBrackets" = true;
   "javascript.format.insertSpaceBeforeFunctionParenthesis" = true;
   "javascript.referencesCodeLens.enabled" = true;
-  "julia.enableTelemetry" = false;
-  "julia.symbolCacheDownload" = true;
   "typescript.format.insertSpaceAfterConstructor" = true;
   "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces" = true;
   "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBrackets" = true;
@@ -120,126 +118,22 @@ with pkgs;
   "git.enableCommitSigning" = true;
   "git.enableSmartCommit" = true;
   "git.showPushSuccessNotification" = true;
-  "C_Cpp.clang_format_path" = "${llvmPackages.clang-unwrapped}/bin/clang-format";
-  "C_Cpp.clang_format_fallbackStyle" = "LLVM";
-  "C_Cpp.formatting" = "disabled";
-  "C_Cpp.workspaceParsingPriority" = "medium";
-  "clang.executable" = "${clang}/bin/clang";
-  "cmake.cmakePath" = "${cmake}/bin/cmake";
+  "dev.containers.dockerPath" = "podman";
   "emmet.includeLanguages" = {
     "jinja-html" = "html";
   };
-  "eslint.nodePath" = "${nodePackages.eslint}/lib/node_modules";
-  # "eslint.packageManager" = "yarn";
-  "eslint.validate" = [
-    "html"
-    "javascript"
-    "javascriptreact"
-  ];
   "gitlens.codeLens.scopes" = [
     "document"
     "containers"
     "blocks"
   ];
-  "java.implementationsCodeLens.enabled" = true;
-  "java.referencesCodeLens.enabled" = true;
-  "java.saveActions.organizeImports" = true;
-  "jupyter.disableJupyterAutoStart" = true;
-  "jupyter.experiments.enabled" = false;
-  # "gopls.expandWorkspaceToModule" = true;
-  "haskell.formattingProvider" = "none";
-  "haskell.serverExecutablePath" = "\${workspaceFolder}/hie-wrapper.sh";
-  "latex-workshop.linting.chktex.enabled" = true;
-  "latex-workshop.latex.autoClean.run" = "onBuilt";
-  "latex-workshop.latex.tools" = [
-    {
-      "name" = "latexmk";
-      "command" = "latexmk";
-      "args" = [
-        "-f"
-        "-cd"
-        "-pdf"
-        "-file-line-error"
-        "-synctex=1"
-        "-interaction=nonstopmode"
-        "-outdir=./"
-        "-xelatex"
-        "%DOC%"
-      ];
-    }
-
-    {
-      "name" = "pdflatex";
-      "command" = "pdflatex";
-      "args" = [
-        "-synctex=1"
-        "-interaction=nonstopmode"
-        "-file-line-error"
-        "%DOC%"
-      ];
-    }
-
-    {
-      "name" = "bibtex";
-      "command" = "bibtex";
-      "args" = [
-        "%DOCFILE%"
-      ];
-    }
-  ];
-  "latex-workshop.latexindent.path" = "${texlive.combined.scheme-full}/bin/latexindent";
-  "latex-workshop.synctex.path" = "${texlive.combined.scheme-full}/bin/synctex";
-  "latex-workshop.texdoc.path" = "${texlive.combined.scheme-full}/bin/texdoc";
-  "latex-workshop.view.pdf.viewer" = "tab";
   "materialTheme.accent" = "Graphite";
   "npm.packageManager" = "yarn";
   "path-intellisense.showHiddenFiles" = true;
-  "python.analysis.completeFunctionParens" = true;
-  "python.defaultInterpreterPath" = "${python3Packages.python}/bin/python3";
-  # "python.formatting.provider" = "black";
-  # "python.formatting.yapfPath" = "${python3Packages.yapf}/bin/yapf";
-  # "python.formatting.blackPath" = "${python3Packages.black}/bin/black";
-  "python.languageServer" = "Pylance";
-  # "python.linting.flake8Enabled" = true;
-  # "python.linting.flake8Path" = "${python3Packages.flake8}/bin/flake8";
-  # "python.linting.mypyEnabled" = true;
-  # "python.linting.mypyPath" = "${python3Packages.mypy}/bin/mypy";
-  # "python.linting.pycodestyleEnabled" = true;
-  # "python.linting.pycodestylePath" = "${python3Packages.pycodestyle}/bin/pycodestyle";
-  # "python.linting.pydocstyleEnabled" = false;
-  # "python.linting.pydocstylePath" = "${python3Packages.pydocstyle}/bin/pydocstyle";
-  # "python.linting.pylamaEnabled" = true;
-  # "python.linting.pylamaPath" = "${python3Packages.pylama}/bin/pylama";
-  # "python.linting.pylintPath" = "${python3Packages.pylint}/bin/pylint";
-  "python.testing.unittestEnabled" = true;
-  "maven.executable.path" = "${maven}/bin/mvn";
-  "maven.terminal.useJavaHome" = true;
-  "rust-analyzer.server.path" = "${rust-analyzer}/bin/rust-analyzer";
-  "sqlite.sqlite3" = "${sqlite}/bin/sqlite3";
   "todo-tree.general.tags" = [ "BUG" "HACK" "FIXME" "TODO" "XXX" "[ ]" "[x]" ];
-  # https://gist.github.com/hyperupcall/99e355405611be6c4e0a38b6e3e8aad0
-  # "clangd.checkUpdates" = false;
-  # "code-runner.enableAppInsights" = false;
-  # "docker-explorer.enableTelemetry" = false;
   "extensions.ignoreRecommendations" = true;
   "gitlens.showWelcomeOnInstall" = false;
   "gitlens.showWhatsNewAfterUpgrades" = false;
-  "java.help.firstView" = "none";
-  "java.help.showReleaseNotes" = false;
-  # "kite.showWelcomeNotificationOnStartup" = false;
-  # "liveServer.settings.donotShowInfoMsg" = true;
-  # "Lua.telemetry.enable" = false;
-  # "material-icon-theme.showWelcomeMessage" = false;
-  # "pros.showWelcomeOnStartup" = false;
-  # "pros.useGoogleAnalytics" = false;
-  "redhat.telemetry.enabled" = false;
-  # "rpcServer.showStartupMessage" = false;
-  # "shellcheck.disableVersionCheck" = true;
-  # "sonarlint.disableTelemetry" = true;
-  # "telemetry.enableCrashReporter" = false;
-  # "telemetry.enableTelemetry" = false;
-  # "terraform.telemetry.enabled" = false;
   "update.showReleaseNotes" = false;
-  # "vsicons.dontShowNewVersionMessage" = true;
   "workbench.welcomePage.walkthroughs.openOnInstall" = false;
 }

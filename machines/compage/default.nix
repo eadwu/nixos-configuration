@@ -35,6 +35,10 @@ in
     }
 
     {
+      virtualisation.podman.enable = true;
+    }
+
+    {
       programs.dconf.enable = true;
 
       home-manager.useUserPackages = true;
@@ -126,6 +130,7 @@ in
               { directory = ".cache/nix-index"; mode = "0700"; }
               { directory = ".cache/pypoetry"; mode = "0700"; }
               { directory = ".local/lib/vivaldi-snapshot"; mode = "0700"; }
+              { directory = ".local/share/containers"; mode = "0700"; }
               # TODO: Needed for home-manager, should probably be tmpfs without any risk of breakage though
               { directory = ".local/state/nix/profiles"; mode = "0700"; }
 
