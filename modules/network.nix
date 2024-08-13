@@ -68,10 +68,7 @@
   systemd.network.links.default = {
     matchConfig.OriginalName = "!docker* virbr* tun* cni* flannel* veth* tailscale*";
 
-    linkConfig = {
-      MACAddressPolicy = "random";
-      NamePolicy = "kernel database onboard slot path";
-    };
+    linkConfig.MACAddressPolicy = "random";
   };
 
   # https://wiki.archlinux.org/title/Kubernetes#Pods_cannot_communicate_when_using_Flannel_CNI_and_systemd-networkd
