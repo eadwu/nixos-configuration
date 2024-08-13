@@ -103,7 +103,7 @@
   };
 
   systemd.network.networks.eth = {
-    matchConfig.Name = "eth* ens*";
+    matchConfig.Type = "ether";
     dhcpV4Config.RouteMetric = 10;
   };
 
