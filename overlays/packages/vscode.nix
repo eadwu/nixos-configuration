@@ -34,8 +34,8 @@ with final.pkgs; {
       {
         name = "gitlens";
         publisher = "eamodio";
-        version = "2024.8.1005";
-        sha256 = "1vbv04yfzmzk3mzc140ph4nc0ilwfirrxyj9svil5fry7y5m57d7";
+        version = "2024.8.1805";
+        sha256 = "19lkl0z3kajs1nhw6aw9g2w4ff4jmbnx99qlpy7a9ll1g8f0lzib";
       }
 
       {
@@ -51,20 +51,20 @@ with final.pkgs; {
         version = "3.8.7";
         sha256 = "0a5fq5s53m9qbp711y1lv3f9fm3kgqb9wlnx4chb2i521a9afbpi";
       }
+
       {
         name = "copilot";
         publisher = "github";
-        version = "1.221.1040";
-        sha256 = "1lh781lzjq033j8dxkgidz1d2k493lxkamj2z7463vwg957yssxk";
+        version = "1.223.1056";
+        sha256 = "1j15bmvazlydz62pjw3h4qy7c16icalsfzhmr566rpqw89jq3h9c";
       }
 
       {
         name = "vscode-pull-request-github";
         publisher = "github";
-        version = "0.95.2024080804";
-        sha256 = "06pzsmz2b71zsjszwwlva04dwp8y9vga10drn9kbk0378s8hn16a";
+        version = "0.95.2024081504";
+        sha256 = "1c46ayw1263rvdxzh7siw40nyjpggmhyl30i9wz8pyy76yb656k3";
       }
-
 
       {
         name = "todo-tree";
@@ -86,7 +86,6 @@ with final.pkgs; {
         version = "0.6.61";
         sha256 = "10zayxkrmajk12qajggixv0ssrjlmwr1s58d3mz2wb93kb1gmmdn";
       }
-
 
       {
         name = "noctis";
@@ -119,8 +118,8 @@ with final.pkgs; {
       {
         name = "remote-ssh";
         publisher = "ms-vscode-remote";
-        version = "0.114.2024080815";
-        sha256 = "0jx438c9766aqgy94vsb4n0yzvhgp72c94vh5dy7vwf03x0mwk8p";
+        version = "0.114.2024081215";
+        sha256 = "1y2rbw5yqyai7hr8b241x0a7hsmr3fr1q0icy1lb9nk6jm821nb7";
       }
 
       {
