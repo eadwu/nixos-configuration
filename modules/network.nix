@@ -55,9 +55,7 @@
   networking.dhcpcd.enable = lib.mkDefault false;
 
   services.resolved.llmnr = "false";
-  services.resolved.extraConfig = ''
-    DNSOverTLS=opportunistic
-  '';
+  services.resolved.dnsovertls = lib.mkDefault "opportunistic";
   services.resolved.fallbackDns = lib.mkDefault [
     "2606:4700:4700::1111#cloudflare-dns.com"
     "2606:4700:4700::1001#cloudflare-dns.com"
