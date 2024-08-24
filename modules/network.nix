@@ -80,7 +80,7 @@
 
   systemd.network.networks.default = rec {
     DHCP = "yes";
-    matchConfig.Name = "!docker* virbr* tun* cni* flannel* veth* wg* tailscale*";
+    matchConfig.Name = "!br* docker* virbr* tun* cni* flannel* veth* wg* tailscale*";
 
     dhcpV4Config = {
       Anonymize = true;
@@ -110,6 +110,11 @@
   systemd.network.networks.wlan = {
     matchConfig.Type = "wlan";
     dhcpV4Config.RouteMetric = 20;
+  };
+
+  systemd.network.networks.br = {
+    matchConfig.Name = "br*";
+    linkConfig.Unmanaged = true;
   };
 
   systemd.network.networks.docker = {
