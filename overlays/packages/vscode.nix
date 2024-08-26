@@ -34,8 +34,8 @@ with final.pkgs; {
       {
         name = "gitlens";
         publisher = "eamodio";
-        version = "2024.8.1805";
-        sha256 = "19lkl0z3kajs1nhw6aw9g2w4ff4jmbnx99qlpy7a9ll1g8f0lzib";
+        version = "2024.8.2405";
+        sha256 = "0p7m5lbpgkpazzwrwh4bw3p053lhz2hvj9z10pq9abflrd2dj2f2";
       }
 
       {
@@ -55,15 +55,15 @@ with final.pkgs; {
       {
         name = "copilot";
         publisher = "github";
-        version = "1.223.1056";
-        sha256 = "1j15bmvazlydz62pjw3h4qy7c16icalsfzhmr566rpqw89jq3h9c";
+        version = "1.223.1066";
+        sha256 = "1xc3v5v8ivwqn3vzfwwyvrpgr48mfpgkb9dyfyg0p90d1kzsqm6s";
       }
 
       {
         name = "vscode-pull-request-github";
         publisher = "github";
-        version = "0.95.2024081504";
-        sha256 = "1c46ayw1263rvdxzh7siw40nyjpggmhyl30i9wz8pyy76yb656k3";
+        version = "0.95.2024082204";
+        sha256 = "1ilff24dp3fig0bgj44m4d4pv2f3wfa90s7c4l38kfvhcd8wk7rh";
       }
 
       {
@@ -111,15 +111,15 @@ with final.pkgs; {
       {
         name = "remote-containers";
         publisher = "ms-vscode-remote";
-        version = "0.381.0";
-        sha256 = "0ckky1s1ppw8abn7h9crd6h3qfr5vhdgp0z2zdqis16h86jcnq58";
+        version = "0.382.0";
+        sha256 = "0ni4fwb4asknj3c94pc00f6d2xww1513g7h52azx977h7qpngnra";
       }
 
       {
         name = "remote-ssh";
         publisher = "ms-vscode-remote";
-        version = "0.114.2024081215";
-        sha256 = "1y2rbw5yqyai7hr8b241x0a7hsmr3fr1q0icy1lb9nk6jm821nb7";
+        version = "0.114.2024082315";
+        sha256 = "0r87xwmnk1qqa7za26p2fild54i272qmb8klif81rnzm89cgn2ma";
       }
 
       {
