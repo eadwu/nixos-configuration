@@ -34,8 +34,8 @@ with final.pkgs; {
       {
         name = "gitlens";
         publisher = "eamodio";
-        version = "2024.8.2405";
-        sha256 = "0p7m5lbpgkpazzwrwh4bw3p053lhz2hvj9z10pq9abflrd2dj2f2";
+        version = "2024.8.3105";
+        sha256 = "1lsxcbs49jmz821ysc8qj3ppj3vv7j0xixbkbvy3s618dd6w55pz";
       }
 
       {
@@ -48,22 +48,22 @@ with final.pkgs; {
       {
         name = "vsc-material-theme-icons";
         publisher = "equinusocio";
-        version = "3.8.7";
-        sha256 = "0a5fq5s53m9qbp711y1lv3f9fm3kgqb9wlnx4chb2i521a9afbpi";
+        version = "3.8.8";
+        sha256 = "1jdk3n5x7piahz17xcblfn1kywvwnpj7yzpnv1kr10dmm90s2pbs";
       }
 
       {
         name = "copilot";
         publisher = "github";
-        version = "1.223.1066";
-        sha256 = "1xc3v5v8ivwqn3vzfwwyvrpgr48mfpgkb9dyfyg0p90d1kzsqm6s";
+        version = "1.224.1077";
+        sha256 = "19jvadhbvgqx90yv7jkax8qiw2zvlry7nl2p48x8vr47smp8b7l0";
       }
 
       {
         name = "vscode-pull-request-github";
         publisher = "github";
-        version = "0.95.2024082204";
-        sha256 = "1ilff24dp3fig0bgj44m4d4pv2f3wfa90s7c4l38kfvhcd8wk7rh";
+        version = "0.95.2024082904";
+        sha256 = "17k5lc8blaj0bvi91jr3y8h0k330fsykcqy60hm60vsd99vchjaj";
       }
 
       {
@@ -111,15 +111,15 @@ with final.pkgs; {
       {
         name = "remote-containers";
         publisher = "ms-vscode-remote";
-        version = "0.382.0";
-        sha256 = "0ni4fwb4asknj3c94pc00f6d2xww1513g7h52azx977h7qpngnra";
+        version = "0.383.0";
+        sha256 = "1h4jxnxd5gyhd9gaq104sjzfii5zr1jhkj8285ic32dlr5q4yv68";
       }
 
       {
         name = "remote-ssh";
         publisher = "ms-vscode-remote";
-        version = "0.114.2024082315";
-        sha256 = "0r87xwmnk1qqa7za26p2fild54i272qmb8klif81rnzm89cgn2ma";
+        version = "0.114.2024083019";
+        sha256 = "0gddp7gzk0pykn79gl4d0r23qz4iw47jxc52r7ggr5aph5jkgaq9";
       }
 
       {
@@ -167,8 +167,8 @@ with final.pkgs; {
       {
         name = "vscode-wakatime";
         publisher = "wakatime";
-        version = "24.6.0";
-        sha256 = "04jhyfyfgmyfa6kywyrc0g4ns7qs45ivr5dmnj725ghr03w8ab2p";
+        version = "24.6.1";
+        sha256 = "1fayxmhwpgmy3qr5mi7kpjfdianm12cb834vnqdyf1kf0b696ajb";
       }
     ];
   };
