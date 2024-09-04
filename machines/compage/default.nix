@@ -236,7 +236,10 @@ in
       ];
 
       boot.supportedFilesystems = [ "zfs" ];
-      boot.kernelPackages = config.boot.zfs.package.latestCompatibleLinuxPackages;
+      boot.kernelPackages = lib.last (lib.filter (kPkgs: config.boot.zfs.package.kernelCompatible kPkgs.kernel) [
+        pkgs.linuxPackages
+        pkgs.linuxPackages_latest
+      ]);
 
       boot.zfs.requestEncryptionCredentials = true;
       boot.zfs.package = pkgs.zfs;
