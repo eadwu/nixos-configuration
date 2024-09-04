@@ -8,7 +8,7 @@
   programs.zsh.history.ignoreAllDups = false;
   programs.zsh.history.ignoreSpace = true;
   programs.zsh.history.expireDuplicatesFirst = false;
-  programs.zsh.history.share = false;
+  programs.zsh.history.share = true;
   programs.zsh.history.extended = false;
 
   programs.zsh.plugins = [
