@@ -565,7 +565,9 @@ in
   ];
 
   environment.persistence."/persist" = {
-    directories = [ ];
+    directories = [
+      { directory = "/var/lib/tailscale"; mode = "0700"; user = "root"; group = "root"; }
+    ];
     files = [ ];
   };
   environment.persistence."/cache" = {
