@@ -34,8 +34,8 @@ with final.pkgs; {
       {
         name = "gitlens";
         publisher = "eamodio";
-        version = "2024.9.705";
-        sha256 = "1vzq1zm76rrivr7ljzqhdcg0lbxbv385zila35cpdkbj6lxmqm80";
+        version = "2024.9.1405";
+        sha256 = "13lnyahrjjb1pixkx0f0i1icddlbd765bgfk8hcd1icjds2wlkn1";
       }
 
       {
@@ -55,15 +55,15 @@ with final.pkgs; {
       {
         name = "copilot";
         publisher = "github";
-        version = "1.229.1094";
-        sha256 = "0qjfdrf6a0kgfs9qiin6xi5ccddx7ara011xih18wzxrj9x078ck";
+        version = "1.229.1104";
+        sha256 = "01nmxrrm8k5by2g5y5cmvh4ivj6f96lqp6bmmm8wmmjkdzxbn5zd";
       }
 
       {
         name = "vscode-pull-request-github";
         publisher = "github";
-        version = "0.97.2024090514";
-        sha256 = "186483z9r8iciyh94nngmy2ryaxy2z6zmxv3mjghlr548ywpvd1a";
+        version = "0.97.2024091204";
+        sha256 = "1zv4r9751v827w85qxz8k246dk0gbmnvx2nkhzj0w7vy48lvmap5";
       }
 
       {
@@ -76,15 +76,15 @@ with final.pkgs; {
       {
         name = "nix-ide";
         publisher = "jnoortheen";
-        version = "0.3.3";
-        sha256 = "1rhb845l32r9ncwxynngq1zji2lf487ryc54n8hw8y9hph95pw7y";
+        version = "0.3.5";
+        sha256 = "12sg67mn3c8mjayh9d6y8qaky00vrlnwwx58v1f1m4qrbdjqab46";
       }
 
       {
         name = "magit";
         publisher = "kahole";
-        version = "0.6.61";
-        sha256 = "10zayxkrmajk12qajggixv0ssrjlmwr1s58d3mz2wb93kb1gmmdn";
+        version = "0.6.62";
+        sha256 = "09zzfdas4yaj6rrz9zzvx7859j7gb6fnk7ipy80nz7pwjzl8v3sl";
       }
 
       {
@@ -111,15 +111,15 @@ with final.pkgs; {
       {
         name = "remote-containers";
         publisher = "ms-vscode-remote";
-        version = "0.385.0";
-        sha256 = "0mgyijwyjv0735s43s7yamh4si7af88fby6iis5ck9b2wc68vph6";
+        version = "0.386.0";
+        sha256 = "0g42xspmlr595zwnzr0jnppxsk3my3x9n8i4j1vjyc3vlsva1srd";
       }
 
       {
         name = "remote-ssh";
         publisher = "ms-vscode-remote";
-        version = "0.115.2024090617";
-        sha256 = "1r99gwzs1lk720fljqiicws97pm3nq2pfrn0mjgd9myv5gafy9z2";
+        version = "0.115.2024091215";
+        sha256 = "1k0ly7vlbsrp4n5127igms224hdzlpic4wqqbzcf4pqchhc141hs";
       }
 
       {
