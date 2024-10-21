@@ -59,6 +59,39 @@
 
             echo "$outLink"
           }
+
+          nix-remote-build-system () {
+            local remoteBuilder
+            local flakePath="${./..}"
+
+            local outputJson
+
+            remoteBuilder="$1"
+            shift
+
+            if [ ! -z "$1" ]; then
+              flakePath="$1"
+              shift
+            fi
+
+            outputJson=$(
+              NIX_SSHOPTS="-o UserKnownHostsFile=/dev/null -o StrictHostKeychecking=no" \
+                nix build --eval-store auto --store "$remoteBuilder" --builders "" --max-jobs 0 --json \
+                  "$@" "$flakePath#${system}.config.system.build.toplevel"
+            )
+
+            if [ $? -ne 0 ]; then
+              echo "Unexpected error while building the configuration"
+              return 1
+            fi
+
+            echo "$outputJson"
+
+            outputDerivation=$(echo "$outputJson" | ${pkgs.jq.bin}/bin/jq -r '.[0].outputs.out')
+
+            NIX_SSHOPTS="-o UserKnownHostsFile=/dev/null -o StrictHostKeychecking=no" \
+              nix copy --no-check-sigs --from "$remoteBuilder" "$outputDerivation"
+          }
         '';
     }
   ];
