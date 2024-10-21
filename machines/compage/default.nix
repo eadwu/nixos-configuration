@@ -14,6 +14,7 @@ in
 
     ../../modules/audio.nix
     ../../modules/backlight
+    ../../modules/firewall.nix
     ../../modules/network.nix
     ../../modules/nix.nix
     ../../modules/nix-ld.nix
@@ -501,68 +502,6 @@ in
 
   users.defaultUserShell = "${pkgs.zsh}/bin/zsh";
   users.mutableUsers = false;
-
-  networking.blacklistHosts = [
-    # If you're part of an organization who wants to control access to Remote Tunnels,
-    # you can do so by allowing or denying access to the domain global.rel.tunnels.api.visualstudio.com.
-    # *.tunnels.api.visualstudio.com
-    # *.devtunnels.ms
-    "global.rel.tunnels.api.visualstudio.com"
-    "devtunnels.ms"
-    "tunnels.api.visualstudio.com"
-  ];
-
-  networking.whitelist = [
-    # NVIDIA Store
-    "^api.nvidia.partners$"
-
-    # MangaUpdate
-    "^www.mangaupdates.com$"
-
-    # Crunchyroll download
-    "^fy.v.vrv.co$"
-    # DNS Resolution service for above
-    "^ellation.map.fastly.net$"
-
-    # Relics from eadwu/flakes
-    "^[^.]*$" # if there isn't any dots, it probably isn't a domain
-    "^.*%.*$" # invalid character
-    "^://.*/.*$" # invalid domain
-    "^www.rarlab.com$" # RAR archiver source...
-    "^stats.stackexchange.com$" # stackexchange...
-    "^tags.tiqcdn.com$" # weather.com
-    "^lists.gnu.org$" # GNU...
-    "^[^.]*.googlevideo.com$" # Youtube providers
-    "(^boards.|^)4chan.org$" # need anything be said...
-
-    # weather.com videos
-    "^v.w-x.co$"
-    # UB Box, buffalo.app.box.com
-    "^app.box.com$"
-    # Akuna Capital
-    "^greenhouse.io$"
-    "^boards.greenhouse.io$"
-    # Wattpad
-    "^www.wattpad.com$"
-    # yeet
-    "^files.catbox.moe$"
-    # "^groups.csail.mit.edu$"
-    "^aditsachde.com$"
-    "^.*.mathworks.com.*$"
-    # Imgur
-    "^t.imgur.com$"
-
-    "^.*.homedepot.com.*$"
-    "^www.lemonade.com$"
-    "^.*.alaskaair.com.*$"
-
-    # Job Applications
-    "^account.amazon.jobs$"
-    "^qualtrics.com$"
-    "^salesforce.com$"
-    "^uhf.microsoft.com$"
-    "^careers.tiktok.com$"
-  ];
 
   environment.persistence."/persist" = {
     directories = [
