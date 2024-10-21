@@ -14,13 +14,14 @@
   boot.extraModulePackages = [ ];
 
   boot.loader.systemd-boot.enable = true;
+  boot.initrd.systemd.enable = true;
   boot.initrd.luks.devices."cryptswap" = {
     gracePeriod = 0;
-    device = "/dev/disk/by-uuid/5571a019-9326-46a4-b5eb-146ce772ae90";
+    device = "/dev/disk/by-uuid/39f2d5f6-4ac5-43ff-8f18-1d2583e643ed";
   };
   boot.initrd.luks.devices."cryptfs" = {
     gracePeriod = 0;
-    device = "/dev/disk/by-uuid/3ec97390-a378-40a6-9442-25a4dd196571";
+    device = "/dev/disk/by-uuid/4ce2afd0-03b4-4eb6-9d10-c5115a46fff1";
   };
 
   fileSystems."/" =
@@ -48,12 +49,13 @@
     };
 
   fileSystems."/boot" =
-    { device = "/dev/disk/by-uuid/0ABD-D38A";
+    { device = "/dev/disk/by-uuid/216C-FBC9";
       fsType = "vfat";
+      options = [ "fmask=0022" "dmask=0022" ];
     };
 
   swapDevices =
-    [ { device = "/dev/disk/by-uuid/081f0261-6fa7-44cd-8f5a-214d06de4871"; }
+    [ { device = "/dev/disk/by-uuid/cbba22f3-ab2a-40d0-beb1-836579c558ac"; }
     ];
 
   # Enables DHCP on each ethernet and wireless interface. In case of scripted networking
@@ -61,7 +63,6 @@
   # still possible to use this option, but it's recommended to use it in conjunction
   # with explicit per-interface declarations with `networking.interfaces.<interface>.useDHCP`.
   # networking.useDHCP = lib.mkDefault true;
-  # networking.interfaces.docker0.useDHCP = lib.mkDefault true;
   # networking.interfaces.wlan0.useDHCP = lib.mkDefault true;
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
