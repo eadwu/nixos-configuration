@@ -34,8 +34,8 @@ with final.pkgs; {
       {
         name = "gitlens";
         publisher = "eamodio";
-        version = "2024.10.1316";
-        sha256 = "02xp8h7v69315mnbiwj3bia5ry08pckgi6bjyl6fcbyzlza80xry";
+        version = "2024.10.1905";
+        sha256 = "0wl25740vl9l8jwng3kq9v3qnf1awiw5x9snpwzj6rkxrg7cdci8";
       }
 
       {
@@ -55,15 +55,15 @@ with final.pkgs; {
       {
         name = "copilot";
         publisher = "github";
-        version = "1.238.1153";
-        sha256 = "07y5md8nydcxpz4779f299cg5abd5qj7i3mssbbw7m5r4wyh3rmq";
+        version = "1.239.1166";
+        sha256 = "0y37a51klfmk8lkgpshhamxf5igb8khgnb61x34fsl1xvxl41cnv";
       }
 
       {
         name = "vscode-pull-request-github";
         publisher = "github";
-        version = "0.99.2024101404";
-        sha256 = "02w1p6zzm1zmyqic73gglalnryl0bd2rn37f2ip2j8jnwdcg8c6d";
+        version = "0.99.2024101808";
+        sha256 = "1zf3s2c63sna07kd24k7df74bj7i3h3afgvpx47nzbp8xvr89f9f";
       }
 
       {
@@ -162,13 +162,6 @@ with final.pkgs; {
         publisher = "usernamehw";
         version = "3.20.0";
         sha256 = "0gfjp17f54439hsg83v5x522qjp0bhbsjwy7b4f42zmbxvx9606j";
-      }
-
-      {
-        name = "vscode-wakatime";
-        publisher = "wakatime";
-        version = "24.6.2";
-        sha256 = "1j18xb2i8gmlji18xk05z6ym7w3y7shb2gncm80swsjkxazixpi1";
       }
     ];
   };
