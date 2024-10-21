@@ -118,7 +118,6 @@ with pkgs;
   "git.enableCommitSigning" = true;
   "git.enableSmartCommit" = true;
   "git.showPushSuccessNotification" = true;
-  "dev.containers.dockerPath" = "podman";
   "emmet.includeLanguages" = {
     "jinja-html" = "html";
   };
