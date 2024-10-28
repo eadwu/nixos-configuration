@@ -34,8 +34,8 @@ with final.pkgs; {
       {
         name = "gitlens";
         publisher = "eamodio";
-        version = "2024.10.1905";
-        sha256 = "0wl25740vl9l8jwng3kq9v3qnf1awiw5x9snpwzj6rkxrg7cdci8";
+        version = "2024.10.2505";
+        sha256 = "0gbxxfzqa3r85bnbisgjjfnh82isas0g5cs9rqbvfvy6gh9kf9nb";
       }
 
       {
@@ -55,15 +55,15 @@ with final.pkgs; {
       {
         name = "copilot";
         publisher = "github";
-        version = "1.239.1166";
-        sha256 = "0y37a51klfmk8lkgpshhamxf5igb8khgnb61x34fsl1xvxl41cnv";
+        version = "1.242.1180";
+        sha256 = "10dqwz0d97h0sp47d200y2m920vsl4v7l59z72bsrxy1zwvj3pmf";
       }
 
       {
         name = "vscode-pull-request-github";
         publisher = "github";
-        version = "0.99.2024101808";
-        sha256 = "1zf3s2c63sna07kd24k7df74bj7i3h3afgvpx47nzbp8xvr89f9f";
+        version = "0.99.2024102513";
+        sha256 = "0hlbwv7dbbdy65wqjmnmk1zxdhmk3kdxxhi8xwryzfshm7p0750r";
       }
 
       {
