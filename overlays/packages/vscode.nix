@@ -34,15 +34,15 @@ with final.pkgs; {
       {
         name = "gitlens";
         publisher = "eamodio";
-        version = "2024.10.2505";
-        sha256 = "0gbxxfzqa3r85bnbisgjjfnh82isas0g5cs9rqbvfvy6gh9kf9nb";
+        version = "2024.11.205";
+        sha256 = "0j2dyzqiprpb1z3axb10p3sgpqd4gr91mrgh3napcgwz5wqczfjj";
       }
 
       {
         name = "vsc-material-theme";
         publisher = "equinusocio";
-        version = "34.7.5";
-        sha256 = "14sa5qz3v4cjn8mv7a2354i7zj447bxmn3y363k9md0khgmjp0z9";
+        version = "34.7.7";
+        sha256 = "1pdsymimah3zxjw91x68pvbb965hvr3c1dxvq0fd2plgdymm9135";
       }
 
       {
@@ -55,15 +55,15 @@ with final.pkgs; {
       {
         name = "copilot";
         publisher = "github";
-        version = "1.242.1180";
-        sha256 = "10dqwz0d97h0sp47d200y2m920vsl4v7l59z72bsrxy1zwvj3pmf";
+        version = "1.243.1193";
+        sha256 = "1gcsd3rrnikvfwfnd2xwv0y09qkswwhgzdyaqpw33k0mfc7mi5qy";
       }
 
       {
         name = "vscode-pull-request-github";
         publisher = "github";
-        version = "0.99.2024102513";
-        sha256 = "0hlbwv7dbbdy65wqjmnmk1zxdhmk3kdxxhi8xwryzfshm7p0750r";
+        version = "0.101.2024103104";
+        sha256 = "01a0232yj0kclnkgh97l9vhqk64n07vg3ffm9xab0jlmis3cl91i";
       }
 
       {
@@ -104,15 +104,15 @@ with final.pkgs; {
       {
         name = "vscode-filesize";
         publisher = "mkxml";
-        version = "3.1.0";
-        sha256 = "1zxdsqr5h0xl6arphi5i1xfgby4cin39jxpnmdgcg41p6qr3k3z7";
+        version = "3.2.1";
+        sha256 = "0zw816rhs18zicxzhqw97bnrns2cl00cvl6hxaf94kwzs57cjby7";
       }
 
       {
         name = "remote-containers";
         publisher = "ms-vscode-remote";
-        version = "0.389.0";
-        sha256 = "0ymz5yjrx88a842mpmhfi5pa65cjx94x89j0pklzbsmff6m2949h";
+        version = "0.390.0";
+        sha256 = "0b7w7g5dwfwl2c4am31v3dnv54094k8jw6vph5z816b376nf1d8h";
       }
 
       {
@@ -125,8 +125,8 @@ with final.pkgs; {
       {
         name = "hexeditor";
         publisher = "ms-vscode";
-        version = "1.10.0";
-        sha256 = "0mlibryaxfilsl61asm9yxz3jz1jpvp8q3r9w0mg4mpa1ajjqd8h";
+        version = "1.11.1";
+        sha256 = "1dm3l23pwxr2bslwy6aik6lxfz101zna95vcrh2g7dglklx5h7j4";
       }
 
       {
