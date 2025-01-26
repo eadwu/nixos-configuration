@@ -33,8 +33,8 @@ let
     {
       name = "gitlens";
       publisher = "eamodio";
-      version = "2025.1.1104";
-      sha256 = "065zz5fapxbx8ip0ngzfjwx97w0wi3crbghrfy522ccdh8nasnbc";
+      version = "2025.1.2504";
+      sha256 = "1rq6sd7ab1qrwvlp8xzqdj9yfw9x2h09vvb7s2l4a5grvy82gpqy";
     }
 
     {
@@ -54,15 +54,15 @@ let
     {
       name = "copilot";
       publisher = "github";
-      version = "1.256.1304";
-      sha256 = "0pbmhqxxsbvxqcb9m7zki2n5vsgmrbknzija8c8417vn54dvadq6";
+      version = "1.259.1335";
+      sha256 = "0qqcijfyj15dpq52jpp88yzhbpk5i4n3ki9ki5jim6nmzk4mmq9a";
     }
 
     {
       name = "vscode-pull-request-github";
       publisher = "github";
-      version = "0.103.2025010904";
-      sha256 = "1zbqdv2lp1rxpmbsxf9v43a0nm9a1n62662dmy7wp8k9ajgcf7a8";
+      version = "0.103.2025012304";
+      sha256 = "0697a3gxh0qa2m0lb7qjprns6yprnnqfxq2bna2j6h20vqzp9bhc";
     }
 
     {
@@ -75,8 +75,8 @@ let
     {
       name = "nix-ide";
       publisher = "jnoortheen";
-      version = "0.3.5";
-      sha256 = "12sg67mn3c8mjayh9d6y8qaky00vrlnwwx58v1f1m4qrbdjqab46";
+      version = "0.4.10";
+      sha256 = "1m9xdq7h3cfglqd1m9a097fw3vlk4y15m6z1y0m46clz7x4l8dsj";
     }
 
     {
@@ -117,8 +117,8 @@ let
     {
       name = "remote-ssh";
       publisher = "ms-vscode-remote";
-      version = "0.117.2025011020";
-      sha256 = "12q3ljh1bpv9705agl60imcqifm9cq986vgs3yxn59gvn715fdxi";
+      version = "0.117.2025012415";
+      sha256 = "1lfra4q99jilr78gawa7jjr5va5y8pi82fcjyrmmf2xx897raf2m";
     }
 
     {
