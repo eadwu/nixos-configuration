@@ -33,8 +33,8 @@ let
     {
       name = "gitlens";
       publisher = "eamodio";
-      version = "2025.1.2504";
-      sha256 = "1rq6sd7ab1qrwvlp8xzqdj9yfw9x2h09vvb7s2l4a5grvy82gpqy";
+      version = "2025.2.804";
+      sha256 = "04kf98qy5vsh16nn4ydrl8nb47hbwafpjcfj2qrl7xvf9jshw2bb";
     }
 
     {
@@ -54,15 +54,15 @@ let
     {
       name = "copilot";
       publisher = "github";
-      version = "1.259.1335";
-      sha256 = "0qqcijfyj15dpq52jpp88yzhbpk5i4n3ki9ki5jim6nmzk4mmq9a";
+      version = "1.266.1364";
+      sha256 = "0xqjjjvq0fp6dxf2sx97bn1sfr8xwfpms4jidgvxhd2fbnygqf5g";
     }
 
     {
       name = "vscode-pull-request-github";
       publisher = "github";
-      version = "0.103.2025012304";
-      sha256 = "0697a3gxh0qa2m0lb7qjprns6yprnnqfxq2bna2j6h20vqzp9bhc";
+      version = "0.105.2025021004";
+      sha256 = "13aa54aiyvlgg41b004jqb7akwi00gzmzjzdcac33x3hbkkhz06p";
     }
 
     {
@@ -75,8 +75,8 @@ let
     {
       name = "nix-ide";
       publisher = "jnoortheen";
-      version = "0.4.10";
-      sha256 = "1m9xdq7h3cfglqd1m9a097fw3vlk4y15m6z1y0m46clz7x4l8dsj";
+      version = "0.4.12";
+      sha256 = "0rdq9wnqfrj8k1g5fcaam5iahzd16bdpi3sa0n2gi0rh02kg55fy";
     }
 
     {
@@ -110,15 +110,15 @@ let
     {
       name = "remote-containers";
       publisher = "ms-vscode-remote";
-      version = "0.395.0";
-      sha256 = "19m1n2k9bw0kms2adz9lngxbf2ymnf2571n663mwd9yxsjrrm2km";
+      version = "0.398.0";
+      sha256 = "06z9rwljxqf0hpj1qbila49ixymichvgpjxnc49fgi35pbbq936m";
     }
 
     {
       name = "remote-ssh";
       publisher = "ms-vscode-remote";
-      version = "0.117.2025012415";
-      sha256 = "1lfra4q99jilr78gawa7jjr5va5y8pi82fcjyrmmf2xx897raf2m";
+      version = "0.118.2025020720";
+      sha256 = "1misizc4hjg7agryrh0wy28q5wv99nrz43b98bvdhl9vv0p3bbvz";
     }
 
     {
@@ -159,8 +159,8 @@ let
     {
       name = "errorlens";
       publisher = "usernamehw";
-      version = "3.22.0";
-      sha256 = "17bpn6f6clh9nm9jxfdyn50ib5q54wn3bgf2fjcj1iv0pqkb5vaj";
+      version = "3.23.0";
+      sha256 = "100fp73c7pvnlmvc6bxxi7almbl2p58p2291zp6ajgxzix9wjgcv";
     }
   ];
 in
